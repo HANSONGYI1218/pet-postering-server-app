@@ -79,18 +79,35 @@ jobs:
 
       - name: Prisma migrate deploy (pre-deploy, prefer DIRECT_DATABASE_URL)
         run: |
-          # Prefer DIRECT_DATABASE_URL; fallback to DATABASE_URL if empty
+          set -e
+          add_sslmode_require() {
+            IN="$1"
+            if echo "$IN" | grep -qi 'sslmode='; then
+              echo "$IN"
+            else
+              if echo "$IN" | grep -q '?'; then
+                echo "${IN}&sslmode=require"
+              else
+                echo "${IN}?sslmode=require"
+              fi
+            fi
+          }
+
           URL="${DIRECT_DATABASE_URL:-${DATABASE_URL}}"
           if [ -z "$URL" ]; then
-            echo "No DIRECT_DATABASE_URL or DATABASE_URL provided; skipping migrate." >&2
+            echo "No DIRECT_DATABASE_URL or DATABASE_URL provided; cannot run migrations." >&2
             exit 1
           fi
-          # Export for Prisma CLI
+          URL=$(add_sslmode_require "$URL")
           export DATABASE_URL="$URL"
-          if [ -z "$DIRECT_DATABASE_URL" ]; then
-            echo "WARN: DIRECT_DATABASE_URL is empty. Using DATABASE_URL for migrations (may fail with pool)." >&2
-            export DIRECT_DATABASE_URL="$URL"
-          fi
+          export DIRECT_DATABASE_URL="$URL"
+          echo "Running prisma migrate against: $(echo "$URL" | sed -E 's#://[^@]+@#://***:***@#')"
+          # Quick TCP check to surface DNS/egress issues early
+          HOST=$(echo "$URL" | sed -E 's#^.+://[^@]+@([^:/?]+).*$#\1#')
+          PORT=$(echo "$URL" | sed -n 's#^.*://[^@]*@[^:/?]*:\([0-9][0-9]*\).*$#\1#p')
+          [ -z "$PORT" ] && PORT=5432
+          echo "Probing $HOST:$PORT"
+          (timeout 5 bash -c "</dev/tcp/$HOST/$PORT") || echo "WARN: TCP probe failed (may still succeed with SSL)"
           npx prisma migrate deploy
 
       - name: Install lightsailctl and jq
@@ -127,6 +144,7 @@ jobs:
                 "NODE_ENV": "production",
                 "PORT": "3000",
                 "DATABASE_URL": "${DATABASE_URL}",
+                "DIRECT_DATABASE_URL": "${DIRECT_DATABASE_URL}",
                 "JWT_ACCESS_SECRET": "${JWT_ACCESS_SECRET}",
                 "JWT_REFRESH_SECRET": "${JWT_REFRESH_SECRET}",
                 "JWT_ACCESS_EXPIRES_IN": "${JWT_ACCESS_EXPIRES_IN}",
