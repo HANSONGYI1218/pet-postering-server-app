@@ -19,7 +19,7 @@ RUN npm run build
 FROM base AS runner
 WORKDIR /app
 # 필요 라이브러리 복사
-COPY --from=deps /app/node_modules ./node_modules
+COPY --from=build /app/node_modules ./node_modules
 COPY package.json ./
 COPY --from=build /app/dist ./dist
 COPY prisma ./prisma
