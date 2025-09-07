@@ -1,0 +1,17 @@
+# Node
+node_modules/
+dist/
+coverage/
+*.log
+
+# Env
+.env
+.env.*.local
+
+# OS/Editor
+.DS_Store
+.idea/
+.vscode/
+
+# Legacy folder to be removed after flattening
+server/

@@ -1,0 +1,192 @@
+// flattened from server/prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ORG_ADMIN
+}
+
+enum OrgRole {
+  ADMIN
+  MEMBER
+}
+
+enum AnimalStatus {
+  WAITING
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum ReportTargetType {
+  POST
+  COMMENT
+}
+
+model User {
+  id          String   @id @default(cuid())
+  kakaoId     String   @unique
+  displayName String?
+  role        Role     @default(USER)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  organizations OrganizationMember[]
+  posts         Post[]
+  comments      Comment[]
+  postBookmarks PostBookmark[]
+  commentLikes  CommentLike[]
+  reports       Report[]        @relation("ReportReporter")
+  ownedAnimals  Animal[]
+}
+
+model Organization {
+  id        String               @id @default(cuid())
+  name      String
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+
+  members   OrganizationMember[]
+  animals   Animal[]
+}
+
+model OrganizationMember {
+  userId         String
+  organizationId String
+  role           OrgRole @default(MEMBER)
+  createdAt      DateTime @default(now())
+
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@id([userId, organizationId])
+  @@index([organizationId])
+}
+
+model Post {
+  id        String   @id @default(cuid())
+  authorId  String
+  title     String
+  content   String
+  viewCount Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments  Comment[]
+  bookmarks PostBookmark[]
+
+  @@index([authorId])
+  @@index([createdAt])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  postId    String
+  authorId  String
+  parentId  String?
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parent    Comment? @relation("CommentToReplies", fields: [parentId], references: [id])
+  replies   Comment[] @relation("CommentToReplies")
+  likes     CommentLike[]
+
+  @@index([postId])
+  @@index([authorId])
+  @@index([parentId])
+}
+
+model PostBookmark {
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@id([userId, postId])
+  @@index([postId])
+}
+
+model CommentLike {
+  userId    String
+  commentId String
+  createdAt DateTime @default(now())
+
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comment   Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@id([userId, commentId])
+  @@index([commentId])
+}
+
+model Report {
+  id          String           @id @default(cuid())
+  targetType  ReportTargetType
+  targetId    String
+  reason      String
+  reporterId  String
+  createdAt   DateTime @default(now())
+
+  reporter    User @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@index([targetType, targetId])
+}
+
+model Animal {
+  id           String       @id @default(cuid())
+  name         String
+  status       AnimalStatus @default(WAITING)
+  shared       Boolean      @default(false)
+  orgId        String?
+  ownerUserId  String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  organization Organization? @relation(fields: [orgId], references: [id])
+  owner        User?         @relation(fields: [ownerUserId], references: [id])
+  records      FosterRecord[]
+
+  @@index([status])
+  @@index([orgId])
+  @@index([ownerUserId])
+}
+
+model FosterRecord {
+  id        String   @id @default(cuid())
+  animalId  String
+  date      DateTime
+  content   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  animal    Animal               @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  images    FosterRecordImage[]
+
+  @@unique([animalId, date])
+  @@index([animalId, date])
+}
+
+model FosterRecordImage {
+  id         String   @id @default(cuid())
+  recordId   String
+  url        String
+  sortOrder  Int?
+  createdAt  DateTime @default(now())
+
+  record     FosterRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+
+  @@index([recordId])
+  @@unique([recordId, sortOrder])
+}
+
