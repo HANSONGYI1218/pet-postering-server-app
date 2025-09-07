@@ -27,5 +27,5 @@ COPY prisma ./prisma
 ENV PORT=3000
 EXPOSE 3000
 
-# 마이그레이션 후 앱 실행
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]
+# 앱 실행 (마이그레이션은 CI에서 사전 실행)
+CMD ["node", "dist/main.js"]

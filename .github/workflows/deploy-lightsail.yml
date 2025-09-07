@@ -15,6 +15,7 @@ jobs:
       AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
       AWS_REGION: ${{ secrets.AWS_REGION }}
       LIGHTSAIL_SERVICE_NAME: ${{ secrets.LIGHTSAIL_SERVICE_NAME }}
+      DIRECT_DATABASE_URL: ${{ secrets.DIRECT_DATABASE_URL }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
@@ -67,6 +68,19 @@ jobs:
           else
             echo "Service exists."
           fi
+
+      - name: Setup Node and install deps for Prisma CLI
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies (dev included)
+        run: npm ci --include=dev
+
+      - name: Prisma migrate deploy (pre-deploy, direct connection)
+        env:
+          DATABASE_URL: ${{ env.DIRECT_DATABASE_URL }}
+        run: npx prisma migrate deploy
 
       - name: Install lightsailctl and jq
         run: |
