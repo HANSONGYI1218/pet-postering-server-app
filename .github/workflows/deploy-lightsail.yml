@@ -61,13 +61,20 @@ jobs:
 
       - name: Push image to Lightsail container registry
         id: push
+        env:
+          AWS_PAGER: ""
         run: |
-          IMAGE_URI=$(aws lightsail push-container-image \
+          IMAGE_JSON=$(aws lightsail push-container-image \
             --service-name ${{ steps.svc.outputs.value }} \
             --label pet-server \
             --image pet-server:latest \
-            --query 'image' \
-            --output text)
+            --output json)
+          echo "$IMAGE_JSON"
+          IMAGE_URI=$(echo "$IMAGE_JSON" | jq -r '.image')
+          if [ -z "$IMAGE_URI" ] || [ "$IMAGE_URI" = "null" ]; then
+            echo "Failed to parse image URI" >&2
+            exit 1
+          fi
           echo "image_uri=$IMAGE_URI" >> $GITHUB_OUTPUT
 
       - name: Create deployment spec
