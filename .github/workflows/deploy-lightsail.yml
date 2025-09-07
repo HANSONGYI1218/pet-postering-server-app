@@ -67,7 +67,6 @@ jobs:
           docker build -t pet-server:latest .
 
       - name: Push image to Lightsail container registry
-        id: push
         env:
           AWS_PAGER: ""
         run: |
@@ -77,17 +76,10 @@ jobs:
             --image pet-server:latest \
             --output json)
           echo "$IMAGE_JSON"
-          IMAGE_URI=$(echo "$IMAGE_JSON" | jq -r '.image')
-          if [ -z "$IMAGE_URI" ] || [ "$IMAGE_URI" = "null" ]; then
-            echo "Failed to parse image URI" >&2
-            exit 1
-          fi
-          echo "image_uri=$IMAGE_URI" >> $GITHUB_OUTPUT
 
       - name: Create deployment spec
-        id: spec
         run: |
-          IMAGE_URI='${{ steps.push.outputs.image_uri }}'
+          IMAGE_URI='${{ steps.svc.outputs.value }}:pet-server'
           cat > containers.json <<JSON
           {
             "pet-server": {
