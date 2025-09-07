@@ -77,10 +77,21 @@ jobs:
       - name: Install dependencies (dev included)
         run: npm ci --include=dev
 
-      - name: Prisma migrate deploy (pre-deploy, direct connection)
-        env:
-          DATABASE_URL: ${{ env.DIRECT_DATABASE_URL }}
-        run: npx prisma migrate deploy
+      - name: Prisma migrate deploy (pre-deploy, prefer DIRECT_DATABASE_URL)
+        run: |
+          # Prefer DIRECT_DATABASE_URL; fallback to DATABASE_URL if empty
+          URL="${DIRECT_DATABASE_URL:-${DATABASE_URL}}"
+          if [ -z "$URL" ]; then
+            echo "No DIRECT_DATABASE_URL or DATABASE_URL provided; skipping migrate." >&2
+            exit 1
+          fi
+          # Export for Prisma CLI
+          export DATABASE_URL="$URL"
+          if [ -z "$DIRECT_DATABASE_URL" ]; then
+            echo "WARN: DIRECT_DATABASE_URL is empty. Using DATABASE_URL for migrations (may fail with pool)." >&2
+            export DIRECT_DATABASE_URL="$URL"
+          fi
+          npx prisma migrate deploy
 
       - name: Install lightsailctl and jq
         run: |
