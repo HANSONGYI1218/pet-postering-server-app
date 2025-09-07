@@ -55,6 +55,13 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Install lightsailctl and jq
+        run: |
+          sudo curl -sSL https://lightsail-downloads.s3.amazonaws.com/amazon-lightsail-ctl/latest/linux-amd64/lightsailctl -o /usr/local/bin/lightsailctl
+          sudo chmod +x /usr/local/bin/lightsailctl
+          sudo apt-get update -y
+          sudo apt-get install -y jq
+
       - name: Build image
         run: |
           docker build -t pet-server:latest .
