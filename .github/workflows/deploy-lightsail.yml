@@ -1,0 +1,117 @@
+name: Deploy to AWS Lightsail Containers
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      LIGHTSAIL_SERVICE_NAME: ${{ secrets.LIGHTSAIL_SERVICE_NAME }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      JWT_ACCESS_SECRET: ${{ secrets.JWT_ACCESS_SECRET }}
+      JWT_REFRESH_SECRET: ${{ secrets.JWT_REFRESH_SECRET }}
+      JWT_ACCESS_EXPIRES_IN: ${{ secrets.JWT_ACCESS_EXPIRES_IN }}
+      JWT_REFRESH_EXPIRES_IN: ${{ secrets.JWT_REFRESH_EXPIRES_IN }}
+      KAKAO_CLIENT_ID: ${{ secrets.KAKAO_CLIENT_ID }}
+      KAKAO_CLIENT_SECRET: ${{ secrets.KAKAO_CLIENT_SECRET }}
+      KAKAO_REDIRECT_URI: ${{ secrets.KAKAO_REDIRECT_URI }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Service name (lowercase)
+        id: svc
+        run: |
+          NAME="$LIGHTSAIL_SERVICE_NAME"
+          NAME_LC=$(echo "$NAME" | tr '[:upper:]' '[:lower:]')
+          echo "value=$NAME_LC" >> $GITHUB_OUTPUT
+
+      - name: Configure AWS credentials (OIDC)
+        if: ${{ env.AWS_ROLE_TO_ASSUME != '' }}
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: github-actions-lightsail
+
+      - name: Configure AWS credentials (Access Keys fallback)
+        if: ${{ env.AWS_ROLE_TO_ASSUME == '' }}
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        run: |
+          docker build -t pet-server:latest .
+
+      - name: Push image to Lightsail container registry
+        id: push
+        run: |
+          IMAGE_URI=$(aws lightsail push-container-image \
+            --service-name ${{ steps.svc.outputs.value }} \
+            --label pet-server \
+            --image pet-server:latest \
+            --query 'image' \
+            --output text)
+          echo "image_uri=$IMAGE_URI" >> $GITHUB_OUTPUT
+
+      - name: Create deployment spec
+        id: spec
+        run: |
+          IMAGE_URI='${{ steps.push.outputs.image_uri }}'
+          cat > containers.json <<JSON
+          {
+            "pet-server": {
+              "image": "${IMAGE_URI}",
+              "ports": {"3000": "HTTP"},
+              "environment": {
+                "NODE_ENV": "production",
+                "PORT": "3000",
+                "DATABASE_URL": "${DATABASE_URL}",
+                "JWT_ACCESS_SECRET": "${JWT_ACCESS_SECRET}",
+                "JWT_REFRESH_SECRET": "${JWT_REFRESH_SECRET}",
+                "JWT_ACCESS_EXPIRES_IN": "${JWT_ACCESS_EXPIRES_IN}",
+                "JWT_REFRESH_EXPIRES_IN": "${JWT_REFRESH_EXPIRES_IN}",
+                "KAKAO_CLIENT_ID": "${KAKAO_CLIENT_ID}",
+                "KAKAO_CLIENT_SECRET": "${KAKAO_CLIENT_SECRET}",
+                "KAKAO_REDIRECT_URI": "${KAKAO_REDIRECT_URI}"
+              }
+            }
+          }
+          JSON
+
+          cat > endpoint.json <<JSON
+          {
+            "containerName": "pet-server",
+            "containerPort": 3000,
+            "healthCheck": {
+              "path": "/",
+              "intervalSeconds": 20,
+              "timeoutSeconds": 5,
+              "healthyThreshold": 2,
+              "unhealthyThreshold": 5
+            }
+          }
+          JSON
+
+      - name: Deploy to Lightsail Container Service
+        run: |
+          aws lightsail create-container-service-deployment \
+            --service-name ${{ steps.svc.outputs.value }} \
+            --containers file://containers.json \
+            --public-endpoint file://endpoint.json
