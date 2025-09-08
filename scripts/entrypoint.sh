@@ -19,6 +19,12 @@ append_sslmode_require() {
   echo "${IN}?sslmode=require"
 }
 
+# Optional startup sleep to surface early logs
+if [ -n "${ENTRYPOINT_SLEEP:-}" ] && [ "${ENTRYPOINT_SLEEP}" != "0" ]; then
+  log "Sleeping for ${ENTRYPOINT_SLEEP}s before start..."
+  sleep "${ENTRYPOINT_SLEEP}"
+fi
+
 # Optionally skip migrations to isolate startup issues
 if [ "${SKIP_MIGRATE:-0}" = "1" ]; then
   log "SKIP_MIGRATE=1 set; skipping prisma migrate deploy"
