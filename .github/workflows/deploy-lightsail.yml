@@ -173,9 +173,9 @@ jobs:
             "healthCheck": {
               "path": "/",
               "intervalSeconds": 20,
-              "timeoutSeconds": 5,
+              "timeoutSeconds": 10,
               "healthyThreshold": 2,
-              "unhealthyThreshold": 5
+              "unhealthyThreshold": 10
             }
           }
           JSON

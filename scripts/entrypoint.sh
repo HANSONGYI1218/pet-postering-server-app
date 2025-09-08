@@ -1,6 +1,11 @@
 #!/usr/bin/env sh
 set -eu
 
+# Enable shell trace when requested
+if [ "${ENTRYPOINT_DEBUG:-0}" = "1" ]; then
+  set -x
+fi
+
 log() { printf "[entrypoint] %s\n" "$*"; }
 redact_url() {
   # mask credentials in URLs for logs
@@ -14,21 +19,25 @@ append_sslmode_require() {
   echo "${IN}?sslmode=require"
 }
 
-# Prefer DIRECT_DATABASE_URL for migrations; fallback to DATABASE_URL
-MIG_URL="${DIRECT_DATABASE_URL:-}"
-if [ -z "${MIG_URL}" ]; then
-  MIG_URL="${DATABASE_URL:-}"
-fi
-
-if [ -n "${MIG_URL}" ]; then
-  MIG_URL=$(append_sslmode_require "$MIG_URL")
-  log "Running prisma migrate deploy against: $(redact_url "$MIG_URL")"
-  # Do not permanently override env; only for this process
-  DATABASE_URL="$MIG_URL" npx prisma migrate deploy
+# Optionally skip migrations to isolate startup issues
+if [ "${SKIP_MIGRATE:-0}" = "1" ]; then
+  log "SKIP_MIGRATE=1 set; skipping prisma migrate deploy"
 else
-  log "No DIRECT_DATABASE_URL/DATABASE_URL provided; skipping migrations"
+  # Prefer DIRECT_DATABASE_URL for migrations; fallback to DATABASE_URL
+  MIG_URL="${DIRECT_DATABASE_URL:-}"
+  if [ -z "${MIG_URL}" ]; then
+    MIG_URL="${DATABASE_URL:-}"
+  fi
+
+  if [ -n "${MIG_URL}" ]; then
+    MIG_URL=$(append_sslmode_require "$MIG_URL")
+    log "Running prisma migrate deploy against: $(redact_url "$MIG_URL")"
+    # Do not permanently override env; only for this process
+    DATABASE_URL="$MIG_URL" npx prisma migrate deploy
+  else
+    log "No DIRECT_DATABASE_URL/DATABASE_URL provided; skipping migrations"
+  fi
 fi
 
 log "Starting application: $*"
 exec "$@"
-
