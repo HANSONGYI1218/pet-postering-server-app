@@ -30,7 +30,9 @@ export class AuthController {
 
   // 개발 편의를 위한 토큰 발급(프로덕션 비활성)
   @Post('dev-token')
-  @ApiOperation({ summary: '[Dev] Issue tokens without Kakao (non-production)' })
+  @ApiOperation({
+    summary: '[Dev] Issue tokens without Kakao (non-production)',
+  })
   async devToken(@Body() body: DevTokenDto) {
     if (process.env.NODE_ENV === 'production') {
       return { error: 'disabled' };
@@ -39,4 +41,3 @@ export class AuthController {
     return this.authService.devIssueByKakaoId(kakaoId, body.displayName);
   }
 }
-

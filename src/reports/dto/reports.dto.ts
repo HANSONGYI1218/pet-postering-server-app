@@ -1,15 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsString, Length } from 'class-validator';
-
-export enum ReportTargetTypeDto {
-  POST = 'POST',
-  COMMENT = 'COMMENT',
-}
+import { ReportTargetType } from '@prisma/client';
 
 export class CreateReportDto {
-  @ApiProperty({ enum: ReportTargetTypeDto })
-  @IsEnum(ReportTargetTypeDto)
-  targetType!: ReportTargetTypeDto;
+  @ApiProperty({ enum: ReportTargetType })
+  @IsEnum(ReportTargetType)
+  targetType!: ReportTargetType;
 
   @ApiProperty()
   @IsString()
@@ -21,3 +17,22 @@ export class CreateReportDto {
   reason!: string;
 }
 
+export class ReportDto {
+  @ApiProperty()
+  id!: string;
+
+  @ApiProperty({ enum: ReportTargetType })
+  targetType!: ReportTargetType;
+
+  @ApiProperty()
+  targetId!: string;
+
+  @ApiProperty()
+  reason!: string;
+
+  @ApiProperty()
+  reporterId!: string;
+
+  @ApiProperty()
+  createdAt!: Date;
+}

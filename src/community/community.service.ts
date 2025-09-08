@@ -1,11 +1,23 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import type { Comment, Post } from '@prisma/client';
 
 @Injectable()
 export class CommunityService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async listPosts(limit = 20, cursor?: string) {
+  async listPosts(
+    limit = 20,
+    cursor?: string,
+  ): Promise<{
+    items: PostListItem[];
+    nextCursor: string | null;
+    limit: number;
+  }> {
     const take = Math.min(Math.max(limit, 1), 50);
     const items = await this.prisma.post.findMany({
       take: take + 1,
@@ -22,21 +34,26 @@ export class CommunityService {
     return { items, nextCursor, limit: take };
   }
 
-  async createPost(authorId: string, dto: { title: string; content: string }) {
+  async createPost(
+    authorId: string,
+    dto: { title: string; content: string },
+  ): Promise<Post> {
     return this.prisma.post.create({
       data: { authorId, title: dto.title, content: dto.content },
     });
   }
 
-  async getPost(postId: string, userId?: string) {
-    const post = await this.prisma.$transaction(async (tx) => {
-      const updated = await tx.post.update({
-        where: { id: postId },
-        data: { viewCount: { increment: 1 } },
-        include: { _count: { select: { comments: true } } },
-      });
-      return updated;
-    }).catch(() => null);
+  async getPost(postId: string, userId?: string): Promise<PostDetail> {
+    const post = await this.prisma
+      .$transaction(async (tx) => {
+        const updated = await tx.post.update({
+          where: { id: postId },
+          data: { viewCount: { increment: 1 } },
+          include: { _count: { select: { comments: true } } },
+        });
+        return updated;
+      })
+      .catch(() => null);
     if (!post) throw new NotFoundException('Post not found');
 
     let isBookmarked = false;
@@ -46,10 +63,10 @@ export class CommunityService {
       });
       isBookmarked = count > 0;
     }
-    return { ...post, isBookmarked };
+    return { ...post, isBookmarked } as PostDetail;
   }
 
-  async bookmark(postId: string, userId: string) {
+  async bookmark(postId: string, userId: string): Promise<BookmarkResponse> {
     await this.prisma.postBookmark.upsert({
       where: { userId_postId: { userId, postId } },
       update: {},
@@ -58,50 +75,81 @@ export class CommunityService {
     return { postId, bookmarked: true };
   }
 
-  async unbookmark(postId: string, userId: string) {
-    await this.prisma.postBookmark.delete({
-      where: { userId_postId: { userId, postId } },
-    }).catch(() => undefined);
+  async unbookmark(postId: string, userId: string): Promise<BookmarkResponse> {
+    await this.prisma.postBookmark
+      .delete({
+        where: { userId_postId: { userId, postId } },
+      })
+      .catch(() => undefined);
     return { postId, bookmarked: false };
   }
 
-  async listComments(postId: string, userId?: string) {
+  async listComments(
+    postId: string,
+    userId?: string,
+  ): Promise<{ postId: string; items: CommentListItem[] }> {
     const comments = await this.prisma.comment.findMany({
       where: { postId },
       orderBy: { createdAt: 'asc' },
       include: { _count: { select: { likes: true, replies: true } } },
     });
-    if (!userId) return { postId, items: comments.map((c) => ({ ...c, liked: false })) };
+    if (!userId)
+      return { postId, items: comments.map((c) => ({ ...c, liked: false })) };
     const ids = comments.map((c) => c.id);
     const liked = await this.prisma.commentLike.findMany({
       where: { userId, commentId: { in: ids } },
       select: { commentId: true },
     });
     const likedSet = new Set(liked.map((l) => l.commentId));
-    return { postId, items: comments.map((c) => ({ ...c, liked: likedSet.has(c.id) })) };
+    return {
+      postId,
+      items: comments.map((c) => ({ ...c, liked: likedSet.has(c.id) })),
+    };
   }
 
-  async createComment(postId: string, authorId: string, dto: { content: string; parentId?: string }) {
+  async createComment(
+    postId: string,
+    authorId: string,
+    dto: { content: string; parentId?: string },
+  ): Promise<Comment> {
     if (dto.parentId) {
-      const parent = await this.prisma.comment.findUnique({ where: { id: dto.parentId } });
-      if (!parent || parent.postId !== postId) throw new ForbiddenException('Invalid parent');
+      const parent = await this.prisma.comment.findUnique({
+        where: { id: dto.parentId },
+      });
+      if (!parent || parent.postId !== postId)
+        throw new ForbiddenException('Invalid parent');
     }
     return this.prisma.comment.create({
-      data: { postId, authorId, content: dto.content, parentId: dto.parentId ?? null },
+      data: {
+        postId,
+        authorId,
+        content: dto.content,
+        parentId: dto.parentId ?? null,
+      },
     });
   }
 
-  async deleteComment(commentId: string, userId: string) {
-    const comment = await this.prisma.comment.findUnique({ where: { id: commentId } });
+  async deleteComment(
+    commentId: string,
+    userId: string,
+  ): Promise<DeleteCommentResponse> {
+    const comment = await this.prisma.comment.findUnique({
+      where: { id: commentId },
+    });
     if (!comment) throw new NotFoundException('Comment not found');
     if (comment.authorId !== userId) throw new ForbiddenException('Not owner');
-    const childCount = await this.prisma.comment.count({ where: { parentId: commentId } });
+    const childCount = await this.prisma.comment.count({
+      where: { parentId: commentId },
+    });
     if (childCount > 0) throw new ForbiddenException('Has replies');
     await this.prisma.comment.delete({ where: { id: commentId } });
     return { commentId, deleted: true };
   }
 
-  async likeComment(commentId: string, userId: string) {
+  async likeComment(
+    commentId: string,
+    userId: string,
+  ): Promise<LikeCommentResponse> {
     await this.prisma.commentLike.upsert({
       where: { userId_commentId: { userId, commentId } },
       update: {},
@@ -110,11 +158,44 @@ export class CommunityService {
     return { commentId, liked: true };
   }
 
-  async unlikeComment(commentId: string, userId: string) {
-    await this.prisma.commentLike.delete({
-      where: { userId_commentId: { userId, commentId } },
-    }).catch(() => undefined);
+  async unlikeComment(
+    commentId: string,
+    userId: string,
+  ): Promise<LikeCommentResponse> {
+    await this.prisma.commentLike
+      .delete({
+        where: { userId_commentId: { userId, commentId } },
+      })
+      .catch(() => undefined);
     return { commentId, liked: false };
   }
 }
 
+// ===== Types for service returns (kept minimal) =====
+export interface PostListItem extends Post {
+  _count: { comments: number };
+}
+
+export interface PostDetail extends PostListItem {
+  isBookmarked: boolean;
+}
+
+export interface BookmarkResponse {
+  postId: string;
+  bookmarked: boolean;
+}
+
+export interface CommentListItem extends Comment {
+  liked: boolean;
+  _count: { likes: number; replies: number };
+}
+
+export interface DeleteCommentResponse {
+  commentId: string;
+  deleted: true;
+}
+
+export interface LikeCommentResponse {
+  commentId: string;
+  liked: boolean;
+}

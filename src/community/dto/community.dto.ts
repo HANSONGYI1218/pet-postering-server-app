@@ -25,3 +25,120 @@ export class CreateCommentDto {
   parentId?: string;
 }
 
+// ======== Small Response DTOs ========
+export class BookmarkResponseDto {
+  @ApiProperty()
+  postId!: string;
+
+  @ApiProperty()
+  bookmarked!: boolean;
+}
+
+export class DeleteCommentResponseDto {
+  @ApiProperty()
+  commentId!: string;
+
+  @ApiProperty({ enum: [true] })
+  deleted!: true;
+}
+
+export class LikeCommentResponseDto {
+  @ApiProperty()
+  commentId!: string;
+
+  @ApiProperty()
+  liked!: boolean;
+}
+
+// ======== Community List/Detail/Comments DTOs ========
+export class PostCountDto {
+  @ApiProperty()
+  comments!: number;
+}
+
+export class PostListItemDto {
+  @ApiProperty()
+  id!: string;
+
+  @ApiProperty()
+  authorId!: string;
+
+  @ApiProperty()
+  title!: string;
+
+  @ApiProperty()
+  content!: string;
+
+  @ApiProperty()
+  viewCount!: number;
+
+  @ApiProperty()
+  createdAt!: Date;
+
+  @ApiProperty()
+  updatedAt!: Date;
+
+  @ApiProperty({ type: () => PostCountDto })
+  _count!: PostCountDto;
+}
+
+export class PostDetailDto extends PostListItemDto {
+  @ApiProperty()
+  isBookmarked!: boolean;
+}
+
+export class PostListResponseDto {
+  @ApiProperty({ type: () => [PostListItemDto] })
+  items!: PostListItemDto[];
+
+  @ApiPropertyOptional({ description: 'Cursor for next page', nullable: true })
+  nextCursor?: string | null;
+
+  @ApiProperty({ description: 'Page size' })
+  limit!: number;
+}
+
+export class CommentCountDto {
+  @ApiProperty()
+  likes!: number;
+
+  @ApiProperty()
+  replies!: number;
+}
+
+export class CommentListItemDto {
+  @ApiProperty()
+  id!: string;
+
+  @ApiProperty()
+  postId!: string;
+
+  @ApiProperty()
+  authorId!: string;
+
+  @ApiPropertyOptional()
+  parentId?: string | null;
+
+  @ApiProperty()
+  content!: string;
+
+  @ApiProperty()
+  createdAt!: Date;
+
+  @ApiProperty()
+  updatedAt!: Date;
+
+  @ApiProperty()
+  liked!: boolean;
+
+  @ApiProperty({ type: () => CommentCountDto })
+  _count!: CommentCountDto;
+}
+
+export class ListCommentsResponseDto {
+  @ApiProperty()
+  postId!: string;
+
+  @ApiProperty({ type: () => [CommentListItemDto] })
+  items!: CommentListItemDto[];
+}

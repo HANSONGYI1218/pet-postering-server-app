@@ -16,7 +16,9 @@ import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
       inject: [ConfigService],
       useFactory: (cs: ConfigService) => ({
         secret: cs.get<string>('JWT_ACCESS_SECRET') ?? 'dev-access',
-        signOptions: { expiresIn: cs.get<string>('JWT_ACCESS_EXPIRES_IN') ?? '15m' },
+        signOptions: {
+          expiresIn: cs.get<string>('JWT_ACCESS_EXPIRES_IN') ?? '15m',
+        },
       }),
     }),
   ],

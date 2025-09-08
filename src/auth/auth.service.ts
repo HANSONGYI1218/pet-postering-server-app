@@ -20,7 +20,8 @@ export class AuthService {
     const clientId = this.cs.get<string>('KAKAO_CLIENT_ID');
     const clientSecret = this.cs.get<string>('KAKAO_CLIENT_SECRET');
     const redirectUri = this.cs.get<string>('KAKAO_REDIRECT_URI');
-    if (!clientId || !redirectUri) throw new UnauthorizedException('Kakao config missing');
+    if (!clientId || !redirectUri)
+      throw new UnauthorizedException('Kakao config missing');
 
     const params = new URLSearchParams({
       grant_type: 'authorization_code',
@@ -40,7 +41,9 @@ export class AuthService {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     const kakaoId = String(userRes.data.id);
-    const nickname = userRes.data?.kakao_account?.profile?.nickname as string | undefined;
+    const nickname = userRes.data?.kakao_account?.profile?.nickname as
+      | string
+      | undefined;
 
     const user = await this.prisma.user.upsert({
       where: { kakaoId },
@@ -89,4 +92,3 @@ export class AuthService {
     return this.issueTokens(user.id, user.role);
   }
 }
-

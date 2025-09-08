@@ -1,5 +1,14 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { ArrayMaxSize, IsArray, IsBoolean, IsDateString, IsEnum, IsOptional, IsString, Length } from 'class-validator';
+import {
+  ArrayMaxSize,
+  IsArray,
+  IsBoolean,
+  IsDateString,
+  IsEnum,
+  IsOptional,
+  IsString,
+  Length,
+} from 'class-validator';
 
 export enum AnimalStatusDto {
   WAITING = 'WAITING',
@@ -155,3 +164,10 @@ export class GetRecordResponseDto extends FosterRecordDtoOut {
   animal!: AnimalMetaDto;
 }
 
+export class DeleteAnimalResponseDto {
+  @ApiProperty()
+  id!: string;
+
+  @ApiProperty({ enum: [true] })
+  deleted!: true;
+}

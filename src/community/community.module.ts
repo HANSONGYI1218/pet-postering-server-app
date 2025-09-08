@@ -7,4 +7,3 @@ import { CommunityService } from './community.service';
   providers: [CommunityService],
 })
 export class CommunityModule {}
-

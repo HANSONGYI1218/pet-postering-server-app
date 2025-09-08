@@ -9,7 +9,14 @@ import { FosterModule } from './foster/foster.module';
 import { ReportsModule } from './reports/reports.module';
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), PrismaModule, AuthModule, CommunityModule, FosterModule, ReportsModule],
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    PrismaModule,
+    AuthModule,
+    CommunityModule,
+    FosterModule,
+    ReportsModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })

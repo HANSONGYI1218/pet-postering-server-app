@@ -7,4 +7,3 @@ import { FosterService } from './foster.service';
   providers: [FosterService],
 })
 export class FosterModule {}
-
