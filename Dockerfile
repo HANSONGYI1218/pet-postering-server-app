@@ -23,9 +23,12 @@ COPY --from=build /app/node_modules ./node_modules
 COPY package.json ./
 COPY --from=build /app/dist ./dist
 COPY prisma ./prisma
+COPY scripts ./scripts
+RUN chmod +x ./scripts/entrypoint.sh
 
 ENV PORT=3000
 EXPOSE 3000
 
-# 앱 실행 (마이그레이션은 CI에서 사전 실행)
+# 앱 실행: 컨테이너 시작 시 마이그레이션 후 기동
+ENTRYPOINT ["./scripts/entrypoint.sh"]
 CMD ["node", "dist/main.js"]

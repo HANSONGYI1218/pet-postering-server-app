@@ -16,6 +16,7 @@ jobs:
       AWS_REGION: ${{ secrets.AWS_REGION }}
       LIGHTSAIL_SERVICE_NAME: ${{ secrets.LIGHTSAIL_SERVICE_NAME }}
       DIRECT_DATABASE_URL: ${{ secrets.DIRECT_DATABASE_URL }}
+      RUN_MIGRATION_IN_CI: ${{ vars.RUN_MIGRATION_IN_CI }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
@@ -79,7 +80,8 @@ jobs:
       - name: Install dependencies (dev included)
         run: npm ci --include=dev
 
-      - name: Prisma migrate deploy (pre-deploy, prefer DIRECT_DATABASE_URL)
+      - name: Prisma migrate deploy (pre-deploy, optional)
+        if: ${{ env.RUN_MIGRATION_IN_CI == 'true' }}
         run: |
           set -e
           add_sslmode_require() {
