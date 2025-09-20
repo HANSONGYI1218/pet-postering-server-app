@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
+
 describe('main bootstrap', () => {
   const originalPort = process.env.PORT;
   const originalStage = process.env.STAGE;
@@ -29,7 +31,8 @@ describe('main bootstrap', () => {
         },
       }));
 
-      const actualSwagger = await import('@nestjs/swagger');
+      const actualSwagger =
+        jest.requireActual<typeof import('@nestjs/swagger')>('@nestjs/swagger');
       jest.doMock('@nestjs/swagger', () => ({
         ...actualSwagger,
         SwaggerModule: {
@@ -39,11 +42,9 @@ describe('main bootstrap', () => {
         DocumentBuilder: actualSwagger.DocumentBuilder,
       }));
 
-      const { bootstrap } = (await import('./main')) as {
-        bootstrap: () => Promise<void>;
-      };
-      const { AppModule } = await import('./app.module');
-      const { NestFactory } = await import('@nestjs/core');
+      const { bootstrap } = require('./main') as typeof import('./main');
+      const { AppModule } = require('./app.module');
+      const { NestFactory } = require('@nestjs/core');
 
       await bootstrap();
 
@@ -77,7 +78,8 @@ describe('main bootstrap', () => {
         },
       }));
 
-      const actualSwagger = await import('@nestjs/swagger');
+      const actualSwagger =
+        jest.requireActual<typeof import('@nestjs/swagger')>('@nestjs/swagger');
       jest.doMock('@nestjs/swagger', () => ({
         ...actualSwagger,
         SwaggerModule: {
@@ -87,9 +89,7 @@ describe('main bootstrap', () => {
         DocumentBuilder: actualSwagger.DocumentBuilder,
       }));
 
-      const { bootstrap } = (await import('./main')) as {
-        bootstrap: () => Promise<void>;
-      };
+      const { bootstrap } = require('./main') as typeof import('./main');
 
       await bootstrap();
 

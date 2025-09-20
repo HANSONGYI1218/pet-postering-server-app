@@ -56,15 +56,19 @@ export class CommunityService {
   }
 
   async getPost(postId: string, userId?: string): Promise<PostDetail> {
-    const post = await this.prisma
-      .$transaction(async (tx) =>
-        tx.post.update({
-          where: { id: postId },
-          data: { viewCount: { increment: 1 } },
-          include: { _count: { select: { comments: true } } },
-        }),
-      )
-      .catch(() => null);
+    const post = await (async () => {
+      try {
+        return await this.prisma.$transaction(async (tx) =>
+          tx.post.update({
+            where: { id: postId },
+            data: { viewCount: { increment: 1 } },
+            include: { _count: { select: { comments: true } } },
+          }),
+        );
+      } catch {
+        return null;
+      }
+    })();
 
     if (!post) throw new NotFoundException('post-not-found');
 

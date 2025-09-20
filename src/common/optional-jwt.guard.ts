@@ -8,6 +8,14 @@ interface RequestWithUser {
   user?: AuthUser;
 }
 
+const hasSwitchToHttp = (
+  candidate: unknown,
+): candidate is Pick<ExecutionContext, 'switchToHttp'> => {
+  if (!candidate || typeof candidate !== 'object') return false;
+  const { switchToHttp } = candidate as { switchToHttp?: unknown };
+  return typeof switchToHttp === 'function';
+};
+
 @Injectable()
 export class OptionalJwtAuthGuard extends AuthGuard('jwt') {
   handleRequest<TUser = AuthUser>(
@@ -18,8 +26,11 @@ export class OptionalJwtAuthGuard extends AuthGuard('jwt') {
     _status?: unknown,
   ): TUser | undefined {
     if (user) return user;
-    const request = context.switchToHttp().getRequest<RequestWithUser>();
-    const requestUser = request.user;
+    if (!hasSwitchToHttp(context)) return undefined;
+    const httpContext = context.switchToHttp();
+    if (typeof httpContext.getRequest !== 'function') return undefined;
+    const request = httpContext.getRequest<RequestWithUser | undefined>();
+    const requestUser = request?.user;
     return requestUser as TUser | undefined;
   }
 }

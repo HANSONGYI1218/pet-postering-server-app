@@ -303,7 +303,7 @@ export class FosterService {
         throw new NotFoundException(access.reason);
       throw new ForbiddenException(access.reason);
     }
-    return animal;
+    return animal as Exclude<T, null>;
   }
 
   private async computeFosterDays(
