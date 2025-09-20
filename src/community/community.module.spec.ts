@@ -1,9 +1,10 @@
 import { Test } from '@nestjs/testing';
-import { CommunityModule } from './community.module';
-import { CommunityController } from './community.controller';
-import { CommunityService } from './community.service';
-import { PrismaService } from '../prisma/prisma.service';
+
 import { PrismaModule } from '../prisma/prisma.module';
+import { PrismaService } from '../prisma/prisma.service';
+import { CommunityController } from './community.controller';
+import { CommunityModule } from './community.module';
+import { CommunityService } from './community.service';
 
 describe('CommunityModule', () => {
   it('컨트롤러와 서비스가 제공된다', async () => {
@@ -14,7 +15,9 @@ describe('CommunityModule', () => {
       .useValue({})
       .compile();
 
-    expect(moduleRef.get(CommunityController)).toBeInstanceOf(CommunityController);
+    expect(moduleRef.get(CommunityController)).toBeInstanceOf(
+      CommunityController,
+    );
     expect(moduleRef.get(CommunityService)).toBeInstanceOf(CommunityService);
   });
 });

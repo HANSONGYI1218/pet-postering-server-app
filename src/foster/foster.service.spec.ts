@@ -1,9 +1,10 @@
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
-import { FosterService } from './foster.service';
-import { PrismaService } from '../prisma/prisma.service';
-import type { AuthUser } from '../common/types';
 
-type MockFn = jest.Mock<any, any>;
+import type { AuthUser } from '../common/types';
+import type { PrismaService } from '../prisma/prisma.service';
+import { FosterService } from './foster.service';
+
+type MockFn = jest.Mock;
 
 interface PrismaMock {
   animal: {
@@ -81,7 +82,12 @@ describe('FosterService', () => {
         content: 'new content',
       } as any;
       const images = [
-        { id: 'img-1', recordId: 'record-1', url: 'https://img/1', sortOrder: 0 },
+        {
+          id: 'img-1',
+          recordId: 'record-1',
+          url: 'https://img/1',
+          sortOrder: 0,
+        },
       ];
       const tx = {
         fosterRecord: {
@@ -93,12 +99,17 @@ describe('FosterService', () => {
           findMany: jest.fn().mockResolvedValueOnce(images),
         },
       };
-      prisma.$transaction.mockImplementation(async (cb: any) => cb(tx));
+      prisma.$transaction.mockImplementation(
+        (cb: (client: typeof tx) => unknown) => Promise.resolve(cb(tx)),
+      );
 
       const dto = {
         date: '2024-02-01',
         content: 'new content',
-        images: Array.from({ length: 7 }, (_, i) => `https://img/${i + 1}`),
+        images: Array.from(
+          { length: 7 },
+          (_, i) => `https://img/${String(i + 1)}`,
+        ),
       };
 
       const result = await service.updateRecord(
@@ -126,7 +137,7 @@ describe('FosterService', () => {
         where: { recordId: 'record-1' },
       });
       expect(tx.fosterRecordImage.createMany).toHaveBeenCalledWith({
-        data: dto.images!.slice(0, 6).map((url, i) => ({
+        data: dto.images.slice(0, 6).map((url, i) => ({
           recordId: 'record-1',
           url,
           sortOrder: i,
@@ -155,10 +166,15 @@ describe('FosterService', () => {
       });
 
       await expect(
-        service.updateRecord('animal-1', 'record-1', {
-          userId: 'intruder',
-          role: 'USER',
-        }, {}),
+        service.updateRecord(
+          'animal-1',
+          'record-1',
+          {
+            userId: 'intruder',
+            role: 'USER',
+          },
+          {},
+        ),
       ).rejects.toThrow(ForbiddenException);
       expect(prisma.$transaction).not.toHaveBeenCalled();
     });
@@ -170,8 +186,8 @@ describe('FosterService', () => {
       const createdAtA = new Date('2024-01-01T00:00:00.000Z');
       const createdAtB = new Date('2024-01-05T00:00:00.000Z');
       prisma.animal.findMany.mockResolvedValueOnce([
-        { id: 'animal-a', status: 'ADOPTABLE', createdAt: createdAtA } as any,
-        { id: 'animal-b', status: 'ADOPTABLE', createdAt: createdAtB } as any,
+        { id: 'animal-a', status: 'WAITING', createdAt: createdAtA } as any,
+        { id: 'animal-b', status: 'WAITING', createdAt: createdAtB } as any,
       ]);
       prisma.fosterRecord.findFirst
         .mockResolvedValueOnce({ date: new Date('2023-12-31T00:00:00.000Z') })
@@ -180,12 +196,12 @@ describe('FosterService', () => {
       jest.useFakeTimers();
       jest.setSystemTime(new Date('2024-01-10T00:00:00.000Z'));
 
-      const result = await service.listAnimals('ADOPTABLE');
+      const result = await service.listAnimals('WAITING');
 
       jest.useRealTimers();
 
       expect(prisma.animal.findMany).toHaveBeenCalledWith({
-        where: { status: 'ADOPTABLE' },
+        where: { status: 'WAITING' },
         orderBy: { createdAt: 'desc' },
       });
       expect(prisma.fosterRecord.findFirst).toHaveBeenNthCalledWith(1, {
@@ -207,7 +223,10 @@ describe('FosterService', () => {
     it('상태 미지정 시 전체 동물을 반환한다', async () => {
       const { service, prisma } = build();
       prisma.animal.findMany.mockResolvedValueOnce([
-        { id: 'animal-1', createdAt: new Date('2024-01-01T00:00:00.000Z') } as any,
+        {
+          id: 'animal-1',
+          createdAt: new Date('2024-01-01T00:00:00.000Z'),
+        } as any,
       ]);
       prisma.fosterRecord.findFirst.mockResolvedValueOnce(null);
 
@@ -263,7 +282,7 @@ describe('FosterService', () => {
           { userId: 'admin', role: 'ORG_ADMIN' },
           { name: 'Buddy', orgId: 'org-1', shared: true },
         ),
-      ).resolves.toEqual({ id: 'animal-1' });
+      ).resolves.toMatchObject({ id: 'animal-1', fosterDays: 0 });
       expect(prisma.animal.create).toHaveBeenCalledWith({
         data: { name: 'Buddy', orgId: 'org-1', shared: true },
       });
@@ -278,7 +297,7 @@ describe('FosterService', () => {
           { userId: 'owner-1', role: 'USER' },
           { name: 'Cat', shared: false },
         ),
-      ).resolves.toEqual({ id: 'animal-2' });
+      ).resolves.toMatchObject({ id: 'animal-2', fosterDays: 0 });
       expect(prisma.animal.create).toHaveBeenCalledWith({
         data: { name: 'Cat', ownerUserId: 'owner-1', shared: false },
       });
@@ -373,7 +392,11 @@ describe('FosterService', () => {
       prisma.animal.findUnique.mockResolvedValueOnce(null);
 
       await expect(
-        service.updateAnimal('animal-1', { userId: 'user-1', role: 'USER' }, {}),
+        service.updateAnimal(
+          'animal-1',
+          { userId: 'user-1', role: 'USER' },
+          {},
+        ),
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -386,7 +409,11 @@ describe('FosterService', () => {
       });
 
       await expect(
-        service.updateAnimal('animal-1', { userId: 'user-2', role: 'USER' }, {}),
+        service.updateAnimal(
+          'animal-1',
+          { userId: 'user-2', role: 'USER' },
+          {},
+        ),
       ).rejects.toThrow(ForbiddenException);
       expect(prisma.animal.update).not.toHaveBeenCalled();
     });
@@ -400,32 +427,44 @@ describe('FosterService', () => {
       });
 
       await expect(
-        service.updateAnimal('animal-1', { userId: 'user-2', role: 'USER' }, {}),
+        service.updateAnimal(
+          'animal-1',
+          { userId: 'user-2', role: 'USER' },
+          {},
+        ),
       ).rejects.toThrow(ForbiddenException);
     });
 
     it('유효한 요청이면 상태 값을 업데이트한다', async () => {
       const { service, prisma } = build();
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2024-01-10T00:00:00.000Z'));
       prisma.animal.findUnique.mockResolvedValueOnce({
         id: 'animal-1',
         orgId: null,
         ownerUserId: 'owner-1',
+        createdAt: new Date('2024-01-05T00:00:00.000Z'),
       });
-      prisma.animal.update.mockResolvedValueOnce({ id: 'animal-1' } as any);
+      prisma.animal.update.mockResolvedValueOnce({
+        id: 'animal-1',
+        createdAt: new Date('2024-01-05T00:00:00.000Z'),
+      } as any);
+      prisma.fosterRecord.findFirst.mockResolvedValueOnce(null);
 
       await expect(
         service.updateAnimal(
           'animal-1',
           { userId: 'owner-1', role: 'USER' },
-          { name: 'Buddy', shared: true, status: 'ADOPTED' },
+          { name: 'Buddy', shared: true, status: 'WAITING' },
         ),
-      ).resolves.toEqual({ id: 'animal-1' });
+      ).resolves.toMatchObject({ id: 'animal-1', fosterDays: 5 });
+      jest.useRealTimers();
       expect(prisma.animal.update).toHaveBeenCalledWith({
         where: { id: 'animal-1' },
         data: {
           name: 'Buddy',
           shared: true,
-          status: 'ADOPTED',
+          status: 'WAITING',
         },
       });
     });
@@ -441,9 +480,13 @@ describe('FosterService', () => {
       });
 
       await expect(
-        service.createRecord('animal-1', { userId: 'user-1', role: 'USER' }, {
-          date: '2024-01-01',
-        }),
+        service.createRecord(
+          'animal-1',
+          { userId: 'user-1', role: 'USER' },
+          {
+            date: '2024-01-01',
+          },
+        ),
       ).rejects.toThrow(ForbiddenException);
       expect(prisma.fosterRecord.create).not.toHaveBeenCalled();
     });
@@ -457,9 +500,13 @@ describe('FosterService', () => {
       });
 
       await expect(
-        service.createRecord('animal-1', { userId: 'user-2', role: 'USER' }, {
-          date: '2024-01-01',
-        }),
+        service.createRecord(
+          'animal-1',
+          { userId: 'user-2', role: 'USER' },
+          {
+            date: '2024-01-01',
+          },
+        ),
       ).rejects.toThrow(ForbiddenException);
       expect(prisma.fosterRecord.create).not.toHaveBeenCalled();
     });
@@ -481,7 +528,10 @@ describe('FosterService', () => {
           {
             date: '2024-01-01',
             content: 'daily log',
-            images: Array.from({ length: 8 }, (_, i) => `https://img/${i}`),
+            images: Array.from(
+              { length: 8 },
+              (_, i) => `https://img/${String(i)}`,
+            ),
           },
         ),
       ).resolves.toBe(created);
@@ -492,7 +542,7 @@ describe('FosterService', () => {
           content: 'daily log',
           images: {
             create: Array.from({ length: 6 }, (_, i) => ({
-              url: `https://img/${i}`,
+              url: `https://img/${String(i)}`,
               sortOrder: i,
             })),
           },
@@ -583,7 +633,11 @@ describe('FosterService', () => {
           userId: 'user-1',
           role: 'USER',
         }),
-      ).resolves.toEqual({ animalId: 'animal-1', id: 'record-1', deleted: true });
+      ).resolves.toEqual({
+        animalId: 'animal-1',
+        id: 'record-1',
+        deleted: true,
+      });
       expect(prisma.fosterRecord.delete).toHaveBeenCalledWith({
         where: { id: 'record-1' },
       });
@@ -667,7 +721,9 @@ describe('FosterService', () => {
           role: 'USER',
         }),
       ).resolves.toEqual({ id: 'animal-1', deleted: true });
-      expect(prisma.animal.delete).toHaveBeenCalledWith({ where: { id: 'animal-1' } });
+      expect(prisma.animal.delete).toHaveBeenCalledWith({
+        where: { id: 'animal-1' },
+      });
     });
   });
 
@@ -717,10 +773,15 @@ describe('FosterService', () => {
       });
 
       await expect(
-        service.updateRecord('animal-1', 'record-1', {
-          userId: 'user-1',
-          role: 'ORG_ADMIN',
-        }, {}),
+        service.updateRecord(
+          'animal-1',
+          'record-1',
+          {
+            userId: 'user-1',
+            role: 'ORG_ADMIN',
+          },
+          {},
+        ),
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -735,7 +796,9 @@ describe('FosterService', () => {
       });
       const tx = {
         fosterRecord: {
-          update: jest.fn().mockResolvedValueOnce({ ...record, content: 'updated' }),
+          update: jest
+            .fn()
+            .mockResolvedValueOnce({ ...record, content: 'updated' }),
         },
         fosterRecordImage: {
           deleteMany: jest.fn(),
@@ -743,7 +806,9 @@ describe('FosterService', () => {
           findMany: jest.fn().mockResolvedValueOnce([]),
         },
       };
-      prisma.$transaction.mockImplementation(async (cb: any) => cb(tx));
+      prisma.$transaction.mockImplementation(
+        (cb: (client: typeof tx) => unknown) => Promise.resolve(cb(tx)),
+      );
 
       await service.updateRecord(
         'animal-1',

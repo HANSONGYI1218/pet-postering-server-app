@@ -1,6 +1,8 @@
-import { Controller, Get, Module, type INestApplication } from '@nestjs/common';
+import { Controller, Get, type INestApplication, Module } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import type { NextFunction, Request, Response } from 'express';
 import request from 'supertest';
+
 import { CurrentUser } from './current-user.decorator';
 import type { AuthUser } from './types';
 
@@ -24,9 +26,13 @@ describe('CurrentUser decorator', () => {
     }).compile();
 
     app = moduleRef.createNestApplication();
-    app.use((req, _res, next) => {
+    app.use((req: Request, _res: Response, next: NextFunction) => {
       const header = req.headers['x-test-user'] as string | undefined;
-      if (header) req.user = { userId: header, role: 'USER' };
+      if (header)
+        (req as Request & { user?: AuthUser }).user = {
+          userId: header,
+          role: 'USER',
+        };
       next();
     });
     await app.init();

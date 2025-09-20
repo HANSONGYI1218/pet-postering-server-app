@@ -1,9 +1,10 @@
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { NestFactory } from '@nestjs/core';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
-export async function bootstrap() {
+import { AppModule } from './app.module';
+
+export async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
   app.enableCors();
   app.useGlobalPipes(
@@ -13,6 +14,7 @@ export async function bootstrap() {
       transform: true,
     }),
   );
+
   const config = new DocumentBuilder()
     .setTitle('Pet Server API')
     .setDescription('REST API for community and foster features')
@@ -24,12 +26,14 @@ export async function bootstrap() {
   SwaggerModule.setup(swaggerPath, app, document, {
     swaggerOptions: { persistAuthorization: true },
   });
+
   const stage = process.env.STAGE;
   if (stage) {
     SwaggerModule.setup(`${stage}/${swaggerPath}`, app, document, {
       swaggerOptions: { persistAuthorization: true },
     });
   }
+
   const port = Number(process.env.PORT ?? 3000);
   await app.listen(port, '0.0.0.0');
 }

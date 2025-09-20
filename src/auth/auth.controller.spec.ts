@@ -1,6 +1,7 @@
-import { Test } from '@nestjs/testing';
 import type { INestApplication } from '@nestjs/common';
+import { Test } from '@nestjs/testing';
 import request from 'supertest';
+
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 
@@ -33,7 +34,10 @@ describe('AuthController', () => {
   });
 
   it('POST /auth/kakao forwards code to service', async () => {
-    service.kakaoLogin.mockResolvedValueOnce({ token: 'access', refreshToken: 'refresh' });
+    service.kakaoLogin.mockResolvedValueOnce({
+      token: 'access',
+      refreshToken: 'refresh',
+    });
 
     await request(app.getHttpServer())
       .post('/auth/kakao')
@@ -45,7 +49,10 @@ describe('AuthController', () => {
   });
 
   it('POST /auth/refresh returns refreshed tokens with 200', async () => {
-    service.refresh.mockResolvedValueOnce({ token: 'new-access', refreshToken: 'new-refresh' });
+    service.refresh.mockResolvedValueOnce({
+      token: 'new-access',
+      refreshToken: 'new-refresh',
+    });
 
     await request(app.getHttpServer())
       .post('/auth/refresh')
@@ -64,7 +71,10 @@ describe('AuthController', () => {
   });
 
   it('POST /auth/dev-token computes kakao id when absent', async () => {
-    service.devIssueByKakaoId.mockResolvedValueOnce({ token: 'dev-access', refreshToken: 'dev-refresh' });
+    service.devIssueByKakaoId.mockResolvedValueOnce({
+      token: 'dev-access',
+      refreshToken: 'dev-refresh',
+    });
 
     await request(app.getHttpServer())
       .post('/auth/dev-token')
@@ -72,6 +82,9 @@ describe('AuthController', () => {
       .expect(201)
       .expect({ token: 'dev-access', refreshToken: 'dev-refresh' });
 
-    expect(service.devIssueByKakaoId).toHaveBeenCalledWith('dev:user-77', 'Tester');
+    expect(service.devIssueByKakaoId).toHaveBeenCalledWith(
+      'dev:user-77',
+      'Tester',
+    );
   });
 });

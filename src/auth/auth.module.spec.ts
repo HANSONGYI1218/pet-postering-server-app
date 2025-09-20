@@ -1,9 +1,10 @@
 import { Test } from '@nestjs/testing';
-import { AuthModule } from './auth.module';
-import { AuthController } from './auth.controller';
-import { AuthService } from './auth.service';
-import { PrismaService } from '../prisma/prisma.service';
+
 import { PrismaModule } from '../prisma/prisma.module';
+import { PrismaService } from '../prisma/prisma.service';
+import { AuthController } from './auth.controller';
+import { AuthModule } from './auth.module';
+import { AuthService } from './auth.service';
 
 describe('AuthModule', () => {
   it('정상적으로 컨트롤러와 서비스가 정의된다', async () => {

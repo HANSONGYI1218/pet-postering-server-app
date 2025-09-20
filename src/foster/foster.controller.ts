@@ -1,36 +1,46 @@
 import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Delete,
-  Param,
-  Query,
   Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
-import { FosterService } from './foster.service';
 import { AuthGuard } from '@nestjs/passport';
-import { CurrentUser } from '../common/current-user.decorator';
 import {
   ApiBearerAuth,
+  ApiExtraModels,
   ApiOkResponse,
   ApiOperation,
   ApiQuery,
   ApiTags,
-  ApiExtraModels,
 } from '@nestjs/swagger';
+
+import { CurrentUser } from '../common/current-user.decorator';
+import type { AuthUser } from '../common/types';
+import type {
+  AnimalListItem,
+  DeleteAnimalResult,
+  DeleteRecordResult,
+  FosterRecordBase,
+  FosterRecordDetail,
+  ListAnimalsResult,
+  ListRecordsResult,
+} from '../domain/foster/application/types';
 import {
   AnimalStatusDto,
   CreateAnimalDto,
   CreateRecordDto,
-  UpdateAnimalDto,
-  UpdateRecordDto,
+  DeleteAnimalResponseDto,
   GetRecordResponseDto,
   ListRecordsResponseDto,
-  DeleteAnimalResponseDto,
-} from './dto/foster.dto';
-import type { AuthUser } from '../common/types';
+  UpdateAnimalDto,
+  UpdateRecordDto,
+} from '../domain/foster/presentation/dto/foster.dto';
+import { FosterService } from './foster.service';
 
 @ApiTags('Foster')
 @ApiBearerAuth()
@@ -42,6 +52,7 @@ import type { AuthUser } from '../common/types';
 @Controller('foster')
 export class FosterController {
   constructor(private readonly svc: FosterService) {}
+
   @Get('animals')
   @ApiQuery({
     name: 'status',
@@ -74,7 +85,7 @@ export class FosterController {
       },
     },
   })
-  listAnimals(@Query('status') status?: string) {
+  listAnimals(@Query('status') status?: string): Promise<ListAnimalsResult> {
     return this.svc.listAnimals(status);
   }
 
@@ -104,55 +115,30 @@ export class FosterController {
       },
     },
   })
-  listSharedAnimals() {
+  listSharedAnimals(): Promise<ListAnimalsResult> {
     return this.svc.listSharedAnimals();
   }
 
   @Post('animals')
   @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Create animal (ORG only for org-owned)' })
-  @ApiOkResponse({
-    schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string' },
-        name: { type: 'string' },
-        status: { type: 'string', enum: Object.values(AnimalStatusDto) },
-        shared: { type: 'boolean' },
-        orgId: { type: 'string', nullable: true },
-        ownerUserId: { type: 'string', nullable: true },
-        createdAt: { type: 'string', format: 'date-time' },
-        updatedAt: { type: 'string', format: 'date-time' },
-      },
-    },
-  })
-  createAnimal(@CurrentUser() user: AuthUser, @Body() body: CreateAnimalDto) {
+  @ApiOkResponse({ schema: { $ref: '#/components/schemas/AnimalMetaDto' } })
+  createAnimal(
+    @CurrentUser() user: AuthUser,
+    @Body() body: CreateAnimalDto,
+  ): Promise<AnimalListItem> {
     return this.svc.createAnimal(user, body);
   }
 
   @Patch('animals/:id')
   @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Update animal (owner or ORG admin)' })
-  @ApiOkResponse({
-    schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string' },
-        name: { type: 'string' },
-        status: { type: 'string', enum: Object.values(AnimalStatusDto) },
-        shared: { type: 'boolean' },
-        orgId: { type: 'string', nullable: true },
-        ownerUserId: { type: 'string', nullable: true },
-        createdAt: { type: 'string', format: 'date-time' },
-        updatedAt: { type: 'string', format: 'date-time' },
-      },
-    },
-  })
+  @ApiOkResponse({ schema: { $ref: '#/components/schemas/AnimalMetaDto' } })
   updateAnimal(
     @Param('id') id: string,
     @CurrentUser() user: AuthUser,
     @Body() body: UpdateAnimalDto,
-  ) {
+  ): Promise<AnimalListItem> {
     return this.svc.updateAnimal(id, user, body);
   }
 
@@ -160,7 +146,10 @@ export class FosterController {
   @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Delete animal (owner or ORG admin)' })
   @ApiOkResponse({ type: DeleteAnimalResponseDto })
-  deleteAnimal(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+  deleteAnimal(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthUser,
+  ): Promise<DeleteAnimalResult> {
     return this.svc.deleteAnimal(id, user);
   }
 
@@ -181,14 +170,17 @@ export class FosterController {
     @Param('id') id: string,
     @Query('from') from?: string,
     @Query('to') to?: string,
-  ) {
+  ): Promise<ListRecordsResult> {
     return this.svc.listRecords(id, from, to);
   }
 
   @Get('animals/:id/records/:recordId')
   @ApiOperation({ summary: 'Get record detail' })
   @ApiOkResponse({ type: GetRecordResponseDto })
-  getRecord(@Param('id') id: string, @Param('recordId') recordId: string) {
+  getRecord(
+    @Param('id') id: string,
+    @Param('recordId') recordId: string,
+  ): Promise<FosterRecordDetail> {
     return this.svc.getRecord(id, recordId);
   }
 
@@ -196,34 +188,13 @@ export class FosterController {
   @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Create record (max 6 images)' })
   @ApiOkResponse({
-    schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string' },
-        animalId: { type: 'string' },
-        date: { type: 'string', format: 'date-time' },
-        content: { type: 'string', nullable: true },
-        images: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              id: { type: 'string' },
-              recordId: { type: 'string' },
-              url: { type: 'string' },
-              sortOrder: { type: 'number', nullable: true },
-              createdAt: { type: 'string', format: 'date-time' },
-            },
-          },
-        },
-      },
-    },
+    schema: { $ref: '#/components/schemas/FosterRecordDtoOut' },
   })
   createRecord(
     @Param('id') id: string,
     @CurrentUser() user: AuthUser,
     @Body() body: CreateRecordDto,
-  ) {
+  ): Promise<FosterRecordBase> {
     return this.svc.createRecord(id, user, body);
   }
 
@@ -231,35 +202,14 @@ export class FosterController {
   @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Update record and images' })
   @ApiOkResponse({
-    schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string' },
-        animalId: { type: 'string' },
-        date: { type: 'string', format: 'date-time' },
-        content: { type: 'string', nullable: true },
-        images: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              id: { type: 'string' },
-              recordId: { type: 'string' },
-              url: { type: 'string' },
-              sortOrder: { type: 'number', nullable: true },
-              createdAt: { type: 'string', format: 'date-time' },
-            },
-          },
-        },
-      },
-    },
+    schema: { $ref: '#/components/schemas/FosterRecordDtoOut' },
   })
   updateRecord(
     @Param('id') id: string,
     @Param('recordId') recordId: string,
     @CurrentUser() user: AuthUser,
     @Body() body: UpdateRecordDto,
-  ) {
+  ): Promise<FosterRecordBase> {
     return this.svc.updateRecord(id, recordId, user, body);
   }
 
@@ -280,13 +230,13 @@ export class FosterController {
     @Param('id') id: string,
     @Param('recordId') recordId: string,
     @CurrentUser() user: AuthUser,
-  ) {
+  ): Promise<DeleteRecordResult> {
     return this.svc.deleteRecord(id, recordId, user);
   }
 
   @Get('waiting-animals')
   @ApiOperation({ summary: 'List animals in WAITING status' })
-  waitingAnimals() {
+  waitingAnimals(): Promise<ListAnimalsResult> {
     return this.svc.listAnimals('WAITING');
   }
 }

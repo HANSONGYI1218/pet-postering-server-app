@@ -1,8 +1,9 @@
-import { Test } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { PassportModule } from '@nestjs/passport';
-import { JwtRefreshStrategy } from './jwt-refresh.strategy';
+import { Test } from '@nestjs/testing';
 import { ExtractJwt } from 'passport-jwt';
+
+import { JwtRefreshStrategy } from './jwt-refresh.strategy';
 
 jest.mock('passport-jwt', () => {
   const original = jest.requireActual('passport-jwt');
@@ -33,7 +34,7 @@ describe('JwtRefreshStrategy', () => {
     }).compile();
 
     const strategy = moduleRef.get(JwtRefreshStrategy);
-    const payload = await strategy.validate({ sub: 'user-1', role: 'USER' });
+    const payload = strategy.validate({ sub: 'user-1', role: 'USER' });
 
     expect(payload).toEqual({ userId: 'user-1', role: 'USER' });
     expect(ExtractJwt.fromBodyField).toHaveBeenCalledWith('refreshToken');

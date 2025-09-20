@@ -1,94 +1,136 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
 import axios from 'axios';
+
+import type { AuthTokenPair } from '../domain/auth/application/types';
+import {
+  createKakaoTokenRequest,
+  extractKakaoProfile,
+  type KakaoConfig,
+  toUpsertUserCommand,
+} from '../domain/auth/domain/kakao-flow';
 import { PrismaService } from '../prisma/prisma.service';
+
+interface JwtSettings {
+  accessSecret: string;
+  accessExpiresIn: string;
+  refreshSecret: string;
+  refreshExpiresIn: string;
+}
+
+const KAKAO_USER_URL = 'https://kapi.kakao.com/v2/user/me';
 
 @Injectable()
 export class AuthService {
-  private kakaoTokenUrl = 'https://kauth.kakao.com/oauth/token';
-  private kakaoUserUrl = 'https://kapi.kakao.com/v2/user/me';
-
   constructor(
     private readonly jwt: JwtService,
-    private readonly cs: ConfigService,
+    private readonly config: ConfigService,
     private readonly prisma: PrismaService,
   ) {}
 
-  async kakaoLogin(code: string) {
-    if (!code) throw new UnauthorizedException('Missing code');
-    const clientId = this.cs.get<string>('KAKAO_CLIENT_ID');
-    const clientSecret = this.cs.get<string>('KAKAO_CLIENT_SECRET');
-    const redirectUri = this.cs.get<string>('KAKAO_REDIRECT_URI');
-    if (!clientId || !redirectUri)
-      throw new UnauthorizedException('Kakao config missing');
+  async kakaoLogin(code: string): Promise<AuthTokenPair> {
+    const trimmedCode = code.trim();
+    if (!trimmedCode) throw new UnauthorizedException('missing-kakao-code');
 
-    const params = new URLSearchParams({
-      grant_type: 'authorization_code',
-      client_id: clientId,
-      redirect_uri: redirectUri,
-      code,
-    });
-    if (clientSecret) params.append('client_secret', clientSecret);
+    const kakaoConfig = this.resolveKakaoConfig();
+    const { url, params, headers } = createKakaoTokenRequest(
+      kakaoConfig,
+      trimmedCode,
+    );
 
-    const tokenRes = await axios.post(this.kakaoTokenUrl, params, {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    });
-    const accessToken = tokenRes.data.access_token as string;
-    if (!accessToken) throw new UnauthorizedException('Kakao token error');
+    const tokenResponse = await axios
+      .post<{ access_token?: string }>(url, params, { headers })
+      .catch(() => {
+        throw new UnauthorizedException('kakao-token-request-failed');
+      });
 
-    const userRes = await axios.get(this.kakaoUserUrl, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    const kakaoId = String(userRes.data.id);
-    const nickname = userRes.data?.kakao_account?.profile?.nickname as
-      | string
-      | undefined;
+    const accessToken = tokenResponse.data.access_token;
+    if (!accessToken) throw new UnauthorizedException('kakao-token-missing');
 
-    const user = await this.prisma.user.upsert({
-      where: { kakaoId },
-      update: { displayName: nickname ?? undefined },
-      create: { kakaoId, displayName: nickname ?? undefined },
-    });
+    const userResponse = await axios
+      .get<unknown>(KAKAO_USER_URL, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      .catch(() => {
+        throw new UnauthorizedException('kakao-user-fetch-failed');
+      });
+
+    const profile = extractKakaoProfile(userResponse.data);
+    const upsert = toUpsertUserCommand(profile);
+    const user = await this.prisma.user.upsert(upsert);
 
     return this.issueTokens(user.id, user.role);
   }
 
-  async refresh(refreshToken: string) {
+  async refresh(refreshToken: string): Promise<AuthTokenPair> {
     try {
-      const payload = await this.jwt.verifyAsync(refreshToken, {
-        secret: this.cs.get<string>('JWT_REFRESH_SECRET') ?? 'dev-refresh',
+      const { refreshSecret } = this.resolveJwtSettings();
+      const payload = await this.jwt.verifyAsync<{ sub: string; role: string }>(
+        refreshToken,
+        { secret: refreshSecret },
+      );
+      return await this.issueTokens(payload.sub, payload.role);
+    } catch (error) {
+      throw new UnauthorizedException('invalid-refresh-token', {
+        cause: error,
       });
-      return this.issueTokens(payload.sub, payload.role);
-    } catch {
-      throw new UnauthorizedException('Invalid refresh token');
     }
   }
 
-  private async issueTokens(userId: string, role: string) {
-    const access = await this.jwt.signAsync(
-      { sub: userId, role },
-      {
-        secret: this.cs.get<string>('JWT_ACCESS_SECRET') ?? 'dev-access',
-        expiresIn: this.cs.get<string>('JWT_ACCESS_EXPIRES_IN') ?? '15m',
-      },
-    );
-    const refresh = await this.jwt.signAsync(
-      { sub: userId, role },
-      {
-        secret: this.cs.get<string>('JWT_REFRESH_SECRET') ?? 'dev-refresh',
-        expiresIn: this.cs.get<string>('JWT_REFRESH_EXPIRES_IN') ?? '14d',
-      },
-    );
-    return { token: access, refreshToken: refresh };
+  async devIssueByKakaoId(
+    kakaoId: string,
+    displayName?: string,
+  ): Promise<AuthTokenPair> {
+    const upsert = toUpsertUserCommand({ id: kakaoId, nickname: displayName });
+    const user = await this.prisma.user.upsert(upsert);
+    return this.issueTokens(user.id, user.role);
   }
 
-  async devIssueByKakaoId(kakaoId: string, displayName?: string) {
-    const user = await this.prisma.user.upsert({
-      where: { kakaoId },
-      update: { displayName: displayName ?? undefined },
-      create: { kakaoId, displayName: displayName ?? undefined },
-    });
-    return this.issueTokens(user.id, user.role);
+  private resolveKakaoConfig(): KakaoConfig {
+    const clientId = this.config.get<string>('KAKAO_CLIENT_ID');
+    const redirectUri = this.config.get<string>('KAKAO_REDIRECT_URI');
+    const clientSecret =
+      this.config.get<string>('KAKAO_CLIENT_SECRET') ?? undefined;
+
+    if (!clientId || !redirectUri) {
+      throw new UnauthorizedException('missing-kakao-config');
+    }
+
+    return { clientId, redirectUri, clientSecret };
+  }
+
+  private resolveJwtSettings(): JwtSettings {
+    return {
+      accessSecret:
+        this.config.get<string>('JWT_ACCESS_SECRET') ?? 'dev-access',
+      refreshSecret:
+        this.config.get<string>('JWT_REFRESH_SECRET') ?? 'dev-refresh',
+      accessExpiresIn:
+        this.config.get<string>('JWT_ACCESS_EXPIRES_IN') ?? '15m',
+      refreshExpiresIn:
+        this.config.get<string>('JWT_REFRESH_EXPIRES_IN') ?? '14d',
+    };
+  }
+
+  private async issueTokens(
+    userId: string,
+    role: string,
+  ): Promise<AuthTokenPair> {
+    const settings = this.resolveJwtSettings();
+    const [token, refreshToken] = await Promise.all([
+      this.jwt.signAsync(
+        { sub: userId, role },
+        { secret: settings.accessSecret, expiresIn: settings.accessExpiresIn },
+      ),
+      this.jwt.signAsync(
+        { sub: userId, role },
+        {
+          secret: settings.refreshSecret,
+          expiresIn: settings.refreshExpiresIn,
+        },
+      ),
+    ]);
+    return { token, refreshToken };
   }
 }

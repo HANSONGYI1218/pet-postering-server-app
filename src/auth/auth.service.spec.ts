@@ -1,9 +1,10 @@
 import { UnauthorizedException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
+import type { ConfigService } from '@nestjs/config';
+import type { JwtService } from '@nestjs/jwt';
 import axios from 'axios';
+
+import type { PrismaService } from '../prisma/prisma.service';
 import { AuthService } from './auth.service';
-import { PrismaService } from '../prisma/prisma.service';
 
 jest.mock('axios');
 
@@ -51,9 +52,9 @@ describe('AuthService', () => {
         },
       });
       upsert.mockResolvedValueOnce({ id: 'user-neo', role: 'USER' });
-      signAsync.mockResolvedValueOnce('issued-access').mockResolvedValueOnce(
-        'issued-refresh',
-      );
+      signAsync
+        .mockResolvedValueOnce('issued-access')
+        .mockResolvedValueOnce('issued-refresh');
 
       await expect(service.kakaoLogin('auth-code-123')).resolves.toEqual({
         token: 'issued-access',
@@ -68,7 +69,12 @@ describe('AuthService', () => {
       expect(config).toEqual({
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       });
-      expect(new URLSearchParams(params as URLSearchParams).toString().split('&').sort()).toEqual(
+      expect(
+        new URLSearchParams(params as URLSearchParams)
+          .toString()
+          .split('&')
+          .sort(),
+      ).toEqual(
         [
           'grant_type=authorization_code',
           'client_id=kakao-client-id',
@@ -102,7 +108,9 @@ describe('AuthService', () => {
     it('code가 없으면 UnauthorizedException을 던진다', async () => {
       const { service } = setup();
 
-      await expect(service.kakaoLogin('')).rejects.toThrow(UnauthorizedException);
+      await expect(service.kakaoLogin('')).rejects.toThrow(
+        UnauthorizedException,
+      );
       expect(mockedAxios.post).not.toHaveBeenCalled();
     });
 
@@ -133,7 +141,9 @@ describe('AuthService', () => {
     it('유효한 리프레시 토큰으로 새 토큰을 발급한다', async () => {
       const { service, verifyAsync, signAsync } = setup();
       verifyAsync.mockResolvedValueOnce({ sub: 'user-id', role: 'USER' });
-      signAsync.mockResolvedValueOnce('new-access').mockResolvedValueOnce('new-refresh');
+      signAsync
+        .mockResolvedValueOnce('new-access')
+        .mockResolvedValueOnce('new-refresh');
 
       await expect(service.refresh('refresh-token')).resolves.toEqual({
         token: 'new-access',
@@ -169,9 +179,9 @@ describe('AuthService', () => {
     it('사용자를 upsert 후 토큰 쌍을 반환한다', async () => {
       const { service, upsert, signAsync } = setup();
       upsert.mockResolvedValueOnce({ id: 'user-123', role: 'ADMIN' });
-      signAsync.mockResolvedValueOnce('access-from-dev').mockResolvedValueOnce(
-        'refresh-from-dev',
-      );
+      signAsync
+        .mockResolvedValueOnce('access-from-dev')
+        .mockResolvedValueOnce('refresh-from-dev');
 
       await expect(
         service.devIssueByKakaoId('kakao-123', 'pet lover'),

@@ -1,7 +1,8 @@
-import { Test } from '@nestjs/testing';
-import type { INestApplication, ExecutionContext } from '@nestjs/common';
+import type { ExecutionContext, INestApplication } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { Test } from '@nestjs/testing';
 import request from 'supertest';
+
 import { ReportsController } from './reports.controller';
 import { ReportsService } from './reports.service';
 

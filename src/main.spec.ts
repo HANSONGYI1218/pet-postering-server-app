@@ -29,7 +29,7 @@ describe('main bootstrap', () => {
         },
       }));
 
-      const actualSwagger = jest.requireActual('@nestjs/swagger');
+      const actualSwagger = await import('@nestjs/swagger');
       jest.doMock('@nestjs/swagger', () => ({
         ...actualSwagger,
         SwaggerModule: {
@@ -39,9 +39,11 @@ describe('main bootstrap', () => {
         DocumentBuilder: actualSwagger.DocumentBuilder,
       }));
 
-      const { bootstrap } = require('./main');
-      const { AppModule } = require('./app.module');
-      const { NestFactory } = require('@nestjs/core');
+      const { bootstrap } = (await import('./main')) as {
+        bootstrap: () => Promise<void>;
+      };
+      const { AppModule } = await import('./app.module');
+      const { NestFactory } = await import('@nestjs/core');
 
       await bootstrap();
 
@@ -75,7 +77,7 @@ describe('main bootstrap', () => {
         },
       }));
 
-      const actualSwagger = jest.requireActual('@nestjs/swagger');
+      const actualSwagger = await import('@nestjs/swagger');
       jest.doMock('@nestjs/swagger', () => ({
         ...actualSwagger,
         SwaggerModule: {
@@ -85,7 +87,10 @@ describe('main bootstrap', () => {
         DocumentBuilder: actualSwagger.DocumentBuilder,
       }));
 
-      const { bootstrap } = require('./main');
+      const { bootstrap } = (await import('./main')) as {
+        bootstrap: () => Promise<void>;
+      };
+
       await bootstrap();
 
       expect(createDocument).toHaveBeenCalledTimes(1);

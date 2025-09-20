@@ -1,4 +1,5 @@
 import { Test } from '@nestjs/testing';
+
 import { PrismaService } from './prisma.service';
 
 describe('PrismaService lifecycle', () => {
@@ -8,14 +9,9 @@ describe('PrismaService lifecycle', () => {
     }).compile();
 
     const service = moduleRef.get(PrismaService);
-    const connectSpy = jest
-      .spyOn(service as unknown as { $connect: () => Promise<void> }, '$connect')
-      .mockResolvedValue();
+    const connectSpy = jest.spyOn(service, '$connect').mockResolvedValue();
     const disconnectSpy = jest
-      .spyOn(
-        service as unknown as { $disconnect: () => Promise<void> },
-        '$disconnect',
-      )
+      .spyOn(service, '$disconnect')
       .mockResolvedValue();
 
     await service.onModuleInit();

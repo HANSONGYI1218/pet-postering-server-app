@@ -1,8 +1,9 @@
-import { Test } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { PassportModule } from '@nestjs/passport';
-import { JwtAccessStrategy } from './jwt-access.strategy';
+import { Test } from '@nestjs/testing';
 import { ExtractJwt } from 'passport-jwt';
+
+import { JwtAccessStrategy } from './jwt-access.strategy';
 
 jest.mock('passport-jwt', () => {
   const original = jest.requireActual('passport-jwt');
@@ -33,7 +34,7 @@ describe('JwtAccessStrategy', () => {
     }).compile();
 
     const strategy = moduleRef.get(JwtAccessStrategy);
-    const payload = await strategy.validate({ sub: 'user-1', role: 'ADMIN' });
+    const payload = strategy.validate({ sub: 'user-1', role: 'ADMIN' });
 
     expect(payload).toEqual({ userId: 'user-1', role: 'ADMIN' });
     expect(ExtractJwt.fromAuthHeaderAsBearerToken).toHaveBeenCalled();

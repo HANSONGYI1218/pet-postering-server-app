@@ -1,7 +1,8 @@
-import { Test } from '@nestjs/testing';
-import type { INestApplication, ExecutionContext } from '@nestjs/common';
+import type { ExecutionContext, INestApplication } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { Test } from '@nestjs/testing';
 import request from 'supertest';
+
 import { FosterController } from './foster.controller';
 import { FosterService } from './foster.service';
 
@@ -32,8 +33,10 @@ describe('FosterController', () => {
       .useValue({
         canActivate: (ctx: ExecutionContext) => {
           const req = ctx.switchToHttp().getRequest();
-          const userId = (req.headers['x-test-user'] as string) ?? 'jwt-user';
-          const role = (req.headers['x-test-role'] as string) ?? 'USER';
+          const rawUser = req.headers['x-test-user'];
+          const rawRole = req.headers['x-test-role'];
+          const userId = typeof rawUser === 'string' ? rawUser : 'jwt-user';
+          const role = typeof rawRole === 'string' ? rawRole : 'USER';
           req.user = { userId, role };
           return true;
         },
@@ -54,11 +57,11 @@ describe('FosterController', () => {
 
     await request(app.getHttpServer())
       .get('/foster/animals')
-      .query({ status: 'FOSTERING' })
+      .query({ status: 'WAITING' })
       .expect(200)
       .expect({ items: [] });
 
-    expect(service.listAnimals).toHaveBeenCalledWith('FOSTERING');
+    expect(service.listAnimals).toHaveBeenCalledWith('WAITING');
   });
 
   it('POST /foster/animals includes authenticated user info', async () => {
@@ -170,7 +173,10 @@ describe('FosterController', () => {
   });
 
   it('DELETE /foster/animals/:id forwards user to service', async () => {
-    service.deleteAnimal.mockResolvedValueOnce({ id: 'animal-1', deleted: true } as any);
+    service.deleteAnimal.mockResolvedValueOnce({
+      id: 'animal-1',
+      deleted: true,
+    } as any);
 
     await request(app.getHttpServer())
       .delete('/foster/animals/animal-1')
@@ -227,10 +233,9 @@ describe('FosterController', () => {
       .expect(200)
       .expect({ animalId: 'animal-1', id: 'record-9', deleted: true });
 
-    expect(service.deleteRecord).toHaveBeenCalledWith(
-      'animal-1',
-      'record-9',
-      { userId: 'user-8', role: 'USER' },
-    );
+    expect(service.deleteRecord).toHaveBeenCalledWith('animal-1', 'record-9', {
+      userId: 'user-8',
+      role: 'USER',
+    });
   });
 });

@@ -1,10 +1,11 @@
-import { Test } from '@nestjs/testing';
-import type { INestApplication, ExecutionContext } from '@nestjs/common';
+import type { ExecutionContext, INestApplication } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { Test } from '@nestjs/testing';
 import request from 'supertest';
+
+import { OptionalJwtAuthGuard } from '../common/optional-jwt.guard';
 import { CommunityController } from './community.controller';
 import { CommunityService } from './community.service';
-import { OptionalJwtAuthGuard } from '../common/optional-jwt.guard';
 
 describe('CommunityController', () => {
   const JwtAuthGuard = AuthGuard('jwt');
@@ -33,8 +34,10 @@ describe('CommunityController', () => {
       .useValue({
         canActivate: (ctx: ExecutionContext) => {
           const req = ctx.switchToHttp().getRequest();
-          const userId = (req.headers['x-test-user'] as string) ?? 'jwt-user';
-          const role = (req.headers['x-test-role'] as string) ?? 'USER';
+          const rawUser = req.headers['x-test-user'];
+          const rawRole = req.headers['x-test-role'];
+          const userId = typeof rawUser === 'string' ? rawUser : 'jwt-user';
+          const role = typeof rawRole === 'string' ? rawRole : 'USER';
           req.user = { userId, role };
           return true;
         },
@@ -60,7 +63,11 @@ describe('CommunityController', () => {
   });
 
   it('GET /community/posts converts limit to number and forwards to service', async () => {
-    service.listPosts.mockResolvedValueOnce({ items: [], nextCursor: null, limit: 10 });
+    service.listPosts.mockResolvedValueOnce({
+      items: [],
+      nextCursor: null,
+      limit: 10,
+    });
 
     await request(app.getHttpServer())
       .get('/community/posts')
@@ -130,13 +137,20 @@ describe('CommunityController', () => {
       .expect(201)
       .expect(created);
 
-    expect(service.createComment).toHaveBeenCalledWith('post-2', 'commenter-1', {
-      content: 'hi',
-    });
+    expect(service.createComment).toHaveBeenCalledWith(
+      'post-2',
+      'commenter-1',
+      {
+        content: 'hi',
+      },
+    );
   });
 
   it('POST /community/posts/:id/bookmarks uses authenticated user', async () => {
-    service.bookmark.mockResolvedValueOnce({ postId: 'post-1', bookmarked: true } as any);
+    service.bookmark.mockResolvedValueOnce({
+      postId: 'post-1',
+      bookmarked: true,
+    } as any);
 
     await request(app.getHttpServer())
       .post('/community/posts/post-1/bookmarks')
@@ -148,7 +162,10 @@ describe('CommunityController', () => {
   });
 
   it('DELETE /community/posts/:id/bookmarks passes user', async () => {
-    service.unbookmark.mockResolvedValueOnce({ postId: 'post-1', bookmarked: false } as any);
+    service.unbookmark.mockResolvedValueOnce({
+      postId: 'post-1',
+      bookmarked: false,
+    } as any);
 
     await request(app.getHttpServer())
       .delete('/community/posts/post-1/bookmarks')
@@ -160,7 +177,10 @@ describe('CommunityController', () => {
   });
 
   it('POST /community/comments/:id/likes injects user', async () => {
-    service.likeComment.mockResolvedValueOnce({ commentId: 'comment-1', liked: true } as any);
+    service.likeComment.mockResolvedValueOnce({
+      commentId: 'comment-1',
+      liked: true,
+    } as any);
 
     await request(app.getHttpServer())
       .post('/community/comments/comment-1/likes')
@@ -172,7 +192,10 @@ describe('CommunityController', () => {
   });
 
   it('DELETE /community/comments/:id/likes removes like with user', async () => {
-    service.unlikeComment.mockResolvedValueOnce({ commentId: 'comment-1', liked: false } as any);
+    service.unlikeComment.mockResolvedValueOnce({
+      commentId: 'comment-1',
+      liked: false,
+    } as any);
 
     await request(app.getHttpServer())
       .delete('/community/comments/comment-1/likes')
@@ -184,7 +207,10 @@ describe('CommunityController', () => {
   });
 
   it('DELETE /community/comments/:id injects user for deletion', async () => {
-    service.deleteComment.mockResolvedValueOnce({ commentId: 'comment-1', deleted: true } as any);
+    service.deleteComment.mockResolvedValueOnce({
+      commentId: 'comment-1',
+      deleted: true,
+    } as any);
 
     await request(app.getHttpServer())
       .delete('/community/comments/comment-1')

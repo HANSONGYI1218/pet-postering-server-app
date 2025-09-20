@@ -1,27 +1,21 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
+
+import type {
+  CreateReportCommand,
+  ReportView,
+} from '../domain/reports/application/types';
+import { prepareReportCreation } from '../domain/reports/domain/reporting';
 import { PrismaService } from '../prisma/prisma.service';
-import { type Report, ReportTargetType } from '@prisma/client';
 
 @Injectable()
 export class ReportsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  // 입력 파라미터 명확화(Prisma enum 사용)
-  async create(dto: CreateReportInput): Promise<Report> {
-    return this.prisma.report.create({
-      data: {
-        targetType: dto.targetType,
-        targetId: dto.targetId,
-        reason: dto.reason,
-        reporterId: dto.reporterId,
-      },
-    });
+  async create(command: CreateReportCommand): Promise<ReportView> {
+    const prepared = prepareReportCreation(command);
+    if (prepared.status === 'error') {
+      throw new BadRequestException(prepared.reason);
+    }
+    return this.prisma.report.create({ data: prepared.data });
   }
-}
-
-export interface CreateReportInput {
-  targetType: ReportTargetType;
-  targetId: string;
-  reason: string;
-  reporterId: string;
 }

@@ -1,50 +1,79 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import type { AnimalStatus } from '@prisma/client';
+
 import type { AuthUser } from '../common/types';
 import type {
-  Animal,
-  AnimalStatus,
-  FosterRecord,
-  FosterRecordImage,
-} from '@prisma/client';
+  AnimalListItem,
+  DeleteAnimalResult,
+  DeleteRecordResult,
+  FosterRecordBase,
+  FosterRecordDetail,
+  ListAnimalsResult,
+  ListRecordsResult,
+} from '../domain/foster/application/types';
+import { parseAnimalStatus } from '../domain/foster/domain/animals';
+import { calculateFosterDays } from '../domain/foster/domain/metrics';
+import { ensureAnimalWriteAccess } from '../domain/foster/domain/permissions';
+import {
+  resolveRecordWindow,
+  toImageCreateInputs,
+} from '../domain/foster/domain/records';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class FosterService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async listAnimals(
-    status?: string,
-  ): Promise<{ items: (Animal & { fosterDays: number })[] }> {
-    const where = status ? { status: status as unknown as AnimalStatus } : {};
+  async listAnimals(status?: string): Promise<ListAnimalsResult> {
+    const statusValue = this.parseStatus(status);
     const animals = await this.prisma.animal.findMany({
-      where,
+      where: statusValue ? { status: statusValue } : {},
       orderBy: { createdAt: 'desc' },
     });
+    const now = new Date();
     const items = await Promise.all(
-      animals.map(async (a) => ({
-        ...a,
-        fosterDays: await awaitDays(this.prisma, a.id, a.createdAt),
-      })),
+      animals.map(async (animal) => {
+        const firstRecord = await this.prisma.fosterRecord.findFirst({
+          where: { animalId: animal.id },
+          orderBy: { date: 'asc' },
+          select: { date: true },
+        });
+        const fosterDays = calculateFosterDays({
+          now,
+          firstRecordDate: firstRecord?.date ?? null,
+          fallbackCreatedAt: animal.createdAt,
+        });
+        return { ...animal, fosterDays } satisfies AnimalListItem;
+      }),
     );
     return { items };
   }
 
-  async listSharedAnimals(): Promise<{
-    items: (Animal & { fosterDays: number })[];
-  }> {
+  async listSharedAnimals(): Promise<ListAnimalsResult> {
     const animals = await this.prisma.animal.findMany({
       where: { shared: true },
       orderBy: { createdAt: 'desc' },
     });
+    const now = new Date();
     const items = await Promise.all(
-      animals.map(async (a) => ({
-        ...a,
-        fosterDays: await awaitDays(this.prisma, a.id, a.createdAt),
-      })),
+      animals.map(async (animal) => {
+        const firstRecord = await this.prisma.fosterRecord.findFirst({
+          where: { animalId: animal.id },
+          orderBy: { date: 'asc' },
+          select: { date: true },
+        });
+        const fosterDays = calculateFosterDays({
+          now,
+          firstRecordDate: firstRecord?.date ?? null,
+          fallbackCreatedAt: animal.createdAt,
+        });
+        return { ...animal, fosterDays } satisfies AnimalListItem;
+      }),
     );
     return { items };
   }
@@ -52,51 +81,53 @@ export class FosterService {
   async createAnimal(
     user: AuthUser,
     dto: { name: string; orgId?: string; shared?: boolean },
-  ): Promise<Animal> {
-    if (dto.orgId) {
-      if (user.role !== 'ORG_ADMIN') throw new ForbiddenException('ORG only');
-      return this.prisma.animal.create({
-        data: { name: dto.name, orgId: dto.orgId, shared: !!dto.shared },
-      });
-    }
-    return this.prisma.animal.create({
-      data: { name: dto.name, ownerUserId: user.userId, shared: !!dto.shared },
+  ): Promise<AnimalListItem> {
+    if (dto.orgId && user.role !== 'ORG_ADMIN')
+      throw new ForbiddenException('animal-org-only');
+
+    const created = await this.prisma.animal.create({
+      data: dto.orgId
+        ? { name: dto.name, orgId: dto.orgId, shared: dto.shared ?? false }
+        : {
+            name: dto.name,
+            ownerUserId: user.userId,
+            shared: dto.shared ?? false,
+          },
     });
+    return { ...created, fosterDays: 0 } satisfies AnimalListItem;
   }
 
   async updateAnimal(
     id: string,
     user: AuthUser,
     dto: { name?: string; shared?: boolean; status?: string },
-  ): Promise<Animal> {
-    const a = await this.prisma.animal.findUnique({ where: { id } });
-    if (!a) throw new NotFoundException('Animal not found');
-    if (a.orgId) {
-      if (user.role !== 'ORG_ADMIN') throw new ForbiddenException('ORG only');
-    } else if (a.ownerUserId !== user.userId) {
-      throw new ForbiddenException('Not owner');
-    }
-    return this.prisma.animal.update({
+  ): Promise<AnimalListItem> {
+    this.requireAnimalAccess(
+      await this.prisma.animal.findUnique({ where: { id } }),
+      user,
+    );
+    const statusValue = this.parseStatus(dto.status);
+
+    const updated = await this.prisma.animal.update({
       where: { id },
       data: {
         name: dto.name,
         shared: dto.shared,
-        status: (dto.status as unknown as AnimalStatus) ?? undefined,
+        status: statusValue ?? undefined,
       },
     });
+    const fosterDays = await this.computeFosterDays(
+      updated.id,
+      updated.createdAt,
+    );
+    return { ...updated, fosterDays } satisfies AnimalListItem;
   }
 
-  async deleteAnimal(
-    id: string,
-    user: AuthUser,
-  ): Promise<{ id: string; deleted: true }> {
-    const a = await this.prisma.animal.findUnique({ where: { id } });
-    if (!a) throw new NotFoundException('Animal not found');
-    if (a.orgId) {
-      if (user.role !== 'ORG_ADMIN') throw new ForbiddenException('ORG only');
-    } else if (a.ownerUserId !== user.userId) {
-      throw new ForbiddenException('Not owner');
-    }
+  async deleteAnimal(id: string, user: AuthUser): Promise<DeleteAnimalResult> {
+    this.requireAnimalAccess(
+      await this.prisma.animal.findUnique({ where: { id } }),
+      user,
+    );
     await this.prisma.animal.delete({ where: { id } });
     return { id, deleted: true };
   }
@@ -106,19 +137,17 @@ export class FosterService {
     from?: string,
     to?: string,
   ): Promise<ListRecordsResult> {
-    const now = new Date();
-    const fromDate = from ? new Date(from) : new Date(now);
-    if (!from) fromDate.setMonth(fromDate.getMonth() - 6);
-    const toDate = to ? new Date(to) : new Date(now);
-    if (!to) toDate.setMonth(toDate.getMonth() + 6);
-    // 동물 및 기관 메타 조회
+    const window = resolveRecordWindow(from, to);
+    if ('status' in window) throw new BadRequestException(window.reason);
+
     const animal = await this.prisma.animal.findUnique({
       where: { id: animalId },
       include: { organization: { select: { id: true, name: true } } },
     });
-    if (!animal) throw new NotFoundException('Animal not found');
+    if (!animal) throw new NotFoundException('animal-not-found');
+
     const items = await this.prisma.fosterRecord.findMany({
-      where: { animalId, date: { gte: fromDate, lte: toDate } },
+      where: { animalId, date: { gte: window.from, lte: window.to } },
       orderBy: { date: 'asc' },
       include: { images: { orderBy: { sortOrder: 'asc' } } },
     });
@@ -131,8 +160,8 @@ export class FosterService {
         shared: animal.shared,
         organization: animal.organization ?? null,
       },
-      from: fromDate.toISOString(),
-      to: toDate.toISOString(),
+      from: window.from.toISOString(),
+      to: window.to.toISOString(),
       items,
     };
   }
@@ -141,28 +170,28 @@ export class FosterService {
     animalId: string,
     recordId: string,
   ): Promise<FosterRecordDetail> {
-    const rec = await this.prisma.fosterRecord.findUnique({
+    const record = await this.prisma.fosterRecord.findUnique({
       where: { id: recordId },
       include: { images: true },
     });
-    if (!rec || rec.animalId !== animalId)
-      throw new NotFoundException('Record not found');
+    if (!record || record.animalId !== animalId)
+      throw new NotFoundException('record-not-found');
+
     const animal = await this.prisma.animal.findUnique({
       where: { id: animalId },
       include: { organization: { select: { id: true, name: true } } },
     });
-    return animal
-      ? {
-          ...rec,
-          animal: {
-            id: animal.id,
-            name: animal.name,
-            status: animal.status,
-            shared: animal.shared,
-            organization: animal.organization ?? null,
-          },
-        }
-      : (rec as FosterRecordBase);
+    if (!animal) return record as FosterRecordBase;
+    return {
+      ...record,
+      animal: {
+        id: animal.id,
+        name: animal.name,
+        status: animal.status,
+        shared: animal.shared,
+        organization: animal.organization ?? null,
+      },
+    } satisfies FosterRecordDetail;
   }
 
   async createRecord(
@@ -170,20 +199,25 @@ export class FosterService {
     user: AuthUser,
     dto: { date: string; content?: string; images?: string[] },
   ): Promise<FosterRecordBase> {
-    const a = await this.prisma.animal.findUnique({ where: { id: animalId } });
-    if (!a) throw new NotFoundException('Animal not found');
-    if (a.orgId) {
-      if (user.role !== 'ORG_ADMIN') throw new ForbiddenException('ORG only');
-    } else if (a.ownerUserId !== user.userId) {
-      throw new ForbiddenException('Not owner');
-    }
-    const imgs = (dto.images ?? []).slice(0, 6);
+    this.requireAnimalAccess(
+      await this.prisma.animal.findUnique({ where: { id: animalId } }),
+      user,
+    );
+
+    const images = toImageCreateInputs(dto.images);
     return this.prisma.fosterRecord.create({
       data: {
         animalId,
         date: new Date(dto.date),
         content: dto.content,
-        images: { create: imgs.map((url, i) => ({ url, sortOrder: i })) },
+        images: images.length
+          ? {
+              create: images.map((image) => ({
+                url: image.url,
+                sortOrder: image.sortOrder,
+              })),
+            }
+          : undefined,
       },
       include: { images: true },
     });
@@ -195,19 +229,17 @@ export class FosterService {
     user: AuthUser,
     dto: { date?: string; content?: string; images?: string[] },
   ): Promise<FosterRecordBase> {
-    const rec = await this.prisma.fosterRecord.findUnique({
+    const record = await this.prisma.fosterRecord.findUnique({
       where: { id: recordId },
     });
-    if (!rec || rec.animalId !== animalId)
-      throw new NotFoundException('Record not found');
-    const a = await this.prisma.animal.findUnique({ where: { id: animalId } });
-    if (!a) throw new NotFoundException('Animal not found');
-    if (a.orgId) {
-      if (user.role !== 'ORG_ADMIN') throw new ForbiddenException('ORG only');
-    } else if (a.ownerUserId !== user.userId) {
-      throw new ForbiddenException('Not owner');
-    }
-    const imgs = dto.images?.slice(0, 6);
+    if (!record || record.animalId !== animalId)
+      throw new NotFoundException('record-not-found');
+
+    this.requireAnimalAccess(
+      await this.prisma.animal.findUnique({ where: { id: animalId } }),
+      user,
+    );
+
     return this.prisma.$transaction(async (tx) => {
       const updated = await tx.fosterRecord.update({
         where: { id: recordId },
@@ -216,19 +248,22 @@ export class FosterService {
           date: dto.date ? new Date(dto.date) : undefined,
         },
       });
-      if (imgs) {
+      const images = toImageCreateInputs(dto.images);
+      if (images.length > 0) {
         await tx.fosterRecordImage.deleteMany({ where: { recordId } });
         await tx.fosterRecordImage.createMany({
-          data: imgs.map((url, i) => ({ recordId, url, sortOrder: i })),
+          data: images.map((image) => ({
+            recordId,
+            url: image.url,
+            sortOrder: image.sortOrder,
+          })),
         });
       }
-      return {
-        ...updated,
-        images: await tx.fosterRecordImage.findMany({
-          where: { recordId },
-          orderBy: { sortOrder: 'asc' },
-        }),
-      };
+      const currentImages = await tx.fosterRecordImage.findMany({
+        where: { recordId },
+        orderBy: { sortOrder: 'asc' },
+      });
+      return { ...updated, images: currentImages } satisfies FosterRecordBase;
     });
   }
 
@@ -236,66 +271,54 @@ export class FosterService {
     animalId: string,
     recordId: string,
     user: AuthUser,
-  ): Promise<{ animalId: string; id: string; deleted: true }> {
-    const rec = await this.prisma.fosterRecord.findUnique({
+  ): Promise<DeleteRecordResult> {
+    const record = await this.prisma.fosterRecord.findUnique({
       where: { id: recordId },
     });
-    if (!rec || rec.animalId !== animalId)
-      throw new NotFoundException('Record not found');
-    const a = await this.prisma.animal.findUnique({ where: { id: animalId } });
-    if (!a) throw new NotFoundException('Animal not found');
-    if (a.orgId) {
-      if (user.role !== 'ORG_ADMIN') throw new ForbiddenException('ORG only');
-    } else if (a.ownerUserId !== user.userId) {
-      throw new ForbiddenException('Not owner');
-    }
+    if (!record || record.animalId !== animalId)
+      throw new NotFoundException('record-not-found');
+
+    this.requireAnimalAccess(
+      await this.prisma.animal.findUnique({ where: { id: animalId } }),
+      user,
+    );
+
     await this.prisma.fosterRecord.delete({ where: { id: recordId } });
     return { animalId, id: recordId, deleted: true };
   }
-}
 
-async function awaitDays(
-  prisma: PrismaService,
-  animalId: string,
-  fallback: Date,
-) {
-  const first = await prisma.fosterRecord.findFirst({
-    where: { animalId },
-    orderBy: { date: 'asc' },
-    select: { date: true },
-  });
-  const start = first?.date ?? fallback;
-  const diff = Math.floor(
-    (Date.now() - start.getTime()) / (1000 * 60 * 60 * 24),
-  );
-  return diff;
-}
+  private parseStatus(status?: string): AnimalStatus | undefined {
+    const result = parseAnimalStatus(status);
+    if (result.status === 'error') throw new BadRequestException(result.reason);
+    return result.value;
+  }
 
-// ===== Types for service returns =====
-export type FosterRecordBase = FosterRecord & { images: FosterRecordImage[] };
+  private requireAnimalAccess<
+    T extends { orgId: string | null; ownerUserId: string | null } | null,
+  >(animal: T, user: AuthUser): Exclude<T, null> {
+    if (!animal) throw new NotFoundException('animal-not-found');
+    const access = ensureAnimalWriteAccess(animal, user);
+    if (access.status === 'error') {
+      if (access.reason === 'animal-not-found')
+        throw new NotFoundException(access.reason);
+      throw new ForbiddenException(access.reason);
+    }
+    return animal;
+  }
 
-export type FosterRecordDetail =
-  | FosterRecordBase
-  | (FosterRecordBase & {
-      animal: {
-        id: string;
-        name: string;
-        status: AnimalStatus;
-        shared: boolean;
-        organization: { id: string; name: string } | null;
-      };
+  private async computeFosterDays(
+    animalId: string,
+    createdAt: Date,
+  ): Promise<number> {
+    const firstRecord = await this.prisma.fosterRecord.findFirst({
+      where: { animalId },
+      orderBy: { date: 'asc' },
+      select: { date: true },
     });
-
-export interface ListRecordsResult {
-  animalId: string;
-  animal: {
-    id: string;
-    name: string;
-    status: AnimalStatus;
-    shared: boolean;
-    organization: { id: string; name: string } | null;
-  };
-  from: string;
-  to: string;
-  items: FosterRecordBase[];
+    return calculateFosterDays({
+      now: new Date(),
+      firstRecordDate: firstRecord?.date ?? null,
+      fallbackCreatedAt: createdAt,
+    });
+  }
 }

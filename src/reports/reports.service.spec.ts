@@ -1,6 +1,8 @@
+import { BadRequestException } from '@nestjs/common';
 import { ReportTargetType } from '@prisma/client';
+
+import type { PrismaService } from '../prisma/prisma.service';
 import { ReportsService } from './reports.service';
-import { PrismaService } from '../prisma/prisma.service';
 
 describe('ReportsService', () => {
   const build = () => {
@@ -12,26 +14,56 @@ describe('ReportsService', () => {
     return { service, create };
   };
 
-  it('신고 생성 시 Prisma에 전달한 값을 그대로 돌려준다', async () => {
+  it('입력을 정규화해 Prisma에 전달한다', async () => {
     const { service, create } = build();
-    const dto = {
+    const command = {
+      targetType: ReportTargetType.COMMUNITY,
+      targetId: '  target-id  ',
+      reason: '  inappropriate  ',
+      reporterId: 'reporter-id',
+    };
+    const saved = {
+      id: 'report-id',
       targetType: ReportTargetType.COMMUNITY,
       targetId: 'target-id',
       reason: 'inappropriate',
       reporterId: 'reporter-id',
     };
-    const saved = { id: 'report-id', ...dto }; // Prisma 반환값 흉내
     create.mockResolvedValueOnce(saved);
 
-    await expect(service.create(dto)).resolves.toBe(saved);
+    await expect(service.create(command)).resolves.toBe(saved);
     expect(create).toHaveBeenCalledTimes(1);
     expect(create).toHaveBeenCalledWith({
       data: {
-        targetType: dto.targetType,
-        targetId: dto.targetId,
-        reason: dto.reason,
-        reporterId: dto.reporterId,
+        targetType: ReportTargetType.COMMUNITY,
+        targetId: 'target-id',
+        reason: 'inappropriate',
+        reporterId: 'reporter-id',
       },
     });
+  });
+
+  it('사유가 비어 있으면 BadRequestException을 던진다', async () => {
+    const { service } = build();
+    const command = {
+      targetType: ReportTargetType.COMMUNITY,
+      targetId: 'target-id',
+      reason: '   ',
+      reporterId: 'reporter-id',
+    };
+
+    await expect(service.create(command)).rejects.toThrow(BadRequestException);
+  });
+
+  it('대상 id가 비어 있으면 BadRequestException을 던진다', async () => {
+    const { service } = build();
+    const command = {
+      targetType: ReportTargetType.COMMUNITY,
+      targetId: '   ',
+      reason: 'spam',
+      reporterId: 'reporter-id',
+    };
+
+    await expect(service.create(command)).rejects.toThrow(BadRequestException);
   });
 });

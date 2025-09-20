@@ -1,16 +1,14 @@
 import {
-  Controller,
-  Get,
-  Post,
-  Delete,
-  Param,
-  Query,
   Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
-import { CommunityService } from './community.service';
 import { AuthGuard } from '@nestjs/passport';
-import { CurrentUser } from '../common/current-user.decorator';
 import {
   ApiBearerAuth,
   ApiOkResponse,
@@ -18,18 +16,31 @@ import {
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
+
+import { CurrentUser } from '../common/current-user.decorator';
+import { OptionalJwtAuthGuard } from '../common/optional-jwt.guard';
+import type { AuthUser } from '../common/types';
+import type {
+  BookmarkResponse,
+  CommentListItem,
+  DeleteCommentResponse,
+  LikeCommentResponse,
+  ListCommentsResult,
+  ListPostsResult,
+  PostDetail,
+  PostListItem,
+} from '../domain/community/application/types';
 import {
   BookmarkResponseDto,
   CreateCommentDto,
   CreatePostDto,
   DeleteCommentResponseDto,
   LikeCommentResponseDto,
-  PostListResponseDto,
-  PostDetailDto,
   ListCommentsResponseDto,
-} from './dto/community.dto';
-import { OptionalJwtAuthGuard } from '../common/optional-jwt.guard';
-import type { AuthUser } from '../common/types';
+  PostDetailDto,
+  PostListResponseDto,
+} from '../domain/community/presentation/dto/community.dto';
+import { CommunityService } from './community.service';
 
 @ApiTags('Community')
 @ApiBearerAuth()
@@ -56,15 +67,18 @@ export class CommunityController {
   @ApiOkResponse({ type: PostListResponseDto })
   listPosts(
     @Query('cursor') cursor?: string,
-    @Query('limit') limit: string = '20',
-  ) {
+    @Query('limit') limit = '20',
+  ): Promise<ListPostsResult> {
     return this.svc.listPosts(Number(limit), cursor);
   }
 
   @Post('posts')
   @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Create a new post' })
-  createPost(@CurrentUser() user: AuthUser, @Body() body: CreatePostDto) {
+  createPost(
+    @CurrentUser() user: AuthUser,
+    @Body() body: CreatePostDto,
+  ): Promise<PostListItem> {
     return this.svc.createPost(user.userId, body);
   }
 
@@ -72,7 +86,10 @@ export class CommunityController {
   @ApiOperation({ summary: 'Get post detail; increments view count' })
   @UseGuards(OptionalJwtAuthGuard)
   @ApiOkResponse({ type: PostDetailDto })
-  getPost(@Param('id') id: string, @CurrentUser() user?: AuthUser) {
+  getPost(
+    @Param('id') id: string,
+    @CurrentUser() user?: AuthUser,
+  ): Promise<PostDetail> {
     return this.svc.getPost(id, user?.userId);
   }
 
@@ -80,7 +97,10 @@ export class CommunityController {
   @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Bookmark a post' })
   @ApiOkResponse({ type: BookmarkResponseDto })
-  bookmark(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+  bookmark(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthUser,
+  ): Promise<BookmarkResponse> {
     return this.svc.bookmark(id, user.userId);
   }
 
@@ -88,7 +108,10 @@ export class CommunityController {
   @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Unbookmark a post' })
   @ApiOkResponse({ type: BookmarkResponseDto })
-  unbookmark(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+  unbookmark(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthUser,
+  ): Promise<BookmarkResponse> {
     return this.svc.unbookmark(id, user.userId);
   }
 
@@ -96,7 +119,10 @@ export class CommunityController {
   @ApiOperation({ summary: 'List comments with like count and my-like flag' })
   @UseGuards(OptionalJwtAuthGuard)
   @ApiOkResponse({ type: ListCommentsResponseDto })
-  listComments(@Param('id') id: string, @CurrentUser() user?: AuthUser) {
+  listComments(
+    @Param('id') id: string,
+    @CurrentUser() user?: AuthUser,
+  ): Promise<ListCommentsResult> {
     return this.svc.listComments(id, user?.userId);
   }
 
@@ -107,7 +133,7 @@ export class CommunityController {
     @Param('id') id: string,
     @CurrentUser() user: AuthUser,
     @Body() body: CreateCommentDto,
-  ) {
+  ): Promise<CommentListItem> {
     return this.svc.createComment(id, user.userId, body);
   }
 
@@ -118,7 +144,7 @@ export class CommunityController {
   deleteComment(
     @Param('commentId') commentId: string,
     @CurrentUser() user: AuthUser,
-  ) {
+  ): Promise<DeleteCommentResponse> {
     return this.svc.deleteComment(commentId, user.userId);
   }
 
@@ -129,7 +155,7 @@ export class CommunityController {
   likeComment(
     @Param('commentId') commentId: string,
     @CurrentUser() user: AuthUser,
-  ) {
+  ): Promise<LikeCommentResponse> {
     return this.svc.likeComment(commentId, user.userId);
   }
 
@@ -140,7 +166,7 @@ export class CommunityController {
   unlikeComment(
     @Param('commentId') commentId: string,
     @CurrentUser() user: AuthUser,
-  ) {
+  ): Promise<LikeCommentResponse> {
     return this.svc.unlikeComment(commentId, user.userId);
   }
 }
