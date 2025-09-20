@@ -114,6 +114,40 @@ export class AnimalMetaDto {
   organization?: OrganizationMetaDto | null;
 }
 
+export class AnimalListItemDto {
+  @ApiProperty()
+  id!: string;
+
+  @ApiProperty()
+  name!: string;
+
+  @ApiProperty({ enum: AnimalStatusDto })
+  status!: AnimalStatusDto;
+
+  @ApiProperty()
+  shared!: boolean;
+
+  @ApiPropertyOptional({ nullable: true })
+  orgId?: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  ownerUserId?: string | null;
+
+  @ApiProperty()
+  fosterDays!: number;
+
+  @ApiProperty()
+  createdAt!: Date;
+
+  @ApiProperty()
+  updatedAt!: Date;
+}
+
+export class ListAnimalsResponseDto {
+  @ApiProperty({ type: () => [AnimalListItemDto] })
+  items!: AnimalListItemDto[];
+}
+
 export class FosterRecordImageDto {
   @ApiProperty()
   id!: string;
@@ -165,6 +199,17 @@ export class GetRecordResponseDto extends FosterRecordDtoOut {
 }
 
 export class DeleteAnimalResponseDto {
+  @ApiProperty()
+  id!: string;
+
+  @ApiProperty({ enum: [true] })
+  deleted!: true;
+}
+
+export class DeleteRecordResponseDto {
+  @ApiProperty()
+  animalId!: string;
+
   @ApiProperty()
   id!: string;
 

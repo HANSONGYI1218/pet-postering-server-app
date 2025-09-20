@@ -11,6 +11,7 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import {
   ApiBearerAuth,
+  ApiCreatedResponse,
   ApiOkResponse,
   ApiOperation,
   ApiQuery,
@@ -32,12 +33,14 @@ import type {
 } from '../domain/community/application/types';
 import {
   BookmarkResponseDto,
+  CommentListItemDto,
   CreateCommentDto,
   CreatePostDto,
   DeleteCommentResponseDto,
   LikeCommentResponseDto,
   ListCommentsResponseDto,
   PostDetailDto,
+  PostListItemDto,
   PostListResponseDto,
 } from '../domain/community/presentation/dto/community.dto';
 import { CommunityService } from './community.service';
@@ -75,6 +78,7 @@ export class CommunityController {
   @Post('posts')
   @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Create a new post' })
+  @ApiCreatedResponse({ type: PostListItemDto })
   createPost(
     @CurrentUser() user: AuthUser,
     @Body() body: CreatePostDto,
@@ -129,6 +133,7 @@ export class CommunityController {
   @Post('posts/:id/comments')
   @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Create a comment or reply' })
+  @ApiCreatedResponse({ type: CommentListItemDto })
   createComment(
     @Param('id') id: string,
     @CurrentUser() user: AuthUser,

@@ -13,6 +13,19 @@ export class RefreshDto {
   refreshToken!: string;
 }
 
+export class AuthTokenPairDto {
+  @ApiProperty({ description: 'JWT access token' })
+  token!: string;
+
+  @ApiProperty({ description: 'JWT refresh token' })
+  refreshToken!: string;
+}
+
+export class LogoutResponseDto {
+  @ApiProperty({ enum: [true] })
+  ok!: true;
+}
+
 export class DevTokenDto {
   @ApiPropertyOptional({ description: 'Explicit kakaoId for dev seeding' })
   @IsOptional()

@@ -1,4 +1,8 @@
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 
 import type { AuthUser } from '../common/types';
 import type { PrismaService } from '../prisma/prisma.service';
@@ -384,6 +388,14 @@ describe('FosterService', () => {
         include: { images: { orderBy: { sortOrder: 'asc' } } },
       });
     });
+
+    it('유효하지 않은 기간이면 BadRequestException을 던진다', async () => {
+      const { service } = build();
+
+      await expect(
+        service.listRecords('animal-1', 'not-a-date', undefined),
+      ).rejects.toThrow(BadRequestException);
+    });
   });
 
   describe('updateAnimal', () => {
@@ -467,6 +479,24 @@ describe('FosterService', () => {
           status: 'WAITING',
         },
       });
+    });
+
+    it('잘못된 상태 값이면 BadRequestException을 던진다', async () => {
+      const { service, prisma } = build();
+      prisma.animal.findUnique.mockResolvedValueOnce({
+        id: 'animal-1',
+        orgId: null,
+        ownerUserId: 'owner-1',
+      });
+
+      await expect(
+        service.updateAnimal(
+          'animal-1',
+          { userId: 'owner-1', role: 'USER' },
+          { status: 'INVALID' },
+        ),
+      ).rejects.toThrow(BadRequestException);
+      expect(prisma.animal.update).not.toHaveBeenCalled();
     });
   });
 

@@ -135,6 +135,28 @@ describe('AuthService', () => {
       );
       expect(mockedAxios.get).not.toHaveBeenCalled();
     });
+
+    it('토큰 요청이 실패하면 UnauthorizedException을 던진다', async () => {
+      const { service } = setup();
+      mockedAxios.post.mockRejectedValueOnce(new Error('network down'));
+
+      await expect(service.kakaoLogin('auth-code')).rejects.toThrow(
+        UnauthorizedException,
+      );
+      expect(mockedAxios.get).not.toHaveBeenCalled();
+    });
+
+    it('사용자 조회가 실패하면 UnauthorizedException을 던진다', async () => {
+      const { service } = setup();
+      mockedAxios.post.mockResolvedValueOnce({
+        data: { access_token: 'kakao-access-token' },
+      });
+      mockedAxios.get.mockRejectedValueOnce(new Error('user api error'));
+
+      await expect(service.kakaoLogin('auth-code')).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
   });
 
   describe('refresh', () => {
