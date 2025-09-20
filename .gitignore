@@ -3,6 +3,8 @@ node_modules/
 dist/
 coverage/
 *.log
+infra/node_modules/
+infra/cdk.out/
 
 # Env
 .env
