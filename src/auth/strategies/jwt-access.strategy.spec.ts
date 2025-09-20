@@ -1,0 +1,41 @@
+import { Test } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
+import { PassportModule } from '@nestjs/passport';
+import { JwtAccessStrategy } from './jwt-access.strategy';
+import { ExtractJwt } from 'passport-jwt';
+
+jest.mock('passport-jwt', () => {
+  const original = jest.requireActual('passport-jwt');
+  return {
+    ...original,
+    ExtractJwt: {
+      fromAuthHeaderAsBearerToken: jest.fn(() => 'extractor'),
+      fromBodyField: original.ExtractJwt.fromBodyField,
+    },
+  };
+});
+
+describe('JwtAccessStrategy', () => {
+  it('ConfigService에서 시크릿을 읽어 사용자 페이로드를 반환한다', async () => {
+    const moduleRef = await Test.createTestingModule({
+      imports: [PassportModule.register({ defaultStrategy: 'jwt' })],
+      providers: [
+        JwtAccessStrategy,
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn((key: string) =>
+              key === 'JWT_ACCESS_SECRET' ? 'secret-123' : undefined,
+            ),
+          },
+        },
+      ],
+    }).compile();
+
+    const strategy = moduleRef.get(JwtAccessStrategy);
+    const payload = await strategy.validate({ sub: 'user-1', role: 'ADMIN' });
+
+    expect(payload).toEqual({ userId: 'user-1', role: 'ADMIN' });
+    expect(ExtractJwt.fromAuthHeaderAsBearerToken).toHaveBeenCalled();
+  });
+});
