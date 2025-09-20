@@ -8,4 +8,6 @@ Dockerfile*
 docker-compose*.yml
 .env
 .DS_Store
-
+infra
+infra/**
+cdk.out

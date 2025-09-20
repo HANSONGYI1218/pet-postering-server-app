@@ -1,5 +1,7 @@
 # syntax=docker/dockerfile:1
 
+FROM public.ecr.aws/awsguru/aws-lambda-adapter:0.9.1 AS lambda-adapter
+
 FROM node:20-alpine AS base
 WORKDIR /app
 ENV NODE_ENV=production
@@ -24,9 +26,11 @@ COPY package.json ./
 COPY --from=build /app/dist ./dist
 COPY prisma ./prisma
 COPY scripts ./scripts
+COPY --from=lambda-adapter /lambda-adapter /opt/extensions/lambda-adapter
 RUN chmod +x ./scripts/entrypoint.sh
 
 ENV PORT=3000
+ENV AWS_LWA_PORT=3000
 EXPOSE 3000
 
 # 앱 실행: 컨테이너 시작 시 마이그레이션 후 기동
