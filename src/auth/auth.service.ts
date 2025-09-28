@@ -8,6 +8,7 @@ import {
   createKakaoTokenRequest,
   extractKakaoProfile,
   type KakaoConfig,
+  type KakaoProfile,
   toUpsertUserCommand,
 } from '../domain/auth/domain/kakao-flow';
 import { PrismaService } from '../prisma/prisma.service';
@@ -56,7 +57,7 @@ export class AuthService {
         throw new UnauthorizedException('kakao-user-fetch-failed');
       });
 
-    const profile = extractKakaoProfile(userResponse.data);
+    const profile = this.parseKakaoProfile(userResponse.data);
     const upsert = toUpsertUserCommand(profile);
     const user = await this.prisma.user.upsert(upsert);
 
@@ -132,5 +133,15 @@ export class AuthService {
       ),
     ]);
     return { token, refreshToken };
+  }
+
+  private parseKakaoProfile(payload: unknown): KakaoProfile {
+    try {
+      return extractKakaoProfile(payload);
+    } catch (error) {
+      throw new UnauthorizedException('kakao-profile-invalid', {
+        cause: error,
+      });
+    }
   }
 }

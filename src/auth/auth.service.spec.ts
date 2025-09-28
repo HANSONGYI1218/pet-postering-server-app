@@ -157,6 +157,18 @@ describe('AuthService', () => {
         UnauthorizedException,
       );
     });
+
+    it('카카오 사용자 응답에 id가 없으면 UnauthorizedException을 던진다', async () => {
+      const { service } = setup();
+      mockedAxios.post.mockResolvedValueOnce({
+        data: { access_token: 'kakao-access-token' },
+      });
+      mockedAxios.get.mockResolvedValueOnce({ data: { kakao_account: {} } });
+
+      await expect(service.kakaoLogin('auth-code')).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
   });
 
   describe('refresh', () => {
