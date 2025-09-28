@@ -23,8 +23,11 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:push": "prisma db push",
     "verify:dev": "npm run lint:check && npm run test && npm run build",
+    "verify:prod": "npm run verify:dev",
     "synth:dev": "npm --prefix infra run synth:dev",
+    "synth:prod": "npm --prefix infra run synth:prod",
     "deploy:dev": "npm run verify:dev && npm --prefix infra run deploy:dev",
+    "deploy:prod": "npm run verify:prod && npm --prefix infra run deploy:prod",
     "format:check": "prettier --check .",
     "lint:fix": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "prepare": "husky"

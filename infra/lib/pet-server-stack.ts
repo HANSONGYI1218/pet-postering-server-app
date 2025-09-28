@@ -165,6 +165,9 @@ interface HttpResources {
   readonly httpStage: HttpStage;
 }
 
+const resolveStageName = (stage: string): string =>
+  stage === 'prod' ? '$default' : stage;
+
 const createHttpResources = (
   scope: Construct,
   stage: string,
@@ -205,7 +208,7 @@ const createHttpResources = (
 
   const httpStage = new HttpStage(scope, 'PetServerStage', {
     httpApi,
-    stageName: stage,
+    stageName: resolveStageName(stage),
     autoDeploy: true,
   });
 

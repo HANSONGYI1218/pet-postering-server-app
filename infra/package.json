@@ -11,7 +11,10 @@
     "cdk": "cdk",
     "synth:dev": "npm run build && cdk synth --context stage=dev",
     "diff:dev": "npm run build && cdk diff --context stage=dev",
-    "deploy:dev": "npm run build && cdk deploy --require-approval=never --context stage=dev"
+    "deploy:dev": "npm run build && cdk deploy --require-approval=never --context stage=dev",
+    "synth:prod": "npm run build && cdk synth --context stage=prod",
+    "diff:prod": "npm run build && cdk diff --context stage=prod",
+    "deploy:prod": "npm run build && cdk deploy --require-approval=never --context stage=prod"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",
