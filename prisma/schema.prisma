@@ -39,6 +39,7 @@ model User {
   id          String   @id @default(cuid())
   kakaoId     String   @unique
   displayName String?
+  avatarUrl   String?
   role        Role     @default(USER)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

@@ -61,7 +61,7 @@ export class AuthService {
     const upsert = toUpsertUserCommand(profile);
     const user = await this.prisma.user.upsert(upsert);
 
-    return this.issueTokens(user.id, user.role);
+    return this.issueTokens(user);
   }
 
   async refresh(refreshToken: string): Promise<AuthTokenPair> {
@@ -71,7 +71,15 @@ export class AuthService {
         refreshToken,
         { secret: refreshSecret },
       );
-      return await this.issueTokens(payload.sub, payload.role);
+      const user = await this.prisma.user.findUnique({
+        where: { id: payload.sub },
+      });
+
+      if (!user) {
+        throw new UnauthorizedException('user-not-found');
+      }
+
+      return await this.issueTokens(user);
     } catch (error) {
       throw new UnauthorizedException('invalid-refresh-token', {
         cause: error,
@@ -85,7 +93,7 @@ export class AuthService {
   ): Promise<AuthTokenPair> {
     const upsert = toUpsertUserCommand({ id: kakaoId, nickname: displayName });
     const user = await this.prisma.user.upsert(upsert);
-    return this.issueTokens(user.id, user.role);
+    return this.issueTokens(user);
   }
 
   private resolveKakaoConfig(): KakaoConfig {
@@ -114,25 +122,35 @@ export class AuthService {
     };
   }
 
-  private async issueTokens(
-    userId: string,
-    role: string,
-  ): Promise<AuthTokenPair> {
+  private async issueTokens(user: {
+    id: string;
+    role: string;
+    displayName?: string | null;
+    avatarUrl?: string | null;
+  }): Promise<AuthTokenPair> {
     const settings = this.resolveJwtSettings();
+    const payload = {
+      sub: user.id,
+      role: user.role,
+      ...(user.displayName ? { displayName: user.displayName } : {}),
+      ...(user.avatarUrl ? { avatarUrl: user.avatarUrl } : {}),
+    } as const;
     const [token, refreshToken] = await Promise.all([
-      this.jwt.signAsync(
-        { sub: userId, role },
-        { secret: settings.accessSecret, expiresIn: settings.accessExpiresIn },
-      ),
-      this.jwt.signAsync(
-        { sub: userId, role },
-        {
-          secret: settings.refreshSecret,
-          expiresIn: settings.refreshExpiresIn,
-        },
-      ),
+      this.jwt.signAsync(payload, {
+        secret: settings.accessSecret,
+        expiresIn: settings.accessExpiresIn,
+      }),
+      this.jwt.signAsync(payload, {
+        secret: settings.refreshSecret,
+        expiresIn: settings.refreshExpiresIn,
+      }),
     ]);
-    return { token, refreshToken };
+    return {
+      token,
+      refreshToken,
+      displayName: user.displayName ?? null,
+      avatarUrl: user.avatarUrl ?? null,
+    };
   }
 
   private parseKakaoProfile(payload: unknown): KakaoProfile {

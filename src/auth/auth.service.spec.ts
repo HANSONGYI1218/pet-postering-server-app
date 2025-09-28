@@ -29,10 +29,13 @@ describe('AuthService', () => {
     const jwt = { signAsync, verifyAsync } as unknown as JwtService;
 
     const upsert = jest.fn();
-    const prisma = { user: { upsert } } as unknown as PrismaService;
+    const findUnique = jest.fn();
+    const prisma = {
+      user: { upsert, findUnique },
+    } as unknown as PrismaService;
 
     const service = new AuthService(jwt, config, prisma);
-    return { service, signAsync, verifyAsync, upsert, get, values };
+    return { service, signAsync, verifyAsync, upsert, findUnique, get, values };
   };
 
   beforeEach(() => {
@@ -48,10 +51,20 @@ describe('AuthService', () => {
       mockedAxios.get.mockResolvedValueOnce({
         data: {
           id: 987,
-          kakao_account: { profile: { nickname: 'neo' } },
+          kakao_account: {
+            profile: {
+              nickname: 'neo',
+              profile_image_url: 'https://cdn.kakao/neo.png',
+            },
+          },
         },
       });
-      upsert.mockResolvedValueOnce({ id: 'user-neo', role: 'USER' });
+      upsert.mockResolvedValueOnce({
+        id: 'user-neo',
+        role: 'USER',
+        displayName: 'neo',
+        avatarUrl: 'https://cdn.kakao/neo.png',
+      });
       signAsync
         .mockResolvedValueOnce('issued-access')
         .mockResolvedValueOnce('issued-refresh');
@@ -59,6 +72,8 @@ describe('AuthService', () => {
       await expect(service.kakaoLogin('auth-code-123')).resolves.toEqual({
         token: 'issued-access',
         refreshToken: 'issued-refresh',
+        displayName: 'neo',
+        avatarUrl: 'https://cdn.kakao/neo.png',
       });
 
       expect(mockedAxios.post).toHaveBeenCalledTimes(1);
@@ -90,17 +105,34 @@ describe('AuthService', () => {
       );
       expect(upsert).toHaveBeenCalledWith({
         where: { kakaoId: '987' },
-        update: { displayName: 'neo' },
-        create: { kakaoId: '987', displayName: 'neo' },
+        update: {
+          displayName: 'neo',
+          avatarUrl: 'https://cdn.kakao/neo.png',
+        },
+        create: {
+          kakaoId: '987',
+          displayName: 'neo',
+          avatarUrl: 'https://cdn.kakao/neo.png',
+        },
       });
       expect(signAsync).toHaveBeenNthCalledWith(
         1,
-        { sub: 'user-neo', role: 'USER' },
+        {
+          sub: 'user-neo',
+          role: 'USER',
+          displayName: 'neo',
+          avatarUrl: 'https://cdn.kakao/neo.png',
+        },
         { secret: 'access-secret', expiresIn: '30m' },
       );
       expect(signAsync).toHaveBeenNthCalledWith(
         2,
-        { sub: 'user-neo', role: 'USER' },
+        {
+          sub: 'user-neo',
+          role: 'USER',
+          displayName: 'neo',
+          avatarUrl: 'https://cdn.kakao/neo.png',
+        },
         { secret: 'refresh-secret', expiresIn: '10d' },
       );
     });
@@ -173,8 +205,14 @@ describe('AuthService', () => {
 
   describe('refresh', () => {
     it('유효한 리프레시 토큰으로 새 토큰을 발급한다', async () => {
-      const { service, verifyAsync, signAsync } = setup();
+      const { service, verifyAsync, signAsync, findUnique } = setup();
       verifyAsync.mockResolvedValueOnce({ sub: 'user-id', role: 'USER' });
+      findUnique.mockResolvedValueOnce({
+        id: 'user-id',
+        role: 'USER',
+        displayName: 'Tester',
+        avatarUrl: 'https://cdn.kakao/tester.png',
+      });
       signAsync
         .mockResolvedValueOnce('new-access')
         .mockResolvedValueOnce('new-refresh');
@@ -182,18 +220,30 @@ describe('AuthService', () => {
       await expect(service.refresh('refresh-token')).resolves.toEqual({
         token: 'new-access',
         refreshToken: 'new-refresh',
+        displayName: 'Tester',
+        avatarUrl: 'https://cdn.kakao/tester.png',
       });
       expect(verifyAsync).toHaveBeenCalledWith('refresh-token', {
         secret: 'refresh-secret',
       });
       expect(signAsync).toHaveBeenNthCalledWith(
         1,
-        { sub: 'user-id', role: 'USER' },
+        {
+          sub: 'user-id',
+          role: 'USER',
+          displayName: 'Tester',
+          avatarUrl: 'https://cdn.kakao/tester.png',
+        },
         { secret: 'access-secret', expiresIn: '30m' },
       );
       expect(signAsync).toHaveBeenNthCalledWith(
         2,
-        { sub: 'user-id', role: 'USER' },
+        {
+          sub: 'user-id',
+          role: 'USER',
+          displayName: 'Tester',
+          avatarUrl: 'https://cdn.kakao/tester.png',
+        },
         { secret: 'refresh-secret', expiresIn: '10d' },
       );
     });
@@ -212,7 +262,11 @@ describe('AuthService', () => {
   describe('devIssueByKakaoId', () => {
     it('사용자를 upsert 후 토큰 쌍을 반환한다', async () => {
       const { service, upsert, signAsync } = setup();
-      upsert.mockResolvedValueOnce({ id: 'user-123', role: 'ADMIN' });
+      upsert.mockResolvedValueOnce({
+        id: 'user-123',
+        role: 'ADMIN',
+        displayName: 'pet lover',
+      });
       signAsync
         .mockResolvedValueOnce('access-from-dev')
         .mockResolvedValueOnce('refresh-from-dev');
@@ -222,6 +276,8 @@ describe('AuthService', () => {
       ).resolves.toEqual({
         token: 'access-from-dev',
         refreshToken: 'refresh-from-dev',
+        displayName: 'pet lover',
+        avatarUrl: null,
       });
       expect(upsert).toHaveBeenCalledWith({
         where: { kakaoId: 'kakao-123' },

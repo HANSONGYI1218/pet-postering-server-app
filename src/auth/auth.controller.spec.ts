@@ -37,13 +37,20 @@ describe('AuthController', () => {
     service.kakaoLogin.mockResolvedValueOnce({
       token: 'access',
       refreshToken: 'refresh',
+      displayName: 'neo',
+      avatarUrl: 'https://cdn.kakao/neo.png',
     });
 
     await request(app.getHttpServer())
       .post('/auth/kakao')
       .send({ code: 'auth-code-1' })
       .expect(201)
-      .expect({ token: 'access', refreshToken: 'refresh' });
+      .expect({
+        token: 'access',
+        refreshToken: 'refresh',
+        displayName: 'neo',
+        avatarUrl: 'https://cdn.kakao/neo.png',
+      });
 
     expect(service.kakaoLogin).toHaveBeenCalledWith('auth-code-1');
   });
@@ -52,13 +59,20 @@ describe('AuthController', () => {
     service.refresh.mockResolvedValueOnce({
       token: 'new-access',
       refreshToken: 'new-refresh',
+      displayName: 'Tester',
+      avatarUrl: null,
     });
 
     await request(app.getHttpServer())
       .post('/auth/refresh')
       .send({ refreshToken: 'refresh-123' })
       .expect(200)
-      .expect({ token: 'new-access', refreshToken: 'new-refresh' });
+      .expect({
+        token: 'new-access',
+        refreshToken: 'new-refresh',
+        displayName: 'Tester',
+        avatarUrl: null,
+      });
 
     expect(service.refresh).toHaveBeenCalledWith('refresh-123');
   });
@@ -74,13 +88,20 @@ describe('AuthController', () => {
     service.devIssueByKakaoId.mockResolvedValueOnce({
       token: 'dev-access',
       refreshToken: 'dev-refresh',
+      displayName: 'Tester',
+      avatarUrl: null,
     });
 
     await request(app.getHttpServer())
       .post('/auth/dev-token')
       .send({ userId: 'user-77', displayName: 'Tester' })
       .expect(201)
-      .expect({ token: 'dev-access', refreshToken: 'dev-refresh' });
+      .expect({
+        token: 'dev-access',
+        refreshToken: 'dev-refresh',
+        displayName: 'Tester',
+        avatarUrl: null,
+      });
 
     expect(service.devIssueByKakaoId).toHaveBeenCalledWith(
       'dev:user-77',
