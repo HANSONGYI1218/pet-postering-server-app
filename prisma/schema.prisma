@@ -30,6 +30,62 @@ enum AnimalStatus {
   COMPLETED
 }
 
+enum AnimalType {
+  DOG
+  CAT
+}
+
+enum AnimalGender {
+  MALE
+  FEMALE
+}
+
+enum AnimalSize {
+  SMALL
+  MEDIUM
+  LARGE
+}
+
+enum AnimalHealthTagType {
+  NEUTERED
+  VACCINATED
+  MICROCHIPPED
+  HEARTWORM_TESTED
+  DEWORMED
+  FLEA_TICK_TREATED
+}
+
+enum AnimalPersonalityTagType {
+  QUIET
+  ENERGETIC
+  INDEPENDENCE
+  SENSITIVITY
+  FRIENDLY_WITH_PEOPLE
+  GOOD_WITH_OTHER_ANIMAL
+  POTTY_TRAINING_COMPLETION
+  NO_BITING
+}
+
+enum AnimalEnvironmentTagType {
+  QUIET_ENVIRONMENT
+  AVAILABILITY_FOR_WALKS_PLAY
+  FREQUENT_INTERACTION_WITH_PETS
+  PRESENCE_OF_OTHER_ANIMAL
+  WILLINGNESS_FOR_POTTY_TRAINING
+  PATIENCE_WITH_BARKING_BITING
+  CARE_FOR_SENSITIVE_OR_FEARFUL_PETS
+  HOUSEHOLD_WITH_YOUNG_CHILDREN
+}
+
+enum AnimalSpecialNoteTagType {
+  SEPARATION_ANXIETY
+  MEDICATION_REQUIRED
+  POTTY_ACCIDENTS
+  AGGRESSION_TOWARD_OTHER_ANIMALS
+  ONGOING_TREATMENT_OR_RECOVERY
+  DISABLED_OR_ILL_PETS_ACCEPTED
+}
+
 enum ReportTargetType {
   POST
   COMMENT
@@ -56,6 +112,12 @@ model User {
 model Organization {
   id        String               @id @default(cuid())
   name      String
+  address   String?
+  addressDetail String?
+  phoneNumber String?
+  donationBankName String?
+  donationAccountNumber String?
+  donationAccountHolder String?
   createdAt DateTime             @default(now())
   updatedAt DateTime             @updatedAt
 
@@ -157,16 +219,83 @@ model Animal {
   shared       Boolean      @default(false)
   orgId        String?
   ownerUserId  String?
+  type         AnimalType?
+  size         AnimalSize?
+  gender       AnimalGender?
+  breed        String?
+  birthDate    DateTime?
+  mainImageUrl String?
+  introduction String?
+  remark       String?
+  emergency    Boolean      @default(false)
+  emergencyReason String?
+  currentFosterStartDate DateTime?
+  currentFosterEndDate   DateTime?
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
   organization Organization? @relation(fields: [orgId], references: [id])
   owner        User?         @relation(fields: [ownerUserId], references: [id])
   records      FosterRecord[]
+  images       AnimalImage[]
+  healthTags   AnimalHealthTag[]
+  personalityTags AnimalPersonalityTag[]
+  environmentTags AnimalEnvironmentTag[]
+  specialNoteTags AnimalSpecialNoteTag[]
 
   @@index([status])
   @@index([orgId])
   @@index([ownerUserId])
+}
+
+model AnimalImage {
+  id        String   @id @default(cuid())
+  animalId  String
+  url       String
+  sortOrder Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  animal    Animal   @relation(fields: [animalId], references: [id], onDelete: Cascade)
+
+  @@index([animalId])
+  @@unique([animalId, sortOrder])
+}
+
+model AnimalHealthTag {
+  animalId String
+  value    AnimalHealthTagType
+
+  animal   Animal @relation(fields: [animalId], references: [id], onDelete: Cascade)
+
+  @@id([animalId, value])
+}
+
+model AnimalPersonalityTag {
+  animalId String
+  value    AnimalPersonalityTagType
+
+  animal   Animal @relation(fields: [animalId], references: [id], onDelete: Cascade)
+
+  @@id([animalId, value])
+}
+
+model AnimalEnvironmentTag {
+  animalId String
+  value    AnimalEnvironmentTagType
+
+  animal   Animal @relation(fields: [animalId], references: [id], onDelete: Cascade)
+
+  @@id([animalId, value])
+}
+
+model AnimalSpecialNoteTag {
+  animalId String
+  value    AnimalSpecialNoteTagType
+
+  animal   Animal @relation(fields: [animalId], references: [id], onDelete: Cascade)
+
+  @@id([animalId, value])
 }
 
 model FosterRecord {

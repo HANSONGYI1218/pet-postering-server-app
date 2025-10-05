@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { CommunityModule } from './community/community.module';
 import { FosterModule } from './foster/foster.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { PublicFosterModule } from './public-foster/public-foster.module';
 import { ReportsModule } from './reports/reports.module';
 
 @Module({
@@ -17,6 +18,7 @@ import { ReportsModule } from './reports/reports.module';
     CommunityModule,
     FosterModule,
     ReportsModule,
+    PublicFosterModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -30,7 +30,9 @@
     "deploy:prod": "npm run verify:prod && npm --prefix infra run deploy:prod",
     "format:check": "prettier --check .",
     "lint:fix": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
-    "prepare": "husky"
+    "prepare": "husky",
+    "prisma:seed": "prisma db seed",
+    "db:seed": "npm run prisma:seed"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
@@ -106,5 +108,8 @@
     "*.{js,json,md,yml,yaml}": [
       "prettier --write"
     ]
+  },
+  "prisma": {
+    "seed": "ts-node --project tsconfig.json prisma/seed.ts"
   }
 }
