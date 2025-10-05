@@ -1,4 +1,13 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Patch,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import {
   ApiBearerAuth,
@@ -10,6 +19,8 @@ import {
 import { CurrentUser } from '../common/current-user.decorator';
 import type { AuthUser } from '../common/types';
 import {
+  UpdateUserNotificationSettingDto,
+  UpdateUserProfileDto,
   UserCommentItemDto,
   UserNotificationSettingDto,
   UserPostItemDto,
@@ -38,6 +49,33 @@ export class UsersController {
     @CurrentUser() user: AuthUser,
   ): Promise<UserNotificationSettingDto> {
     return this.users.getNotificationSetting(user.userId);
+  }
+
+  @Patch('profile')
+  @ApiOperation({ summary: '현재 사용자 프로필 수정' })
+  @ApiOkResponse({ type: UserProfileDto })
+  updateProfile(
+    @CurrentUser() user: AuthUser,
+    @Body() body: UpdateUserProfileDto,
+  ): Promise<UserProfileDto> {
+    return this.users.updateProfile(user.userId, body);
+  }
+
+  @Patch('notification-settings')
+  @ApiOperation({ summary: '현재 사용자 알림 설정 수정' })
+  @ApiOkResponse({ type: UserNotificationSettingDto })
+  updateNotificationSetting(
+    @CurrentUser() user: AuthUser,
+    @Body() body: UpdateUserNotificationSettingDto,
+  ): Promise<UserNotificationSettingDto> {
+    return this.users.updateNotificationSetting(user.userId, body);
+  }
+
+  @Delete()
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: '현재 사용자 계정 삭제' })
+  deleteAccount(@CurrentUser() user: AuthUser): Promise<void> {
+    return this.users.deleteAccount(user.userId);
   }
 
   @Get('posts')

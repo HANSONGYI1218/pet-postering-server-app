@@ -8,6 +8,11 @@ type MockFn = jest.Mock;
 interface PrismaMock {
   user: {
     findUnique: MockFn;
+    update: MockFn;
+    delete: MockFn;
+  };
+  userProfile: {
+    upsert: MockFn;
   };
   post: {
     findMany: MockFn;
@@ -22,7 +27,12 @@ interface PrismaMock {
 
 const buildService = () => {
   const prisma: PrismaMock = {
-    user: { findUnique: jest.fn() },
+    user: {
+      findUnique: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+    },
+    userProfile: { upsert: jest.fn() },
     post: { findMany: jest.fn() },
     comment: { findMany: jest.fn() },
     commentLike: { groupBy: jest.fn() },
@@ -134,6 +144,87 @@ describe('UsersService', () => {
         fosterAnimalInfoKakao: true,
         marketingEmail: false,
         marketingKakao: false,
+      });
+    });
+  });
+
+  describe('updateProfile', () => {
+    it('사용자 프로필을 업데이트한다', async () => {
+      const { service, prisma } = buildService();
+      const payload = {
+        name: '홍길동',
+        email: 'hong@example.com',
+        phoneNumber: '010-0000-0000',
+        zipcode: '01234',
+        address: '서울시 종로구',
+        addressDetail: '1-1',
+        introduction: '소개',
+      } as const;
+
+      prisma.userProfile.upsert.mockResolvedValueOnce({
+        userId: 'user-1',
+        isEligibleForFoster: true,
+        ...payload,
+      });
+
+      await expect(service.updateProfile('user-1', payload)).resolves.toEqual({
+        id: 'user-1',
+        isEligibleForFoster: true,
+        ...payload,
+      });
+
+      expect(prisma.userProfile.upsert).toHaveBeenCalledWith({
+        where: { userId: 'user-1' },
+        update: payload,
+        create: { userId: 'user-1', ...payload },
+      });
+    });
+  });
+
+  describe('updateNotificationSetting', () => {
+    it('사용자 알림 설정을 업데이트한다', async () => {
+      const { service, prisma } = buildService();
+      const payload = {
+        commentEmail: false,
+        fosterAnimalInfoEmail: true,
+        fosterAnimalInfoKakao: false,
+        marketingEmail: true,
+        marketingKakao: true,
+      } as const;
+
+      prisma.user.update.mockResolvedValueOnce({
+        notificationSetting: { ...payload },
+      });
+
+      await expect(
+        service.updateNotificationSetting('user-1', payload),
+      ).resolves.toEqual(payload);
+
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: 'user-1' },
+        data: {
+          notificationSetting: {
+            upsert: {
+              update: payload,
+              create: payload,
+            },
+          },
+        },
+        select: { notificationSetting: true },
+      });
+    });
+  });
+
+  describe('deleteAccount', () => {
+    it('사용자 계정을 삭제한다', async () => {
+      const { service, prisma } = buildService();
+
+      prisma.user.delete.mockResolvedValueOnce(undefined);
+
+      await expect(service.deleteAccount('user-1')).resolves.toBeUndefined();
+
+      expect(prisma.user.delete).toHaveBeenCalledWith({
+        where: { id: 'user-1' },
       });
     });
   });

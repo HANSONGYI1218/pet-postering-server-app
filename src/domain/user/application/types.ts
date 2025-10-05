@@ -18,6 +18,24 @@ export interface UserNotificationSettingResult {
   marketingKakao: boolean;
 }
 
+export interface UpdateUserProfileInput {
+  name?: string | null;
+  email?: string | null;
+  phoneNumber?: string | null;
+  zipcode?: string | null;
+  address?: string | null;
+  addressDetail?: string | null;
+  introduction?: string | null;
+}
+
+export interface UpdateUserNotificationSettingInput {
+  commentEmail?: boolean;
+  fosterAnimalInfoEmail?: boolean;
+  fosterAnimalInfoKakao?: boolean;
+  marketingEmail?: boolean;
+  marketingKakao?: boolean;
+}
+
 export interface UserPostListItem {
   id: string;
   title: string;

@@ -1,12 +1,62 @@
 import { Injectable } from '@nestjs/common';
 
 import type {
+  UpdateUserNotificationSettingInput,
+  UpdateUserProfileInput,
   UserCommentListItem,
   UserNotificationSettingResult,
   UserPostListItem,
   UserProfileResult,
 } from '../domain/user/application/types';
 import { PrismaService } from '../prisma/prisma.service';
+
+type ProfileFragment = Partial<
+  Omit<UserProfileResult, 'id'> & { userId?: string | null }
+>;
+
+const DEFAULT_PROFILE_FIELDS: Omit<UserProfileResult, 'id'> = {
+  name: null,
+  email: null,
+  phoneNumber: null,
+  zipcode: null,
+  address: null,
+  addressDetail: null,
+  introduction: null,
+  isEligibleForFoster: false,
+};
+
+const toUserProfileResult = (
+  userId: string,
+  profile: ProfileFragment | null,
+): UserProfileResult => {
+  if (!profile) {
+    return { id: userId, ...DEFAULT_PROFILE_FIELDS };
+  }
+
+  const { userId: _unusedUserId, ...rest } = profile;
+  void _unusedUserId;
+
+  return {
+    id: userId,
+    ...DEFAULT_PROFILE_FIELDS,
+    ...rest,
+  };
+};
+
+const DEFAULT_NOTIFICATION_SETTING: UserNotificationSettingResult = {
+  commentEmail: true,
+  fosterAnimalInfoEmail: true,
+  fosterAnimalInfoKakao: true,
+  marketingEmail: false,
+  marketingKakao: false,
+};
+
+const toNotificationSettingResult = (
+  setting: Partial<UserNotificationSettingResult> | null,
+): UserNotificationSettingResult => ({
+  ...DEFAULT_NOTIFICATION_SETTING,
+  ...(setting ?? {}),
+});
 
 @Injectable()
 export class UsersService {
@@ -18,33 +68,7 @@ export class UsersService {
       include: { profile: true },
     });
 
-    const profile = user?.profile;
-
-    if (!profile) {
-      return {
-        id: userId,
-        name: null,
-        email: null,
-        phoneNumber: null,
-        zipcode: null,
-        address: null,
-        addressDetail: null,
-        introduction: null,
-        isEligibleForFoster: false,
-      };
-    }
-
-    return {
-      id: userId,
-      name: profile.name,
-      email: profile.email,
-      phoneNumber: profile.phoneNumber,
-      zipcode: profile.zipcode,
-      address: profile.address,
-      addressDetail: profile.addressDetail,
-      introduction: profile.introduction,
-      isEligibleForFoster: profile.isEligibleForFoster,
-    };
+    return toUserProfileResult(userId, user?.profile ?? null);
   }
 
   async getNotificationSetting(
@@ -55,25 +79,44 @@ export class UsersService {
       include: { notificationSetting: true },
     });
 
-    const setting = user?.notificationSetting;
+    return toNotificationSettingResult(user?.notificationSetting ?? null);
+  }
 
-    if (!setting) {
-      return {
-        commentEmail: true,
-        fosterAnimalInfoEmail: true,
-        fosterAnimalInfoKakao: true,
-        marketingEmail: false,
-        marketingKakao: false,
-      };
-    }
+  async updateProfile(
+    userId: string,
+    payload: UpdateUserProfileInput,
+  ): Promise<UserProfileResult> {
+    const profile = await this.prisma.userProfile.upsert({
+      where: { userId },
+      update: { ...payload },
+      create: { userId, ...payload },
+    });
 
-    return {
-      commentEmail: setting.commentEmail,
-      fosterAnimalInfoEmail: setting.fosterAnimalInfoEmail,
-      fosterAnimalInfoKakao: setting.fosterAnimalInfoKakao,
-      marketingEmail: setting.marketingEmail,
-      marketingKakao: setting.marketingKakao,
-    };
+    return toUserProfileResult(userId, profile);
+  }
+
+  async updateNotificationSetting(
+    userId: string,
+    payload: UpdateUserNotificationSettingInput,
+  ): Promise<UserNotificationSettingResult> {
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        notificationSetting: {
+          upsert: {
+            update: { ...payload },
+            create: { ...payload },
+          },
+        },
+      },
+      select: { notificationSetting: true },
+    });
+
+    return toNotificationSettingResult(user.notificationSetting ?? null);
+  }
+
+  async deleteAccount(userId: string): Promise<void> {
+    await this.prisma.user.delete({ where: { id: userId } });
   }
 
   async listMyPosts(userId: string): Promise<UserPostListItem[]> {

@@ -1,4 +1,10 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsBoolean, IsOptional, IsString } from 'class-validator';
+
+import type {
+  UpdateUserNotificationSettingInput,
+  UpdateUserProfileInput,
+} from '../../domain/user/application/types';
 
 export class UserProfileDto {
   @ApiProperty()
@@ -29,6 +35,43 @@ export class UserProfileDto {
   isEligibleForFoster!: boolean;
 }
 
+export class UpdateUserProfileDto implements UpdateUserProfileInput {
+  @ApiPropertyOptional({ nullable: true })
+  @IsOptional()
+  @IsString()
+  name?: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  @IsOptional()
+  @IsString()
+  email?: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  @IsOptional()
+  @IsString()
+  phoneNumber?: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  @IsOptional()
+  @IsString()
+  zipcode?: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  @IsOptional()
+  @IsString()
+  address?: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  @IsOptional()
+  @IsString()
+  addressDetail?: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  @IsOptional()
+  @IsString()
+  introduction?: string | null;
+}
+
 export class UserNotificationSettingDto {
   @ApiProperty()
   commentEmail!: boolean;
@@ -44,6 +87,35 @@ export class UserNotificationSettingDto {
 
   @ApiProperty()
   marketingKakao!: boolean;
+}
+
+export class UpdateUserNotificationSettingDto
+  implements UpdateUserNotificationSettingInput
+{
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  commentEmail?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  fosterAnimalInfoEmail?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  fosterAnimalInfoKakao?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  marketingEmail?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  marketingKakao?: boolean;
 }
 
 export class UserPostItemDto {

@@ -13,6 +13,9 @@ describe('UsersController', () => {
     service = {
       getProfile: jest.fn(),
       getNotificationSetting: jest.fn(),
+      updateProfile: jest.fn(),
+      updateNotificationSetting: jest.fn(),
+      deleteAccount: jest.fn(),
       listMyPosts: jest.fn(),
       listMyComments: jest.fn(),
     } as unknown as jest.Mocked<UsersService>;
@@ -41,6 +44,36 @@ describe('UsersController', () => {
       expected,
     );
     expect(service.getNotificationSetting).toHaveBeenCalledWith('user-1');
+  });
+
+  it('PATCH /users/me/profile', async () => {
+    const payload = { name: '홍길동' } as any;
+    service.updateProfile.mockResolvedValueOnce(payload);
+
+    await expect(controller.updateProfile(authUser, payload)).resolves.toBe(
+      payload,
+    );
+    expect(service.updateProfile).toHaveBeenCalledWith('user-1', payload);
+  });
+
+  it('PATCH /users/me/notification-settings', async () => {
+    const payload = { commentEmail: false } as any;
+    service.updateNotificationSetting.mockResolvedValueOnce(payload);
+
+    await expect(
+      controller.updateNotificationSetting(authUser, payload),
+    ).resolves.toBe(payload);
+    expect(service.updateNotificationSetting).toHaveBeenCalledWith(
+      'user-1',
+      payload,
+    );
+  });
+
+  it('DELETE /users/me', async () => {
+    service.deleteAccount.mockResolvedValueOnce(undefined as any);
+
+    await expect(controller.deleteAccount(authUser)).resolves.toBeUndefined();
+    expect(service.deleteAccount).toHaveBeenCalledWith('user-1');
   });
 
   it('GET /users/me/posts', async () => {
