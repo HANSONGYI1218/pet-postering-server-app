@@ -36,7 +36,10 @@ export class CommunityService {
       skip: cursor ? 1 : 0,
       ...(cursor ? { cursor: { id: cursor } } : {}),
       orderBy: { createdAt: 'desc' },
-      include: { _count: { select: { comments: true } } },
+      include: {
+        _count: { select: { comments: true } },
+        author: { select: { id: true, displayName: true } },
+      },
     });
     const { items, nextCursor } = preparePaginatedPosts<PostListItem>(
       posts,
@@ -51,7 +54,10 @@ export class CommunityService {
   ): Promise<PostListItem> {
     return this.prisma.post.create({
       data: { authorId, title: dto.title, content: dto.content },
-      include: { _count: { select: { comments: true } } },
+      include: {
+        _count: { select: { comments: true } },
+        author: { select: { id: true, displayName: true } },
+      },
     });
   }
 
@@ -62,7 +68,10 @@ export class CommunityService {
           tx.post.update({
             where: { id: postId },
             data: { viewCount: { increment: 1 } },
-            include: { _count: { select: { comments: true } } },
+            include: {
+              _count: { select: { comments: true } },
+              author: { select: { id: true, displayName: true } },
+            },
           }),
         );
       } catch {
@@ -103,7 +112,10 @@ export class CommunityService {
     const comments = await this.prisma.comment.findMany({
       where: { postId },
       orderBy: { createdAt: 'asc' },
-      include: { _count: { select: { likes: true, replies: true } } },
+      include: {
+        _count: { select: { likes: true, replies: true } },
+        author: { select: { id: true, displayName: true } },
+      },
     });
     const baseItems: CommentListItem[] = comments.map((comment) => ({
       ...comment,
@@ -133,7 +145,10 @@ export class CommunityService {
           content: dto.content,
           parentId: null,
         },
-        include: { _count: { select: { likes: true, replies: true } } },
+        include: {
+          _count: { select: { likes: true, replies: true } },
+          author: { select: { id: true, displayName: true } },
+        },
       });
       return { ...created, liked: false };
     }
@@ -152,7 +167,10 @@ export class CommunityService {
         content: dto.content,
         parentId: resolution.parentId,
       },
-      include: { _count: { select: { likes: true, replies: true } } },
+      include: {
+        _count: { select: { likes: true, replies: true } },
+        author: { select: { id: true, displayName: true } },
+      },
     });
     return { ...created, liked: false };
   }

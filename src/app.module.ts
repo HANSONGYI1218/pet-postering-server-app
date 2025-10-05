@@ -9,6 +9,7 @@ import { FosterModule } from './foster/foster.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { PublicFosterModule } from './public-foster/public-foster.module';
 import { ReportsModule } from './reports/reports.module';
+import { UsersModule } from './user/user.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { ReportsModule } from './reports/reports.module';
     FosterModule,
     ReportsModule,
     PublicFosterModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,6 +1,7 @@
 import type { Comment, Post } from '@prisma/client';
 
 export interface PostListItem extends Post {
+  author: { id: string; displayName: string | null };
   _count: { comments: number };
 }
 
@@ -14,6 +15,7 @@ export interface BookmarkResponse {
 }
 
 export interface CommentListItem extends Comment {
+  author: { id: string; displayName: string | null };
   liked: boolean;
   _count: { likes: number; replies: number };
 }

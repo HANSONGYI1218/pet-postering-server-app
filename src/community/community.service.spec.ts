@@ -27,6 +27,7 @@ const makePost = (id: string) =>
     title: `title-${id}`,
     content: `content-${id}`,
     authorId: `author-${id}`,
+    author: { id: `author-${id}`, displayName: `작성자 ${id}` },
     viewCount: 0,
     createdAt: baseDate,
     updatedAt: baseDate,
@@ -38,6 +39,7 @@ const makeComment = (id: string, postId: string) =>
     id,
     postId,
     authorId: `author-${id}`,
+    author: { id: `author-${id}`, displayName: `작성자 ${id}` },
     content: `comment-${id}`,
     parentId: null,
     createdAt: baseDate,
@@ -92,7 +94,10 @@ describe('CommunityService', () => {
         skip: 1,
         cursor: { id: 'cursor-123' },
         orderBy: { createdAt: 'desc' },
-        include: { _count: { select: { comments: true } } },
+        include: {
+          _count: { select: { comments: true } },
+          author: { select: { id: true, displayName: true } },
+        },
       });
       expect(result.limit).toBe(50);
       expect(result.items.map((p: any) => p.id)).toEqual(
@@ -111,7 +116,10 @@ describe('CommunityService', () => {
         take: 2,
         skip: 0,
         orderBy: { createdAt: 'desc' },
-        include: { _count: { select: { comments: true } } },
+        include: {
+          _count: { select: { comments: true } },
+          author: { select: { id: true, displayName: true } },
+        },
       });
       expect(result.limit).toBe(1);
       expect(result.items).toHaveLength(1);
@@ -134,7 +142,10 @@ describe('CommunityService', () => {
           title: 'Hello',
           content: 'World',
         },
-        include: { _count: { select: { comments: true } } },
+        include: {
+          _count: { select: { comments: true } },
+          author: { select: { id: true, displayName: true } },
+        },
       });
     });
   });
@@ -159,7 +170,10 @@ describe('CommunityService', () => {
       expect(prisma.post.update).toHaveBeenCalledWith({
         where: { id: 'post-1' },
         data: { viewCount: { increment: 1 } },
-        include: { _count: { select: { comments: true } } },
+        include: {
+          _count: { select: { comments: true } },
+          author: { select: { id: true, displayName: true } },
+        },
       });
       expect(prisma.postBookmark.count).toHaveBeenCalledWith({
         where: { userId: 'user-7', postId: 'post-1' },
@@ -226,7 +240,10 @@ describe('CommunityService', () => {
       expect(prisma.comment.findMany).toHaveBeenCalledWith({
         where: { postId: 'post-1' },
         orderBy: { createdAt: 'asc' },
-        include: { _count: { select: { likes: true, replies: true } } },
+        include: {
+          _count: { select: { likes: true, replies: true } },
+          author: { select: { id: true, displayName: true } },
+        },
       });
       expect(prisma.commentLike.findMany).not.toHaveBeenCalled();
       expect(result.items).toHaveLength(1);
@@ -284,7 +301,10 @@ describe('CommunityService', () => {
           content: 'hello',
           parentId: null,
         },
-        include: { _count: { select: { likes: true, replies: true } } },
+        include: {
+          _count: { select: { likes: true, replies: true } },
+          author: { select: { id: true, displayName: true } },
+        },
       });
       expect(prisma.comment.findUnique).not.toHaveBeenCalled();
     });
@@ -349,7 +369,10 @@ describe('CommunityService', () => {
           content: 'reply',
           parentId: 'parent-1',
         },
-        include: { _count: { select: { likes: true, replies: true } } },
+        include: {
+          _count: { select: { likes: true, replies: true } },
+          author: { select: { id: true, displayName: true } },
+        },
       });
     });
   });

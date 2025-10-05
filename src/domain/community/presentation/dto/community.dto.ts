@@ -56,12 +56,23 @@ export class PostCountDto {
   comments!: number;
 }
 
+export class PostAuthorDto {
+  @ApiProperty()
+  id!: string;
+
+  @ApiPropertyOptional({ nullable: true })
+  displayName!: string | null;
+}
+
 export class PostListItemDto {
   @ApiProperty()
   id!: string;
 
   @ApiProperty()
   authorId!: string;
+
+  @ApiProperty({ type: () => PostAuthorDto })
+  author!: PostAuthorDto;
 
   @ApiProperty()
   title!: string;
@@ -106,6 +117,14 @@ export class CommentCountDto {
   replies!: number;
 }
 
+export class CommentAuthorDto {
+  @ApiProperty()
+  id!: string;
+
+  @ApiPropertyOptional({ nullable: true })
+  displayName!: string | null;
+}
+
 export class CommentListItemDto {
   @ApiProperty()
   id!: string;
@@ -115,6 +134,9 @@ export class CommentListItemDto {
 
   @ApiProperty()
   authorId!: string;
+
+  @ApiProperty({ type: () => CommentAuthorDto })
+  author!: CommentAuthorDto;
 
   @ApiPropertyOptional()
   parentId?: string | null;
