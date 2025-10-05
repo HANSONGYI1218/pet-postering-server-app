@@ -112,12 +112,14 @@ model User {
 model Organization {
   id        String               @id @default(cuid())
   name      String
+  zipcode   String?
   address   String?
   addressDetail String?
   phoneNumber String?
   donationBankName String?
   donationAccountNumber String?
   donationAccountHolder String?
+  email     String?
   createdAt DateTime             @default(now())
   updatedAt DateTime             @updatedAt
 
@@ -303,6 +305,7 @@ model FosterRecord {
   animalId  String
   date      DateTime
   content   String?
+  healthNote String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

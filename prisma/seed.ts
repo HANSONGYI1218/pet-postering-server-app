@@ -15,7 +15,9 @@ interface OrganizationSeed {
   name: string;
   address: string;
   addressDetail: string;
+  zipcode: string;
   phoneNumber: string;
+  email: string;
   donationBankName: string;
   donationAccountNumber: string;
   donationAccountHolder: string;
@@ -42,11 +44,22 @@ interface AnimalSeed {
   currentFosterEndDate: Date;
   orgId: string;
   shared: boolean;
+  status: AnimalStatus;
   images: AnimalImageSeed[];
   healthTags: AnimalHealthTagType[];
   personalityTags: AnimalPersonalityTagType[];
   environmentTags: AnimalEnvironmentTagType[];
   specialNoteTags: AnimalSpecialNoteTagType[];
+}
+
+interface RecordSeed {
+  animalId: string;
+  entries: {
+    date: Date;
+    content: string;
+    healthNote: string;
+    images: string[];
+  }[];
 }
 
 const prisma = new PrismaClient();
@@ -57,7 +70,9 @@ const organizationSeeds: OrganizationSeed[] = [
     name: '희망 동물 보호소',
     address: '서울특별시 마포구 성미산로 12',
     addressDetail: '1층',
+    zipcode: '04057',
     phoneNumber: '02-123-4567',
+    email: 'hello@hope-shelter.org',
     donationBankName: '국민은행',
     donationAccountNumber: '123456-01-123456',
     donationAccountHolder: '희망 동물 보호소',
@@ -67,7 +82,9 @@ const organizationSeeds: OrganizationSeed[] = [
     name: '선샤인 케어 센터',
     address: '경기도 성남시 중원구 둔촌대로 45',
     addressDetail: 'B동 302호',
+    zipcode: '13347',
     phoneNumber: '031-987-6543',
+    email: 'support@sunshinecare.org',
     donationBankName: '신한은행',
     donationAccountNumber: '201-2222-555555',
     donationAccountHolder: '선샤인 케어 센터',
@@ -91,6 +108,7 @@ const animalSeeds: AnimalSeed[] = [
     currentFosterEndDate: new Date('2025-11-30'),
     orgId: 'seed-org-hope-shelter',
     shared: true,
+    status: AnimalStatus.IN_PROGRESS,
     images: [
       {
         url: 'https://images.unsplash.com/photo-1507146426996-ef05306b995a',
@@ -133,6 +151,7 @@ const animalSeeds: AnimalSeed[] = [
     currentFosterEndDate: new Date('2025-10-10'),
     orgId: 'seed-org-hope-shelter',
     shared: true,
+    status: AnimalStatus.IN_PROGRESS,
     images: [
       {
         url: 'https://images.unsplash.com/photo-1518791841217-8f162f1e1131',
@@ -171,6 +190,7 @@ const animalSeeds: AnimalSeed[] = [
     currentFosterEndDate: new Date('2025-12-15'),
     orgId: 'seed-org-sunshine',
     shared: true,
+    status: AnimalStatus.COMPLETED,
     images: [
       {
         url: 'https://images.unsplash.com/photo-1507149833265-60c372daea22',
@@ -195,6 +215,68 @@ const animalSeeds: AnimalSeed[] = [
       AnimalEnvironmentTagType.PRESENCE_OF_OTHER_ANIMAL,
     ],
     specialNoteTags: [AnimalSpecialNoteTagType.ONGOING_TREATMENT_OR_RECOVERY],
+  },
+];
+
+const recordSeeds: RecordSeed[] = [
+  {
+    animalId: 'seed-animal-latte',
+    entries: [
+      {
+        date: new Date('2025-09-02T10:00:00Z'),
+        content: '첫날부터 활발하게 잘 놀았어요!',
+        healthNote: '식욕 좋고 대소변 문제 없음.',
+        images: [
+          'https://images.unsplash.com/photo-1507146426996-ef05306b995a',
+        ],
+      },
+      {
+        date: new Date('2025-09-05T09:30:00Z'),
+        content: '산책 중 다른 강아지와 인사했어요.',
+        healthNote: '피부 상태 양호.',
+        images: ['https://images.unsplash.com/photo-1557979619-445218b5c110'],
+      },
+    ],
+  },
+  {
+    animalId: 'seed-animal-nabi',
+    entries: [
+      {
+        date: new Date('2025-08-11T14:10:00Z'),
+        content: '해가 잘 드는 곳에서 낮잠을 즐겼어요.',
+        healthNote: '식사량 안정적.',
+        images: [
+          'https://images.unsplash.com/photo-1518791841217-8f162f1e1131',
+        ],
+      },
+      {
+        date: new Date('2025-08-15T18:45:00Z'),
+        content: '장난감을 쫓아다니며 활동량이 증가했어요.',
+        healthNote: '눈물 자국 관리 필요.',
+        images: [
+          'https://images.unsplash.com/photo-1526336024174-e58f5cdd8e13',
+        ],
+      },
+    ],
+  },
+  {
+    animalId: 'seed-animal-mongsil',
+    entries: [
+      {
+        date: new Date('2025-09-20T07:20:00Z'),
+        content: '새 산책 루트를 좋아합니다.',
+        healthNote: '발바닥 상태 양호.',
+        images: [
+          'https://images.unsplash.com/photo-1507149833265-60c372daea22',
+        ],
+      },
+      {
+        date: new Date('2025-09-23T12:05:00Z'),
+        content: '놀이터에서 공놀이를 즐겼어요.',
+        healthNote: '예방접종 후 이상 없음.',
+        images: ['https://images.unsplash.com/photo-1558788353-f76d92427f16'],
+      },
+    ],
   },
 ];
 
@@ -226,7 +308,7 @@ const seedAnimals = async (): Promise<void> => {
       data: {
         id: seed.id,
         name: seed.name,
-        status: AnimalStatus.WAITING,
+        status: seed.status,
         shared: seed.shared,
         orgId: seed.orgId,
         type: seed.type,
@@ -264,10 +346,33 @@ const seedAnimals = async (): Promise<void> => {
   }
 };
 
+const seedRecords = async (): Promise<void> => {
+  console.warn('📝 Creating foster records...');
+  for (const { animalId, entries } of recordSeeds) {
+    for (const entry of entries) {
+      await prisma.fosterRecord.create({
+        data: {
+          animalId,
+          date: entry.date,
+          content: entry.content,
+          healthNote: entry.healthNote,
+          images: {
+            create: entry.images.map((url, imageIndex) => ({
+              url,
+              sortOrder: imageIndex,
+            })),
+          },
+        },
+      });
+    }
+  }
+};
+
 async function main(): Promise<void> {
   await seedOrganizations();
   await clearSeedAnimals();
   await seedAnimals();
+  await seedRecords();
   console.warn('✅ Seeding finished!');
 }
 
