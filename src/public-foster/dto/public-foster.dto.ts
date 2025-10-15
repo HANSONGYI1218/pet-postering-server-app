@@ -71,6 +71,12 @@ class PublicFosterAnimalBaseDto {
   isEmergency!: boolean;
 
   @ApiPropertyOptional({ nullable: true })
+  euthanasiaDate?: string | null;
+
+  @ApiProperty()
+  isFosterCondition!: boolean;
+
+  @ApiPropertyOptional({ nullable: true })
   emergencyReason?: string | null;
 
   @ApiPropertyOptional({

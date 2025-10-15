@@ -63,6 +63,8 @@ describe('PublicFosterService', () => {
       remark: null,
       emergency: false,
       emergencyReason: null,
+      euthanasiaDate: null,
+      isFosterCondition: false,
       currentFosterStartDate: null,
       currentFosterEndDate: null,
       organization: {
@@ -141,6 +143,8 @@ describe('PublicFosterService', () => {
       remark: 'remark',
       emergency: false,
       emergencyReason: null,
+      euthanasiaDate: null,
+      isFosterCondition: false,
       currentFosterStartDate: null,
       currentFosterEndDate: null,
       organization: null,

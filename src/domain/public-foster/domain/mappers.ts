@@ -71,6 +71,8 @@ const toBase = (
   shared: boolean;
   mainImageUrl?: string | null;
   isEmergency: boolean;
+  euthanasiaDate?: string | null;
+  isFosterCondition: boolean;
   emergencyReason?: string | null;
   organization: PublicFosterOrganization | null;
   healthTags: AnimalHealthTagType[];
@@ -94,6 +96,8 @@ const toBase = (
       .at(0)?.url ??
     null,
   isEmergency: animal.emergency,
+  euthanasiaDate: toNullSafeIsoString(animal.euthanasiaDate),
+  isFosterCondition: animal.isFosterCondition,
   emergencyReason: animal.emergencyReason,
   organization: toOrganization(animal.organization),
   healthTags: pluckTagValues<AnimalHealthTagType>(animal.healthTags),

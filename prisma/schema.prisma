@@ -260,6 +260,8 @@ model Animal {
   emergencyReason String?
   currentFosterStartDate DateTime?
   currentFosterEndDate   DateTime?
+  euthanasiaDate DateTime?
+  isFosterCondition Boolean @default(false)
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 

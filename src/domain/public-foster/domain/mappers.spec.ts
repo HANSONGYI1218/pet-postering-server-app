@@ -51,6 +51,8 @@ const createAnimal = (overrides: Partial<RawAnimal> = {}): RawAnimal => {
     remark: 'remark',
     emergency: true,
     emergencyReason: 'reason',
+    euthanasiaDate: new Date('2024-08-01T00:00:00.000Z'),
+    isFosterCondition: true,
     currentFosterStartDate: new Date('2024-06-01T00:00:00.000Z'),
     currentFosterEndDate: new Date('2024-07-01T00:00:00.000Z'),
     createdAt: new Date('2024-01-01T00:00:00.000Z'),
@@ -117,6 +119,8 @@ describe('public foster mappers', () => {
       personalityTags: ['QUIET', 'ENERGETIC'],
       environmentTags: ['QUIET_ENVIRONMENT'],
       fosterDays: 42,
+      euthanasiaDate: '2024-08-01T00:00:00.000Z',
+      isFosterCondition: true,
       organization: {
         id: 'org-1',
         name: 'Org',
@@ -146,6 +150,7 @@ describe('public foster mappers', () => {
     const result = toPublicFosterListItem(animal, 7);
 
     expect(result.mainImageUrl).toBe('https://example.com/b.jpg');
+    expect(result.euthanasiaDate).toBe('2024-08-01T00:00:00.000Z');
   });
 
   it('handles missing organization gracefully', () => {

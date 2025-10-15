@@ -32,6 +32,8 @@ export interface PublicFosterAnimalBase {
   shared: boolean;
   mainImageUrl?: string | null;
   isEmergency: boolean;
+  euthanasiaDate?: string | null;
+  isFosterCondition: boolean;
   emergencyReason?: string | null;
   organization: PublicFosterOrganization | null;
   healthTags: AnimalHealthTagType[];
