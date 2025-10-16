@@ -17,7 +17,7 @@ services:
       JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-14d}
       KAKAO_CLIENT_ID: ${KAKAO_CLIENT_ID}
       KAKAO_CLIENT_SECRET: ${KAKAO_CLIENT_SECRET}
-      # 예: https://impomatch.com/auth/kakao/callback
+      # 예: https://furdiz.com/auth/kakao/callback
       KAKAO_REDIRECT_URI: ${KAKAO_REDIRECT_URI}
     ports:
       - '3000:3000'

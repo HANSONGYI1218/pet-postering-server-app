@@ -18,7 +18,7 @@ const BASE_ENV: EnvMap = {
   [`PET_SERVER_${STAGE.toUpperCase()}_KAKAO_CLIENT_SECRET`]:
     'kakao-client-secret',
   [`PET_SERVER_${STAGE.toUpperCase()}_KAKAO_REDIRECT_URI`]:
-    'https://impomatch.com/auth/kakao/callback',
+    'https://furdiz.com/auth/kakao/callback',
 };
 
 const withEnv = (entries: EnvMap, assertion: () => void) => {
@@ -79,7 +79,7 @@ describe('PetServerStack custom domain', () => {
   });
 
   it('도메인과 인증서를 제공하면 API Gateway 커스텀 도메인을 생성한다', () => {
-    const domainName = 'api.impomatch.com';
+    const domainName = 'api.furdiz.com';
     const certificateArn =
       'arn:aws:acm:ap-northeast-2:000000000000:certificate/example';
 
@@ -102,14 +102,14 @@ describe('PetServerStack custom domain', () => {
         });
 
         template.hasResourceProperties('AWS::ApiGatewayV2::ApiMapping', {
-          Stage: STAGE,
+          Stage: '$default',
         });
       },
     );
   });
 
   it('호스티드 존 ID가 있으면 Route53 Alias 레코드를 생성한다', () => {
-    const domainName = 'api.impomatch.com';
+    const domainName = 'api.furdiz.com';
     const certificateArn =
       'arn:aws:acm:ap-northeast-2:000000000000:certificate/example';
     const hostedZoneId = 'Z1234567890';
