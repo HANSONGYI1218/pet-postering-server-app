@@ -17,3 +17,4 @@ infra/cdk.out/
 
 # Legacy folder to be removed after flattening
 server/
+npm-audit.json
