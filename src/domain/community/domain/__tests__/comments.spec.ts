@@ -6,7 +6,7 @@ import {
 
 describe('community comments domain', () => {
   describe('mergeCommentLikes', () => {
-    it('liked id 집합을 기반으로 liked 플래그를 설정한다', () => {
+    it('sets liked flag based on the liked id set', () => {
       const comments = [
         { id: 'c1', liked: false },
         { id: 'c2', liked: false },
@@ -26,28 +26,28 @@ describe('community comments domain', () => {
   });
 
   describe('resolveParentForCreation', () => {
-    it('부모 id가 없으면 parentId null을 반환한다', () => {
+    it('returns parentId null when no parent id is provided', () => {
       expect(resolveParentForCreation(null, 'post-1')).toEqual({
         status: 'ok',
         parentId: null,
       });
     });
 
-    it('부모가 존재하지 않으면 에러를 반환한다', () => {
+    it('returns an error when parent is missing', () => {
       expect(resolveParentForCreation(undefined, 'post-1')).toEqual({
         status: 'error',
         reason: 'parent-not-found',
       });
     });
 
-    it('부모 게시글이 다르면 에러를 반환한다', () => {
+    it('returns an error when parent post differs', () => {
       expect(resolveParentForCreation({ id: 'p1', postId: 'other' }, 'post-1')).toEqual({
         status: 'error',
         reason: 'invalid-parent-post',
       });
     });
 
-    it('같은 게시글이면 parentId를 그대로 사용한다', () => {
+    it('returns parentId as-is when the post matches', () => {
       expect(resolveParentForCreation({ id: 'p1', postId: 'post-1' }, 'post-1')).toEqual({
         status: 'ok',
         parentId: 'p1',
@@ -58,28 +58,28 @@ describe('community comments domain', () => {
   describe('evaluateCommentDeletion', () => {
     const comment = { id: 'c1', authorId: 'user-1' };
 
-    it('댓글이 없으면 not-found 에러', () => {
+    it('returns not-found error when comment is missing', () => {
       expect(evaluateCommentDeletion(null, 'user-1', 0)).toEqual({
         status: 'error',
         reason: 'comment-not-found',
       });
     });
 
-    it('작성자가 다르면 not-owner 에러', () => {
+    it('returns not-owner error when author does not match', () => {
       expect(evaluateCommentDeletion(comment, 'other', 0)).toEqual({
         status: 'error',
         reason: 'comment-not-owner',
       });
     });
 
-    it('답글이 남아있으면 has-replies 에러', () => {
+    it('returns has-replies error when replies remain', () => {
       expect(evaluateCommentDeletion(comment, 'user-1', 2)).toEqual({
         status: 'error',
         reason: 'comment-has-replies',
       });
     });
 
-    it('모든 조건이 통과하면 success', () => {
+    it('returns success when all conditions are met', () => {
       expect(evaluateCommentDeletion(comment, 'user-1', 0)).toEqual({
         status: 'ok',
       });

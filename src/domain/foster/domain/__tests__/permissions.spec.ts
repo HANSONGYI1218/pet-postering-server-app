@@ -8,14 +8,14 @@ describe('ensureAnimalWriteAccess', () => {
     ...overrides,
   });
 
-  it('동물이 없으면 animal-not-found 오류를 반환한다', () => {
+  it('returns animal-not-found error when the animal is missing', () => {
     expect(ensureAnimalWriteAccess(null, user())).toEqual({
       status: 'error',
       reason: 'animal-not-found',
     });
   });
 
-  it('기관 동물은 ORG_ADMIN만 접근할 수 있다', () => {
+  it('allows only ORG_ADMIN to access organization animals', () => {
     const animal = { orgId: 'org-1', ownerUserId: null };
     expect(ensureAnimalWriteAccess(animal, user())).toEqual({
       status: 'error',
@@ -26,7 +26,7 @@ describe('ensureAnimalWriteAccess', () => {
     });
   });
 
-  it('개인 소유 동물은 소유자만 접근할 수 있다', () => {
+  it('allows only the owner to access personal animals', () => {
     const animal = { orgId: null, ownerUserId: 'owner-1' };
     expect(ensureAnimalWriteAccess(animal, user({ userId: 'owner-1' }))).toEqual({
       status: 'ok',

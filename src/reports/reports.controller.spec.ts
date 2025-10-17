@@ -45,12 +45,12 @@ describe('ReportsController', () => {
 
     await request(app.getHttpServer())
       .post('/reports')
-      .send({ targetType: 'COMMUNITY', targetId: 'post-1', reason: 'spam' })
+      .send({ targetType: 'POST', targetId: 'post-1', reason: 'spam' })
       .expect(201)
       .expect(created);
 
     expect(service.create).toHaveBeenCalledWith({
-      targetType: 'COMMUNITY',
+      targetType: 'POST',
       targetId: 'post-1',
       reason: 'spam',
       reporterId: 'reporter-1',

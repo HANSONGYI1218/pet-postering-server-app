@@ -14,17 +14,17 @@ describe('ReportsService', () => {
     return { service, create };
   };
 
-  it('입력을 정규화해 Prisma에 전달한다', async () => {
+  it('normalizes inputs before passing them to Prisma', async () => {
     const { service, create } = build();
     const command = {
-      targetType: ReportTargetType.COMMUNITY,
+      targetType: ReportTargetType.POST,
       targetId: '  target-id  ',
       reason: '  inappropriate  ',
       reporterId: 'reporter-id',
     };
     const saved = {
       id: 'report-id',
-      targetType: ReportTargetType.COMMUNITY,
+      targetType: ReportTargetType.POST,
       targetId: 'target-id',
       reason: 'inappropriate',
       reporterId: 'reporter-id',
@@ -35,7 +35,7 @@ describe('ReportsService', () => {
     expect(create).toHaveBeenCalledTimes(1);
     expect(create).toHaveBeenCalledWith({
       data: {
-        targetType: ReportTargetType.COMMUNITY,
+        targetType: ReportTargetType.POST,
         targetId: 'target-id',
         reason: 'inappropriate',
         reporterId: 'reporter-id',
@@ -43,10 +43,10 @@ describe('ReportsService', () => {
     });
   });
 
-  it('사유가 비어 있으면 BadRequestException을 던진다', async () => {
+  it('throws BadRequestException when reason is empty', async () => {
     const { service } = build();
     const command = {
-      targetType: ReportTargetType.COMMUNITY,
+      targetType: ReportTargetType.POST,
       targetId: 'target-id',
       reason: '   ',
       reporterId: 'reporter-id',
@@ -55,10 +55,10 @@ describe('ReportsService', () => {
     await expect(service.create(command)).rejects.toThrow(BadRequestException);
   });
 
-  it('대상 id가 비어 있으면 BadRequestException을 던진다', async () => {
+  it('throws BadRequestException when target id is empty', async () => {
     const { service } = build();
     const command = {
-      targetType: ReportTargetType.COMMUNITY,
+      targetType: ReportTargetType.POST,
       targetId: '   ',
       reason: 'spam',
       reporterId: 'reporter-id',

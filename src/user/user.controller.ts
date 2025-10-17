@@ -31,14 +31,14 @@ export class UsersController {
   constructor(private readonly users: UsersService) {}
 
   @Get('profile')
-  @ApiOperation({ summary: '현재 사용자 프로필 조회' })
+  @ApiOperation({ summary: 'Get current user profile' })
   @ApiOkResponse({ type: UserProfileDto })
   getProfile(@CurrentUser() user: AuthUser): Promise<UserProfileDto> {
     return this.users.getProfile(user.userId);
   }
 
   @Get('notification-settings')
-  @ApiOperation({ summary: '현재 사용자 알림 설정 조회' })
+  @ApiOperation({ summary: 'Get current user notification settings' })
   @ApiOkResponse({ type: UserNotificationSettingDto })
   getNotificationSetting(
     @CurrentUser() user: AuthUser,
@@ -47,7 +47,7 @@ export class UsersController {
   }
 
   @Patch('profile')
-  @ApiOperation({ summary: '현재 사용자 프로필 수정' })
+  @ApiOperation({ summary: 'Update current user profile' })
   @ApiOkResponse({ type: UserProfileDto })
   updateProfile(
     @CurrentUser() user: AuthUser,
@@ -57,7 +57,7 @@ export class UsersController {
   }
 
   @Patch('notification-settings')
-  @ApiOperation({ summary: '현재 사용자 알림 설정 수정' })
+  @ApiOperation({ summary: 'Update current user notification settings' })
   @ApiOkResponse({ type: UserNotificationSettingDto })
   updateNotificationSetting(
     @CurrentUser() user: AuthUser,
@@ -68,20 +68,20 @@ export class UsersController {
 
   @Delete()
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: '현재 사용자 계정 삭제' })
+  @ApiOperation({ summary: 'Delete current user account' })
   deleteAccount(@CurrentUser() user: AuthUser): Promise<void> {
     return this.users.deleteAccount(user.userId);
   }
 
   @Get('posts')
-  @ApiOperation({ summary: '현재 사용자가 작성한 커뮤니티 게시글 목록' })
+  @ApiOperation({ summary: 'List community posts authored by current user' })
   @ApiOkResponse({ type: UserPostItemDto, isArray: true })
   listMyPosts(@CurrentUser() user: AuthUser): Promise<UserPostItemDto[]> {
     return this.users.listMyPosts(user.userId);
   }
 
   @Get('comments')
-  @ApiOperation({ summary: '현재 사용자가 작성한 커뮤니티 댓글 목록' })
+  @ApiOperation({ summary: 'List community comments authored by current user' })
   @ApiOkResponse({ type: UserCommentItemDto, isArray: true })
   listMyComments(@CurrentUser() user: AuthUser): Promise<UserCommentItemDto[]> {
     return this.users.listMyComments(user.userId);

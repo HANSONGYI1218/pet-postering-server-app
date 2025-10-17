@@ -21,7 +21,7 @@ const mockAnimal = {
     phoneNumber: '010-0000-0000',
     zipcode: '01234',
     address: 'Seoul',
-    addressDetail: '101호',
+    addressDetail: 'Unit 101',
     email: 'hello@example.com',
   },
 } as any;

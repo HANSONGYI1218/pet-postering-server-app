@@ -42,7 +42,7 @@ describe('CurrentUser decorator', () => {
     await app.close();
   });
 
-  it('request.user를 그대로 주입한다', async () => {
+  it('injects request.user as-is', async () => {
     await request(app.getHttpServer())
       .get('/')
       .set('x-test-user', 'user-1')
@@ -50,7 +50,7 @@ describe('CurrentUser decorator', () => {
       .expect({ userId: 'user-1', role: 'USER' });
   });
 
-  it('user가 없으면 null을 반환한다', async () => {
+  it('returns null when user is missing', async () => {
     await request(app.getHttpServer()).get('/').expect(200).expect({});
   });
 });

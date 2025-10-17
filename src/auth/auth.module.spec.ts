@@ -7,7 +7,7 @@ import { AuthModule } from './auth.module';
 import { AuthService } from './auth.service';
 
 describe('AuthModule', () => {
-  it('정상적으로 컨트롤러와 서비스가 정의된다', async () => {
+  it('defines controller and service successfully', async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [PrismaModule, AuthModule],
     })

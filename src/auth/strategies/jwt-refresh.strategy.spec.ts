@@ -17,7 +17,7 @@ jest.mock('passport-jwt', () => {
 });
 
 describe('JwtRefreshStrategy', () => {
-  it('refreshToken 필드에서 토큰을 읽고 사용자 페이로드를 반환한다', async () => {
+  it('reads the refreshToken field and returns the user payload', async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [PassportModule.register({ defaultStrategy: 'jwt-refresh' })],
       providers: [

@@ -7,7 +7,7 @@ import {
 
 describe('kakao-flow (domain)', () => {
   describe('createKakaoTokenRequest', () => {
-    it('코드와 설정을 받아 토큰 요청 정보를 만든다', () => {
+    it('creates token request details from code and config', () => {
       const config: KakaoConfig = {
         clientId: 'cid',
         redirectUri: 'https://app.example.com/callback',
@@ -33,12 +33,12 @@ describe('kakao-flow (domain)', () => {
   });
 
   describe('extractKakaoProfile', () => {
-    it('응답 데이터에서 id, nickname, avatarUrl을 읽어온다', () => {
+    it('extracts id, nickname, and avatarUrl from the response', () => {
       const profile = extractKakaoProfile({
         id: 987,
         kakao_account: {
           profile: {
-            nickname: '무민',
+            nickname: 'Moomin',
             profile_image_url: ' https://cdn.kakao/neo.png ',
           },
         },
@@ -46,23 +46,23 @@ describe('kakao-flow (domain)', () => {
 
       expect(profile).toEqual({
         id: '987',
-        nickname: '무민',
+        nickname: 'Moomin',
         avatarUrl: 'https://cdn.kakao/neo.png',
       });
     });
 
-    it('프로필 이미지가 없으면 avatarUrl을 제외한다', () => {
+    it('omits avatarUrl when profile image is missing', () => {
       const profile = extractKakaoProfile({
         id: 123,
         kakao_account: {
-          profile: { nickname: '토토', thumbnail_image_url: null },
+          profile: { nickname: 'Toto', thumbnail_image_url: null },
         },
       });
 
-      expect(profile).toEqual({ id: '123', nickname: '토토' });
+      expect(profile).toEqual({ id: '123', nickname: 'Toto' });
     });
 
-    it('필수 id가 없으면 에러를 던진다', () => {
+    it('throws when the required id is missing', () => {
       expect(() => extractKakaoProfile({ kakao_account: {} })).toThrow(
         'invalid-kakao-profile',
       );
@@ -70,20 +70,20 @@ describe('kakao-flow (domain)', () => {
   });
 
   describe('toUpsertUserCommand', () => {
-    it('카카오 프로필을 upsert 커맨드로 변환한다', () => {
-      const upsert = toUpsertUserCommand({ id: '123', nickname: '토토' });
+    it('converts a Kakao profile to an upsert command', () => {
+      const upsert = toUpsertUserCommand({ id: '123', nickname: 'Toto' });
 
       expect(upsert).toEqual({
         where: { kakaoId: '123' },
-        create: { kakaoId: '123', displayName: '토토' },
-        update: { displayName: '토토' },
+        create: { kakaoId: '123', displayName: 'Toto' },
+        update: { displayName: 'Toto' },
       });
     });
 
-    it('아바타가 있으면 upsert에 포함한다', () => {
+    it('includes avatar in the upsert when present', () => {
       const upsert = toUpsertUserCommand({
         id: 'avatar-user',
-        nickname: '토토',
+        nickname: 'Toto',
         avatarUrl: 'https://cdn.kakao/avatar.png',
       });
 
@@ -91,17 +91,17 @@ describe('kakao-flow (domain)', () => {
         where: { kakaoId: 'avatar-user' },
         create: {
           kakaoId: 'avatar-user',
-          displayName: '토토',
+          displayName: 'Toto',
           avatarUrl: 'https://cdn.kakao/avatar.png',
         },
         update: {
-          displayName: '토토',
+          displayName: 'Toto',
           avatarUrl: 'https://cdn.kakao/avatar.png',
         },
       });
     });
 
-    it('닉네임이 없으면 displayName 없이 반환한다', () => {
+    it('returns without displayName when nickname is absent', () => {
       const upsert = toUpsertUserCommand({ id: '123' });
 
       expect(upsert).toEqual({

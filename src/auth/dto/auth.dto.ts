@@ -20,10 +20,10 @@ export class AuthTokenPairDto {
   @ApiProperty({ description: 'JWT refresh token' })
   refreshToken!: string;
 
-  @ApiPropertyOptional({ description: '사용자 표시 이름' })
+  @ApiPropertyOptional({ description: 'Display name of the user' })
   displayName?: string | null;
 
-  @ApiPropertyOptional({ description: '사용자 아바타 URL' })
+  @ApiPropertyOptional({ description: 'Avatar URL of the user' })
   avatarUrl?: string | null;
 }
 

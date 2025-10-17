@@ -4,13 +4,13 @@ import { prepareReportCreation } from '../reporting';
 
 describe('reports domain', () => {
   const baseCommand = {
-    targetType: ReportTargetType.COMMUNITY,
+    targetType: ReportTargetType.POST,
     targetId: 'post-123',
     reason: 'inappropriate content',
     reporterId: 'user-777',
   } as const;
 
-  it('불필요한 공백을 제거하고 Prisma 입력을 돌려준다', () => {
+  it('trims unnecessary whitespace before returning Prisma input', () => {
     const result = prepareReportCreation({
       ...baseCommand,
       targetId: '  post-123  ',
@@ -20,7 +20,7 @@ describe('reports domain', () => {
     expect(result).toEqual({
       status: 'ok',
       data: {
-        targetType: ReportTargetType.COMMUNITY,
+        targetType: ReportTargetType.POST,
         targetId: 'post-123',
         reason: 'spam content',
         reporterId: 'user-777',
@@ -28,7 +28,7 @@ describe('reports domain', () => {
     });
   });
 
-  it('사유가 공백뿐이면 에러를 반환한다', () => {
+  it('returns an error when the reason is only whitespace', () => {
     const result = prepareReportCreation({
       ...baseCommand,
       reason: '   ',
@@ -37,7 +37,7 @@ describe('reports domain', () => {
     expect(result).toEqual({ status: 'error', reason: 'report-reason-empty' });
   });
 
-  it('대상 id가 공백뿐이면 에러를 반환한다', () => {
+  it('returns an error when the target id is only whitespace', () => {
     const result = prepareReportCreation({
       ...baseCommand,
       targetId: '\n\t   ',

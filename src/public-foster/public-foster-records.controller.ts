@@ -17,14 +17,14 @@ export class PublicFosterRecordsController {
   constructor(private readonly service: PublicFosterRecordsService) {}
 
   @Get('animals')
-  @ApiOperation({ summary: '임보 기록 동물 목록 (공개)' })
+  @ApiOperation({ summary: 'List animals with foster records (public)' })
   @ApiOkResponse({ type: PublicRecordListResponseDto })
   listAnimals(): Promise<PublicRecordListResult> {
     return this.service.listAnimals();
   }
 
   @Get('animals/:id')
-  @ApiOperation({ summary: '임보 기록 상세 (공개)' })
+  @ApiOperation({ summary: 'Get foster record detail (public)' })
   @ApiOkResponse({ type: PublicRecordDetailDto })
   getAnimal(@Param('id') id: string): Promise<PublicRecordDetail> {
     return this.service.getAnimal(id);

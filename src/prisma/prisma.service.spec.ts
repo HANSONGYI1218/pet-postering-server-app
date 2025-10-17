@@ -3,7 +3,7 @@ import { Test } from '@nestjs/testing';
 import { PrismaService } from './prisma.service';
 
 describe('PrismaService lifecycle', () => {
-  it('모듈 init/destroy 시 Prisma 연결을 관리한다', async () => {
+  it('manages Prisma connections during module init/destroy', async () => {
     const moduleRef = await Test.createTestingModule({
       providers: [PrismaService],
     }).compile();

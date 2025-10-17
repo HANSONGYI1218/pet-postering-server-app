@@ -1,7 +1,7 @@
 import { calculateFosterDays } from '../metrics';
 
 describe('calculateFosterDays', () => {
-  it('최초 기록 날짜를 우선 사용한다', () => {
+  it('prefers the first record date when available', () => {
     const days = calculateFosterDays({
       now: new Date('2024-01-10T00:00:00.000Z'),
       firstRecordDate: new Date('2024-01-01T00:00:00.000Z'),
@@ -11,7 +11,7 @@ describe('calculateFosterDays', () => {
     expect(days).toBe(9);
   });
 
-  it('기록이 없으면 생성일을 사용한다', () => {
+  it('uses fallback createdAt when no records exist', () => {
     const days = calculateFosterDays({
       now: new Date('2024-01-10T00:00:00.000Z'),
       firstRecordDate: null,
@@ -21,7 +21,7 @@ describe('calculateFosterDays', () => {
     expect(days).toBe(5);
   });
 
-  it('음수 계산은 0으로 보정한다', () => {
+  it('clamps negative differences to zero', () => {
     const days = calculateFosterDays({
       now: new Date('2024-01-01T00:00:00.000Z'),
       firstRecordDate: new Date('2024-01-05T00:00:00.000Z'),

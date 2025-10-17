@@ -17,7 +17,7 @@ jest.mock('passport-jwt', () => {
 });
 
 describe('JwtAccessStrategy', () => {
-  it('ConfigService에서 시크릿을 읽어 사용자 페이로드를 반환한다', async () => {
+  it('reads the secret from ConfigService and returns the user payload', async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [PassportModule.register({ defaultStrategy: 'jwt' })],
       providers: [

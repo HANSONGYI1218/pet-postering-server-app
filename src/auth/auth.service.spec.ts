@@ -43,7 +43,7 @@ describe('AuthService', () => {
   });
 
   describe('kakaoLogin', () => {
-    it('카카오 코드로 사용자 정보를 받아 토큰을 발급한다', async () => {
+    it('issues tokens after fetching user info with a Kakao code', async () => {
       const { service, signAsync, upsert } = setup();
       mockedAxios.post.mockResolvedValueOnce({
         data: { access_token: 'kakao-access-token' },
@@ -133,14 +133,14 @@ describe('AuthService', () => {
       );
     });
 
-    it('code가 없으면 UnauthorizedException을 던진다', async () => {
+    it('throws UnauthorizedException when the code is empty', async () => {
       const { service } = setup();
 
       await expect(service.kakaoLogin('')).rejects.toThrow(UnauthorizedException);
       expect(mockedAxios.post).not.toHaveBeenCalled();
     });
 
-    it('필수 카카오 설정이 없으면 UnauthorizedException을 던진다', async () => {
+    it('throws UnauthorizedException when required Kakao config is missing', async () => {
       const { service, get } = setup();
       get.mockImplementation((key: string) =>
         key === 'KAKAO_CLIENT_ID' ? undefined : 'value',
@@ -152,7 +152,7 @@ describe('AuthService', () => {
       expect(mockedAxios.post).not.toHaveBeenCalled();
     });
 
-    it('토큰 응답에 access_token이 없으면 UnauthorizedException을 던진다', async () => {
+    it('throws UnauthorizedException when access_token is missing in the response', async () => {
       const { service } = setup();
       mockedAxios.post.mockResolvedValueOnce({ data: {} });
 
@@ -162,7 +162,7 @@ describe('AuthService', () => {
       expect(mockedAxios.get).not.toHaveBeenCalled();
     });
 
-    it('토큰 요청이 실패하면 UnauthorizedException을 던진다', async () => {
+    it('throws UnauthorizedException when the token request fails', async () => {
       const { service } = setup();
       mockedAxios.post.mockRejectedValueOnce(new Error('network down'));
 
@@ -172,7 +172,7 @@ describe('AuthService', () => {
       expect(mockedAxios.get).not.toHaveBeenCalled();
     });
 
-    it('사용자 조회가 실패하면 UnauthorizedException을 던진다', async () => {
+    it('throws UnauthorizedException when fetching user information fails', async () => {
       const { service } = setup();
       mockedAxios.post.mockResolvedValueOnce({
         data: { access_token: 'kakao-access-token' },
@@ -184,7 +184,7 @@ describe('AuthService', () => {
       );
     });
 
-    it('카카오 사용자 응답에 id가 없으면 UnauthorizedException을 던진다', async () => {
+    it('throws UnauthorizedException when Kakao response lacks an id', async () => {
       const { service } = setup();
       mockedAxios.post.mockResolvedValueOnce({
         data: { access_token: 'kakao-access-token' },
@@ -198,7 +198,7 @@ describe('AuthService', () => {
   });
 
   describe('refresh', () => {
-    it('유효한 리프레시 토큰으로 새 토큰을 발급한다', async () => {
+    it('issues new tokens with a valid refresh token', async () => {
       const { service, verifyAsync, signAsync, findUnique } = setup();
       verifyAsync.mockResolvedValueOnce({ sub: 'user-id', role: 'USER' });
       findUnique.mockResolvedValueOnce({
@@ -240,7 +240,7 @@ describe('AuthService', () => {
       );
     });
 
-    it('검증 실패 시 UnauthorizedException을 던진다', async () => {
+    it('throws UnauthorizedException when verification fails', async () => {
       const { service, verifyAsync, signAsync } = setup();
       verifyAsync.mockRejectedValueOnce(new Error('invalid token'));
 
@@ -250,7 +250,7 @@ describe('AuthService', () => {
   });
 
   describe('devIssueByKakaoId', () => {
-    it('사용자를 upsert 후 토큰 쌍을 반환한다', async () => {
+    it('upserts the user and returns a token pair', async () => {
       const { service, upsert, signAsync } = setup();
       upsert.mockResolvedValueOnce({
         id: 'user-123',

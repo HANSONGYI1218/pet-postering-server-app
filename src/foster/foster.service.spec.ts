@@ -64,7 +64,7 @@ const build = () => {
 
 describe('FosterService', () => {
   describe('updateRecord', () => {
-    it('이미지 교체와 함께 기록을 갱신한다', async () => {
+    it('updates a record while replacing images', async () => {
       const { service, prisma } = build();
       const user: AuthUser = { userId: 'admin', role: 'ORG_ADMIN' };
       const record = {
@@ -149,7 +149,7 @@ describe('FosterService', () => {
       });
     });
 
-    it('작성 권한이 없으면 ForbiddenException을 던진다', async () => {
+    it('throws ForbiddenException when the user lacks write permission', async () => {
       const { service, prisma } = build();
       prisma.fosterRecord.findUnique.mockResolvedValueOnce({
         id: 'record-1',
@@ -177,7 +177,7 @@ describe('FosterService', () => {
   });
 
   describe('listAnimals', () => {
-    it('상태 조건을 적용하고 입양 경과일을 계산한다', async () => {
+    it('applies status filters and calculates foster days', async () => {
       const { service, prisma } = build();
       const createdAtA = new Date('2024-01-01T00:00:00.000Z');
       const createdAtB = new Date('2024-01-05T00:00:00.000Z');
@@ -216,7 +216,7 @@ describe('FosterService', () => {
       expect(daysById).toEqual({ 'animal-a': 10, 'animal-b': 5 });
     });
 
-    it('상태 미지정 시 전체 동물을 반환한다', async () => {
+    it('returns all animals when status is not provided', async () => {
       const { service, prisma } = build();
       prisma.animal.findMany.mockResolvedValueOnce([
         {
@@ -238,7 +238,7 @@ describe('FosterService', () => {
   });
 
   describe('listSharedAnimals', () => {
-    it('shared=true 조건으로 조회한다', async () => {
+    it('filters animals with shared=true', async () => {
       const { service, prisma } = build();
       prisma.animal.findMany.mockResolvedValueOnce([
         { id: 'animal-1', shared: true, createdAt: new Date() } as any,
@@ -257,7 +257,7 @@ describe('FosterService', () => {
   });
 
   describe('createAnimal', () => {
-    it('기관 동물은 ORG_ADMIN만 생성할 수 있다', async () => {
+    it('allows only ORG_ADMIN to create organization animals', async () => {
       const { service, prisma } = build();
 
       await expect(
@@ -269,7 +269,7 @@ describe('FosterService', () => {
       expect(prisma.animal.create).not.toHaveBeenCalled();
     });
 
-    it('ORG_ADMIN이면 orgId와 shared 값을 사용해 생성한다', async () => {
+    it('creates animals with orgId and shared flags when ORG_ADMIN', async () => {
       const { service, prisma } = build();
       prisma.animal.create.mockResolvedValueOnce({ id: 'animal-1' } as any);
 
@@ -284,7 +284,7 @@ describe('FosterService', () => {
       });
     });
 
-    it('개인 동물은 요청 사용자 ID를 ownerUserId로 설정한다', async () => {
+    it('sets ownerUserId to the requester for personal animals', async () => {
       const { service, prisma } = build();
       prisma.animal.create.mockResolvedValueOnce({ id: 'animal-2' } as any);
 
@@ -301,7 +301,7 @@ describe('FosterService', () => {
   });
 
   describe('listRecords', () => {
-    it('기본 6개월 윈도우를 사용해 기록을 조회한다', async () => {
+    it('uses the default six-month window when listing records', async () => {
       const { service, prisma } = build();
       const now = new Date('2024-06-15T00:00:00.000Z');
       jest.useFakeTimers();
@@ -356,7 +356,7 @@ describe('FosterService', () => {
       });
     });
 
-    it('사용자 지정 기간을 그대로 사용한다', async () => {
+    it('respects the provided custom date range', async () => {
       const { service, prisma } = build();
       prisma.animal.findUnique.mockResolvedValueOnce({
         id: 'animal-1',
@@ -381,7 +381,7 @@ describe('FosterService', () => {
       });
     });
 
-    it('유효하지 않은 기간이면 BadRequestException을 던진다', async () => {
+    it('throws BadRequestException for an invalid date range', async () => {
       const { service } = build();
 
       await expect(
@@ -391,7 +391,7 @@ describe('FosterService', () => {
   });
 
   describe('updateAnimal', () => {
-    it('동물이 없으면 NotFoundException을 던진다', async () => {
+    it('throws NotFoundException when the animal is missing', async () => {
       const { service, prisma } = build();
       prisma.animal.findUnique.mockResolvedValueOnce(null);
 
@@ -400,7 +400,7 @@ describe('FosterService', () => {
       ).rejects.toThrow(NotFoundException);
     });
 
-    it('기관 동물 업데이트는 ORG_ADMIN만 가능하다', async () => {
+    it('allows only ORG_ADMIN to update organization animals', async () => {
       const { service, prisma } = build();
       prisma.animal.findUnique.mockResolvedValueOnce({
         id: 'animal-1',
@@ -414,7 +414,7 @@ describe('FosterService', () => {
       expect(prisma.animal.update).not.toHaveBeenCalled();
     });
 
-    it('개인 소유 동물은 소유자만 수정할 수 있다', async () => {
+    it('allows only the owner to modify personal animals', async () => {
       const { service, prisma } = build();
       prisma.animal.findUnique.mockResolvedValueOnce({
         id: 'animal-1',
@@ -427,7 +427,7 @@ describe('FosterService', () => {
       ).rejects.toThrow(ForbiddenException);
     });
 
-    it('유효한 요청이면 상태 값을 업데이트한다', async () => {
+    it('updates the status when the request is valid', async () => {
       const { service, prisma } = build();
       jest.useFakeTimers();
       jest.setSystemTime(new Date('2024-01-10T00:00:00.000Z'));
@@ -461,7 +461,7 @@ describe('FosterService', () => {
       });
     });
 
-    it('잘못된 상태 값이면 BadRequestException을 던진다', async () => {
+    it('throws BadRequestException when status value is invalid', async () => {
       const { service, prisma } = build();
       prisma.animal.findUnique.mockResolvedValueOnce({
         id: 'animal-1',
@@ -481,7 +481,7 @@ describe('FosterService', () => {
   });
 
   describe('createRecord', () => {
-    it('기관 동물인데 ORG_ADMIN이 아니면 ForbiddenException을 던진다', async () => {
+    it('throws ForbiddenException when non-ORG_ADMIN accesses an organization animal', async () => {
       const { service, prisma } = build();
       prisma.animal.findUnique.mockResolvedValueOnce({
         id: 'animal-1',
@@ -501,7 +501,7 @@ describe('FosterService', () => {
       expect(prisma.fosterRecord.create).not.toHaveBeenCalled();
     });
 
-    it('개인 소유 동물인데 작성자가 아니면 ForbiddenException을 던진다', async () => {
+    it('throws ForbiddenException when non-owner accesses a personal animal', async () => {
       const { service, prisma } = build();
       prisma.animal.findUnique.mockResolvedValueOnce({
         id: 'animal-1',
@@ -521,7 +521,7 @@ describe('FosterService', () => {
       expect(prisma.fosterRecord.create).not.toHaveBeenCalled();
     });
 
-    it('동물이 존재하면 최대 6개의 이미지만 생성한다', async () => {
+    it('creates at most six images when the animal exists', async () => {
       const { service, prisma } = build();
       prisma.animal.findUnique.mockResolvedValueOnce({
         id: 'animal-1',
@@ -558,7 +558,7 @@ describe('FosterService', () => {
       });
     });
 
-    it('동물이 없으면 NotFoundException을 던진다', async () => {
+    it('throws NotFoundException when the animal does not exist', async () => {
       const { service, prisma } = build();
       prisma.animal.findUnique.mockResolvedValueOnce(null);
 
@@ -573,7 +573,7 @@ describe('FosterService', () => {
   });
 
   describe('deleteRecord', () => {
-    it('기록이 없으면 NotFoundException을 던진다', async () => {
+    it('throws NotFoundException when the record does not exist', async () => {
       const { service, prisma } = build();
       prisma.fosterRecord.findUnique.mockResolvedValueOnce(null);
 
@@ -585,7 +585,7 @@ describe('FosterService', () => {
       ).rejects.toThrow(NotFoundException);
     });
 
-    it('동물 정보가 없으면 NotFoundException을 던진다', async () => {
+    it('throws NotFoundException when the animal information is missing', async () => {
       const { service, prisma } = build();
       prisma.fosterRecord.findUnique.mockResolvedValueOnce({
         id: 'record-1',
@@ -601,7 +601,7 @@ describe('FosterService', () => {
       ).rejects.toThrow(NotFoundException);
     });
 
-    it('권한이 없으면 ForbiddenException을 던진다', async () => {
+    it('throws ForbiddenException when the user lacks permission', async () => {
       const { service, prisma } = build();
       prisma.fosterRecord.findUnique.mockResolvedValueOnce({
         id: 'record-1',
@@ -622,7 +622,7 @@ describe('FosterService', () => {
       expect(prisma.fosterRecord.delete).not.toHaveBeenCalled();
     });
 
-    it('삭제가 성공하면 삭제 결과를 반환한다', async () => {
+    it('returns the deletion result when removal succeeds', async () => {
       const { service, prisma } = build();
       prisma.fosterRecord.findUnique.mockResolvedValueOnce({
         id: 'record-1',
@@ -650,7 +650,7 @@ describe('FosterService', () => {
       });
     });
 
-    it('다른 동물 기록이면 NotFoundException을 던진다', async () => {
+    it('throws NotFoundException when the record belongs to another animal', async () => {
       const { service, prisma } = build();
       prisma.fosterRecord.findUnique.mockResolvedValueOnce({
         id: 'record-1',
@@ -667,7 +667,7 @@ describe('FosterService', () => {
   });
 
   describe('deleteAnimal', () => {
-    it('동물이 없으면 NotFoundException을 던진다', async () => {
+    it('throws NotFoundException when the animal cannot be found', async () => {
       const { service, prisma } = build();
       prisma.animal.findUnique.mockResolvedValueOnce(null);
 
@@ -679,7 +679,7 @@ describe('FosterService', () => {
       ).rejects.toThrow(NotFoundException);
     });
 
-    it('기관 소속 동물인데 ORG_ADMIN이 아니면 ForbiddenException', async () => {
+    it('throws ForbiddenException for organization animals when user is not ORG_ADMIN', async () => {
       const { service, prisma } = build();
       prisma.animal.findUnique.mockResolvedValueOnce({
         id: 'animal-1',
@@ -696,7 +696,7 @@ describe('FosterService', () => {
       expect(prisma.animal.delete).not.toHaveBeenCalled();
     });
 
-    it('개인 소유 동물에서 소유자가 아니면 ForbiddenException', async () => {
+    it('throws ForbiddenException for personal animals when user is not the owner', async () => {
       const { service, prisma } = build();
       prisma.animal.findUnique.mockResolvedValueOnce({
         id: 'animal-1',
@@ -713,7 +713,7 @@ describe('FosterService', () => {
       expect(prisma.animal.delete).not.toHaveBeenCalled();
     });
 
-    it('조건이 충족되면 동물을 삭제한다', async () => {
+    it('deletes the animal when all conditions are met', async () => {
       const { service, prisma } = build();
       prisma.animal.findUnique.mockResolvedValueOnce({
         id: 'animal-1',
@@ -735,7 +735,7 @@ describe('FosterService', () => {
   });
 
   describe('getRecord', () => {
-    it('동물 정보가 없으면 기록만 반환한다', async () => {
+    it('returns only the record data when animal info is missing', async () => {
       const { service, prisma } = build();
       prisma.fosterRecord.findUnique.mockResolvedValueOnce({
         id: 'record-1',
@@ -751,7 +751,7 @@ describe('FosterService', () => {
       });
     });
 
-    it('기록이 없거나 다른 동물면 NotFoundException을 던진다', async () => {
+    it('throws NotFoundException when the record is missing or belongs to another animal', async () => {
       const { service, prisma } = build();
       prisma.fosterRecord.findUnique.mockResolvedValueOnce(null);
 
@@ -772,7 +772,7 @@ describe('FosterService', () => {
   });
 
   describe('updateRecord (additional branches)', () => {
-    it('기록이 다른 동물에 속하면 NotFoundException을 던진다', async () => {
+    it('throws NotFoundException when the record belongs to another animal', async () => {
       const { service, prisma } = build();
       prisma.fosterRecord.findUnique.mockResolvedValueOnce({
         id: 'record-1',
@@ -792,7 +792,7 @@ describe('FosterService', () => {
       ).rejects.toThrow(NotFoundException);
     });
 
-    it('이미지 없이 업데이트하면 이미지 작업을 건너뜀', async () => {
+    it('skips image operations when updating without images', async () => {
       const { service, prisma } = build();
       const record = { id: 'record-1', animalId: 'animal-1' };
       prisma.fosterRecord.findUnique.mockResolvedValueOnce(record);

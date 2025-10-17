@@ -29,7 +29,7 @@ describe('UsersController', () => {
   });
 
   it('GET /users/me/profile', async () => {
-    const expected = { id: 'user-1', name: '홍길동' } as any;
+    const expected = { id: 'user-1', name: 'Alex Kim' } as any;
     service.getProfile.mockResolvedValueOnce(expected);
 
     await expect(controller.getProfile(authUser)).resolves.toBe(expected);
@@ -45,7 +45,7 @@ describe('UsersController', () => {
   });
 
   it('PATCH /users/me/profile', async () => {
-    const payload = { name: '홍길동' } as any;
+    const payload = { name: 'Alex Kim' } as any;
     service.updateProfile.mockResolvedValueOnce(payload);
 
     await expect(controller.updateProfile(authUser, payload)).resolves.toBe(payload);

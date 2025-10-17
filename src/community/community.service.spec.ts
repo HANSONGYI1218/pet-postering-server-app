@@ -27,7 +27,7 @@ const makePost = (id: string) =>
     title: `title-${id}`,
     content: `content-${id}`,
     authorId: `author-${id}`,
-    author: { id: `author-${id}`, displayName: `작성자 ${id}` },
+    author: { id: `author-${id}`, displayName: `Author ${id}` },
     viewCount: 0,
     createdAt: baseDate,
     updatedAt: baseDate,
@@ -39,7 +39,7 @@ const makeComment = (id: string, postId: string) =>
     id,
     postId,
     authorId: `author-${id}`,
-    author: { id: `author-${id}`, displayName: `작성자 ${id}` },
+    author: { id: `author-${id}`, displayName: `Author ${id}` },
     content: `comment-${id}`,
     parentId: null,
     createdAt: baseDate,
@@ -79,7 +79,7 @@ const build = () => {
 
 describe('CommunityService', () => {
   describe('listPosts', () => {
-    it('limit을 최대 50으로 고정하고 다음 커서를 계산한다', async () => {
+    it('clamps the limit to 50 and returns the next cursor', async () => {
       const { service, prisma } = build();
       const basePosts = Array.from({ length: 50 }, (_, idx) =>
         makePost(`post-${String(idx)}`),
@@ -104,7 +104,7 @@ describe('CommunityService', () => {
       expect(result.nextCursor).toBe('post-overflow');
     });
 
-    it('limit이 최소값보다 작으면 1로 보정한다', async () => {
+    it('clamps the limit to 1 when below the minimum', async () => {
       const { service, prisma } = build();
       prisma.post.findMany.mockResolvedValueOnce([makePost('post-1')]);
 
@@ -126,7 +126,7 @@ describe('CommunityService', () => {
   });
 
   describe('createPost', () => {
-    it('작성자와 내용을 Prisma에 전달한다', async () => {
+    it('passes author and content to Prisma', async () => {
       const { service, prisma } = build();
       const created = { id: 'post-1' } as any;
       prisma.post.create.mockResolvedValueOnce(created);
@@ -149,7 +149,7 @@ describe('CommunityService', () => {
   });
 
   describe('getPost', () => {
-    it('조회 시 조회수를 증가시키고 북마크 상태를 포함해 반환한다', async () => {
+    it('increments view count and returns bookmark state', async () => {
       const { service, prisma } = build();
       const updated = {
         ...makePost('post-1'),
@@ -182,7 +182,7 @@ describe('CommunityService', () => {
       });
     });
 
-    it('게시글이 없으면 NotFoundException을 던진다', async () => {
+    it('throws NotFoundException when the post is missing', async () => {
       const { service, prisma } = build();
       prisma.$transaction.mockImplementation(() => {
         throw new Error('not found');
@@ -194,7 +194,7 @@ describe('CommunityService', () => {
   });
 
   describe('bookmark', () => {
-    it('게시글을 북마크 상태로 만든다', async () => {
+    it('bookmarks a post', async () => {
       const { service, prisma } = build();
       prisma.postBookmark.upsert.mockResolvedValueOnce({});
 
@@ -209,7 +209,7 @@ describe('CommunityService', () => {
       });
     });
 
-    it('북마크를 해제할 때 삭제 실패도 허용한다', async () => {
+    it('allows deletion failure when unbookmarking', async () => {
       const { service, prisma } = build();
       prisma.postBookmark.delete.mockRejectedValueOnce(new Error('missing'));
 
@@ -224,7 +224,7 @@ describe('CommunityService', () => {
   });
 
   describe('listComments', () => {
-    it('사용자 정보 없이 호출하면 liked가 항상 false다', async () => {
+    it('returns liked=false when called without user context', async () => {
       const { service, prisma } = build();
       prisma.comment.findMany.mockResolvedValueOnce([makeComment('comment-1', 'post-1')]);
 
@@ -243,7 +243,7 @@ describe('CommunityService', () => {
       expect(result.items[0].liked).toBe(false);
     });
 
-    it('사용자 정보가 있으면 좋아요 여부를 병합한다', async () => {
+    it('merges like state when user context exists', async () => {
       const { service, prisma } = build();
       prisma.comment.findMany.mockResolvedValueOnce([
         makeComment('comment-1', 'post-1'),
@@ -271,7 +271,7 @@ describe('CommunityService', () => {
   });
 
   describe('createComment', () => {
-    it('부모 댓글 없이 생성하면 parentId를 null로 저장한다', async () => {
+    it('creates a top-level comment with parentId null', async () => {
       const { service, prisma } = build();
       const created = {
         id: 'comment-1',
@@ -300,7 +300,7 @@ describe('CommunityService', () => {
       expect(prisma.comment.findUnique).not.toHaveBeenCalled();
     });
 
-    it('부모 댓글이 다른 게시글에 속하면 ForbiddenException을 던진다', async () => {
+    it('throws ForbiddenException when parent belongs to another post', async () => {
       const { service, prisma } = build();
       prisma.comment.findUnique.mockResolvedValueOnce({
         id: 'parent-1',
@@ -316,7 +316,7 @@ describe('CommunityService', () => {
       expect(prisma.comment.create).not.toHaveBeenCalled();
     });
 
-    it('부모 댓글이 존재하지 않으면 ForbiddenException을 던진다', async () => {
+    it('throws ForbiddenException when parent comment is missing', async () => {
       const { service, prisma } = build();
       prisma.comment.findUnique.mockResolvedValueOnce(null);
 
@@ -329,7 +329,7 @@ describe('CommunityService', () => {
       expect(prisma.comment.create).not.toHaveBeenCalled();
     });
 
-    it('부모 댓글이 존재하면 parentId를 유지해 생성한다', async () => {
+    it('preserves parentId when parent comment exists', async () => {
       const { service, prisma } = build();
       prisma.comment.findUnique.mockResolvedValueOnce({
         id: 'parent-1',
@@ -369,7 +369,7 @@ describe('CommunityService', () => {
   });
 
   describe('deleteComment', () => {
-    it('댓글이 없으면 NotFoundException을 던진다', async () => {
+    it('throws NotFoundException when the comment does not exist', async () => {
       const { service, prisma } = build();
       prisma.comment.findUnique.mockResolvedValueOnce(null);
 
@@ -378,7 +378,7 @@ describe('CommunityService', () => {
       );
     });
 
-    it('작성자가 아니면 ForbiddenException을 던진다', async () => {
+    it('throws ForbiddenException when the user is not the author', async () => {
       const { service, prisma } = build();
       prisma.comment.findUnique.mockResolvedValueOnce({
         id: 'comment-1',
@@ -390,7 +390,7 @@ describe('CommunityService', () => {
       );
     });
 
-    it('답글이 남아있으면 ForbiddenException을 던진다', async () => {
+    it('throws ForbiddenException when replies remain', async () => {
       const { service, prisma } = build();
       prisma.comment.findUnique.mockResolvedValueOnce({
         id: 'comment-1',
@@ -404,7 +404,7 @@ describe('CommunityService', () => {
       expect(prisma.comment.delete).not.toHaveBeenCalled();
     });
 
-    it('모든 조건이 충족되면 댓글을 삭제한다', async () => {
+    it('deletes the comment when all conditions are met', async () => {
       const { service, prisma } = build();
       prisma.comment.findUnique.mockResolvedValueOnce({
         id: 'comment-1',
@@ -424,7 +424,7 @@ describe('CommunityService', () => {
   });
 
   describe('likeComment', () => {
-    it('댓글 좋아요를 upsert한다', async () => {
+    it('upserts a comment like', async () => {
       const { service, prisma } = build();
       prisma.commentLike.upsert.mockResolvedValueOnce({});
 
@@ -441,7 +441,7 @@ describe('CommunityService', () => {
       });
     });
 
-    it('좋아요를 해제할 때 삭제 실패도 허용한다', async () => {
+    it('allows deletion failure when unliking', async () => {
       const { service, prisma } = build();
       prisma.commentLike.delete.mockRejectedValueOnce(new Error('missing'));
 

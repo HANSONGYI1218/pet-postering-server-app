@@ -2,7 +2,7 @@ import { OptionalJwtAuthGuard } from './optional-jwt.guard';
 import type { AuthUser } from './types';
 
 describe('OptionalJwtAuthGuard', () => {
-  it('유저가 존재하면 그대로 반환한다', () => {
+  it('returns the user when authentication succeeds', () => {
     const guard = new OptionalJwtAuthGuard();
     const user = { userId: 'user-1', role: 'USER' };
 
@@ -10,7 +10,7 @@ describe('OptionalJwtAuthGuard', () => {
     expect(result).toBe(user);
   });
 
-  it('유저가 없으면 undefined를 반환한다', () => {
+  it('returns undefined when authentication fails', () => {
     const guard = new OptionalJwtAuthGuard();
 
     const result = guard.handleRequest<AuthUser | undefined>(

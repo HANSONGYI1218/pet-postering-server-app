@@ -49,18 +49,18 @@ describe('UsersService', () => {
   });
 
   describe('getProfile', () => {
-    it('사용자 프로필 정보를 반환한다', async () => {
+    it('returns user profile information', async () => {
       const { service, prisma } = buildService();
       prisma.user.findUnique.mockResolvedValueOnce({
         id: 'user-1',
         profile: {
-          name: '홍길동',
+          name: 'Alex Kim',
           email: 'hong@example.com',
           phoneNumber: '010-0000-0000',
           zipcode: '01234',
-          address: '서울시 종로구',
+          address: 'Jongno-gu, Seoul',
           addressDetail: '1-1',
-          introduction: '소개',
+          introduction: 'Introduction',
           isEligibleForFoster: true,
         },
         notificationSetting: null,
@@ -68,13 +68,13 @@ describe('UsersService', () => {
 
       await expect(service.getProfile('user-1')).resolves.toEqual({
         id: 'user-1',
-        name: '홍길동',
+        name: 'Alex Kim',
         email: 'hong@example.com',
         phoneNumber: '010-0000-0000',
         zipcode: '01234',
-        address: '서울시 종로구',
+        address: 'Jongno-gu, Seoul',
         addressDetail: '1-1',
-        introduction: '소개',
+        introduction: 'Introduction',
         isEligibleForFoster: true,
       });
 
@@ -84,7 +84,7 @@ describe('UsersService', () => {
       });
     });
 
-    it('프로필 정보가 없으면 기본값을 반환한다', async () => {
+    it('returns defaults when profile is missing', async () => {
       const { service, prisma } = buildService();
       prisma.user.findUnique.mockResolvedValueOnce({
         id: 'user-1',
@@ -106,7 +106,7 @@ describe('UsersService', () => {
   });
 
   describe('getNotificationSetting', () => {
-    it('알림 설정을 반환한다', async () => {
+    it('returns notification settings', async () => {
       const { service, prisma } = buildService();
       prisma.user.findUnique.mockResolvedValueOnce({
         notificationSetting: {
@@ -132,7 +132,7 @@ describe('UsersService', () => {
       });
     });
 
-    it('설정이 없으면 기본값을 반환한다', async () => {
+    it('returns defaults when notification setting is missing', async () => {
       const { service, prisma } = buildService();
       prisma.user.findUnique.mockResolvedValueOnce({
         notificationSetting: null,
@@ -149,16 +149,16 @@ describe('UsersService', () => {
   });
 
   describe('updateProfile', () => {
-    it('사용자 프로필을 업데이트한다', async () => {
+    it('updates user profile', async () => {
       const { service, prisma } = buildService();
       const payload = {
-        name: '홍길동',
+        name: 'Alex Kim',
         email: 'hong@example.com',
         phoneNumber: '010-0000-0000',
         zipcode: '01234',
-        address: '서울시 종로구',
+        address: 'Jongno-gu, Seoul',
         addressDetail: '1-1',
-        introduction: '소개',
+        introduction: 'Introduction',
       } as const;
 
       prisma.userProfile.upsert.mockResolvedValueOnce({
@@ -182,7 +182,7 @@ describe('UsersService', () => {
   });
 
   describe('updateNotificationSetting', () => {
-    it('사용자 알림 설정을 업데이트한다', async () => {
+    it('updates user notification settings', async () => {
       const { service, prisma } = buildService();
       const payload = {
         commentEmail: false,
@@ -216,7 +216,7 @@ describe('UsersService', () => {
   });
 
   describe('deleteAccount', () => {
-    it('사용자 계정을 삭제한다', async () => {
+    it('deletes a user account', async () => {
       const { service, prisma } = buildService();
 
       prisma.user.delete.mockResolvedValueOnce(undefined);
@@ -230,13 +230,13 @@ describe('UsersService', () => {
   });
 
   describe('listMyPosts', () => {
-    it('사용자가 작성한 게시글을 반환한다', async () => {
+    it('returns posts authored by the user', async () => {
       const { service, prisma } = buildService();
       prisma.post.findMany.mockResolvedValueOnce([
         {
           id: 'post-1',
-          title: '첫 글',
-          content: '내용',
+          title: 'First Post',
+          content: 'Content',
           viewCount: 10,
           createdAt: new Date('2025-01-01T00:00:00Z'),
           updatedAt: new Date('2025-01-02T00:00:00Z'),
@@ -247,8 +247,8 @@ describe('UsersService', () => {
       await expect(service.listMyPosts('user-1')).resolves.toEqual([
         {
           id: 'post-1',
-          title: '첫 글',
-          content: '내용',
+          title: 'First Post',
+          content: 'Content',
           views: 10,
           commentCount: 3,
           createdAt: new Date('2025-01-01T00:00:00Z'),
@@ -265,18 +265,18 @@ describe('UsersService', () => {
   });
 
   describe('listMyComments', () => {
-    it('사용자가 작성한 댓글을 반환한다', async () => {
+    it('returns comments authored by the user', async () => {
       const { service, prisma } = buildService();
       prisma.comment.findMany.mockResolvedValueOnce([
         {
           id: 'comment-1',
           postId: 'post-1',
           authorId: 'user-1',
-          content: '댓글',
+          content: 'Comment',
           createdAt: new Date('2025-01-03T00:00:00Z'),
           post: {
             id: 'post-1',
-            title: '첫 글',
+            title: 'First Post',
           },
         },
       ]);
@@ -288,10 +288,10 @@ describe('UsersService', () => {
         {
           id: 'comment-1',
           postId: 'post-1',
-          content: '댓글',
+          content: 'Comment',
           createdAt: new Date('2025-01-03T00:00:00Z'),
           likes: 2,
-          post: { id: 'post-1', title: '첫 글' },
+          post: { id: 'post-1', title: 'First Post' },
         },
       ]);
 
@@ -309,7 +309,7 @@ describe('UsersService', () => {
       });
     });
 
-    it('댓글이 없으면 빈 배열을 반환한다', async () => {
+    it('returns an empty array when the user has no comments', async () => {
       const { service, prisma } = buildService();
       prisma.comment.findMany.mockResolvedValueOnce([]);
 

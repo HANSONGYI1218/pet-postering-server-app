@@ -11,7 +11,7 @@ describe('main bootstrap', () => {
     jest.clearAllMocks();
   });
 
-  it('NestFactory.create와 app.listen을 호출한다', async () => {
+  it('invokes NestFactory.create and app.listen', async () => {
     process.env.PORT = '4000';
 
     const enableCors = jest.fn();
@@ -57,7 +57,7 @@ describe('main bootstrap', () => {
     });
   });
 
-  it('STAGE가 설정되면 stage prefixed Swagger 경로를 추가한다', async () => {
+  it('adds a stage-prefixed Swagger path when STAGE is set', async () => {
     process.env.PORT = '5000';
     process.env.STAGE = 'beta';
 

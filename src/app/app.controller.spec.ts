@@ -16,15 +16,15 @@ describe('AppController', () => {
     controller = module.get(AppController);
   });
 
-  it('기본 상태 확인 문자열을 반환한다', () => {
+  it('returns the default health string', () => {
     expect(controller.getHello()).toBe('OK');
   });
 
-  it('헬스 체크 응답을 반환한다', () => {
+  it('returns the health check response', () => {
     expect(controller.getHealth()).toEqual({ status: 'ok' });
   });
 
-  it('스테이지 헬스 체크는 환경 변수를 검증한다', () => {
+  it('validates environment variables for stage health check', () => {
     const original = process.env.STAGE;
     process.env.STAGE = 'dev';
 
