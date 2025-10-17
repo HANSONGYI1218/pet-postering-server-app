@@ -101,11 +101,15 @@
     "testEnvironment": "node"
   },
   "lint-staged": {
+    "docs/**/*.md": [
+      "prettier --write",
+      "git add --force"
+    ],
     "*.{ts,tsx}": [
       "eslint --cache --fix --max-warnings=0",
       "prettier --write"
     ],
-    "*.{js,json,md,yml,yaml}": [
+    "*.{js,json,yml,yaml}": [
       "prettier --write"
     ]
   },
