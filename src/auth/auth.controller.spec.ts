@@ -103,9 +103,6 @@ describe('AuthController', () => {
         avatarUrl: null,
       });
 
-    expect(service.devIssueByKakaoId).toHaveBeenCalledWith(
-      'dev:user-77',
-      'Tester',
-    );
+    expect(service.devIssueByKakaoId).toHaveBeenCalledWith('dev:user-77', 'Tester');
   });
 });

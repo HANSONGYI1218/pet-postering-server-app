@@ -22,9 +22,7 @@ const RECORD_STATE_MAP: Record<AnimalStatus, FosterState> = {
 const toIsoString = (value: Date | null): string | null =>
   value ? value.toISOString() : null;
 
-const sortImageUrls = (
-  images: { sortOrder: number | null; url: string }[],
-): string[] =>
+const sortImageUrls = (images: { sortOrder: number | null; url: string }[]): string[] =>
   images
     .slice()
     .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))

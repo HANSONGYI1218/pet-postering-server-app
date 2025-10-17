@@ -41,18 +41,14 @@ describe('community comments domain', () => {
     });
 
     it('부모 게시글이 다르면 에러를 반환한다', () => {
-      expect(
-        resolveParentForCreation({ id: 'p1', postId: 'other' }, 'post-1'),
-      ).toEqual({
+      expect(resolveParentForCreation({ id: 'p1', postId: 'other' }, 'post-1')).toEqual({
         status: 'error',
         reason: 'invalid-parent-post',
       });
     });
 
     it('같은 게시글이면 parentId를 그대로 사용한다', () => {
-      expect(
-        resolveParentForCreation({ id: 'p1', postId: 'post-1' }, 'post-1'),
-      ).toEqual({
+      expect(resolveParentForCreation({ id: 'p1', postId: 'post-1' }, 'post-1')).toEqual({
         status: 'ok',
         parentId: 'p1',
       });

@@ -116,10 +116,7 @@ export class FosterService {
         status: statusValue ?? undefined,
       },
     });
-    const fosterDays = await this.computeFosterDays(
-      updated.id,
-      updated.createdAt,
-    );
+    const fosterDays = await this.computeFosterDays(updated.id, updated.createdAt);
     return { ...updated, fosterDays } satisfies AnimalListItem;
   }
 
@@ -166,10 +163,7 @@ export class FosterService {
     };
   }
 
-  async getRecord(
-    animalId: string,
-    recordId: string,
-  ): Promise<FosterRecordDetail> {
+  async getRecord(animalId: string, recordId: string): Promise<FosterRecordDetail> {
     const record = await this.prisma.fosterRecord.findUnique({
       where: { id: recordId },
       include: { images: true },
@@ -306,10 +300,7 @@ export class FosterService {
     return animal as Exclude<T, null>;
   }
 
-  private async computeFosterDays(
-    animalId: string,
-    createdAt: Date,
-  ): Promise<number> {
+  private async computeFosterDays(animalId: string, createdAt: Date): Promise<number> {
     const firstRecord = await this.prisma.fosterRecord.findFirst({
       where: { animalId },
       orderBy: { date: 'asc' },

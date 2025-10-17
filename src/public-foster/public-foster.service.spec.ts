@@ -89,12 +89,8 @@ describe('PublicFosterService', () => {
           updatedAt: new Date('2024-01-01T00:00:00.000Z'),
         },
       ],
-      healthTags: [
-        { animalId: 'a-1', value: 'NEUTERED' as AnimalHealthTagType },
-      ],
-      personalityTags: [
-        { animalId: 'a-1', value: 'QUIET' as AnimalPersonalityTagType },
-      ],
+      healthTags: [{ animalId: 'a-1', value: 'NEUTERED' as AnimalHealthTagType }],
+      personalityTags: [{ animalId: 'a-1', value: 'QUIET' as AnimalPersonalityTagType }],
       environmentTags: [
         {
           animalId: 'a-1',
@@ -123,9 +119,7 @@ describe('PublicFosterService', () => {
     const { service, prisma } = build();
     prisma.animal.findUnique.mockResolvedValueOnce(null);
 
-    await expect(service.getAnimal('missing')).rejects.toThrow(
-      'public-animal-not-found',
-    );
+    await expect(service.getAnimal('missing')).rejects.toThrow('public-animal-not-found');
 
     const animal = {
       id: 'a-1',

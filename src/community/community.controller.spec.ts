@@ -137,13 +137,9 @@ describe('CommunityController', () => {
       .expect(201)
       .expect(created);
 
-    expect(service.createComment).toHaveBeenCalledWith(
-      'post-2',
-      'commenter-1',
-      {
-        content: 'hi',
-      },
-    );
+    expect(service.createComment).toHaveBeenCalledWith('post-2', 'commenter-1', {
+      content: 'hi',
+    });
   });
 
   it('POST /community/posts/:id/bookmarks uses authenticated user', async () => {

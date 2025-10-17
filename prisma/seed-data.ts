@@ -167,8 +167,7 @@ export const animalSeeds: AnimalSeed[] = [
     gender: AnimalGender.FEMALE,
     breed: '코리안 숏헤어',
     birthDate: new Date('2022-08-20'),
-    introduction:
-      '호기심이 많고 사람에게 먼저 다가오는 사랑스러운 고양이입니다.',
+    introduction: '호기심이 많고 사람에게 먼저 다가오는 사랑스러운 고양이입니다.',
     remark: '규칙적인 식습관을 가지고 있으며, 다른 고양이와도 잘 지냅니다.',
     emergency: false,
     emergencyReason: null,
@@ -206,8 +205,7 @@ export const animalSeeds: AnimalSeed[] = [
     gender: AnimalGender.MALE,
     breed: '진돗개 믹스',
     birthDate: new Date('2021-12-05'),
-    introduction:
-      '튼튼하고 에너지가 넘치지만 사람을 잘 따르는 든든한 친구입니다.',
+    introduction: '튼튼하고 에너지가 넘치지만 사람을 잘 따르는 든든한 친구입니다.',
     remark: '입질이나 짖음이 거의 없고, 꾸준한 운동을 필요로 합니다.',
     emergency: false,
     emergencyReason: null,
@@ -251,9 +249,7 @@ export const recordSeeds: RecordSeed[] = [
         date: new Date('2025-09-02T10:00:00Z'),
         content: '첫날부터 활발하게 잘 놀았어요!',
         healthNote: '식욕 좋고 대소변 문제 없음.',
-        images: [
-          'https://images.unsplash.com/photo-1507146426996-ef05306b995a',
-        ],
+        images: ['https://images.unsplash.com/photo-1507146426996-ef05306b995a'],
       },
       {
         date: new Date('2025-09-05T09:30:00Z'),
@@ -270,17 +266,13 @@ export const recordSeeds: RecordSeed[] = [
         date: new Date('2025-08-11T14:10:00Z'),
         content: '해가 잘 드는 곳에서 낮잠을 즐겼어요.',
         healthNote: '식사량 안정적.',
-        images: [
-          'https://images.unsplash.com/photo-1518791841217-8f162f1e1131',
-        ],
+        images: ['https://images.unsplash.com/photo-1518791841217-8f162f1e1131'],
       },
       {
         date: new Date('2025-08-15T18:45:00Z'),
         content: '장난감을 쫓아다니며 활동량이 증가했어요.',
         healthNote: '눈물 자국 관리 필요.',
-        images: [
-          'https://images.unsplash.com/photo-1526336024174-e58f5cdd8e13',
-        ],
+        images: ['https://images.unsplash.com/photo-1526336024174-e58f5cdd8e13'],
       },
     ],
   },
@@ -291,9 +283,7 @@ export const recordSeeds: RecordSeed[] = [
         date: new Date('2025-09-20T07:20:00Z'),
         content: '새 산책 루트를 좋아합니다.',
         healthNote: '발바닥 상태 양호.',
-        images: [
-          'https://images.unsplash.com/photo-1507149833265-60c372daea22',
-        ],
+        images: ['https://images.unsplash.com/photo-1507149833265-60c372daea22'],
       },
       {
         date: new Date('2025-09-23T12:05:00Z'),
@@ -410,8 +400,7 @@ export const userProfileSeeds: UserProfileSeed[] = [
     zipcode: '13347',
     address: '경기도 성남시 중원구 둔촌대로 45',
     addressDetail: 'B동 302호',
-    introduction:
-      '첫 임보를 준비 중이라 선배 임보자 분들의 조언을 모으고 있습니다!',
+    introduction: '첫 임보를 준비 중이라 선배 임보자 분들의 조언을 모으고 있습니다!',
     isEligibleForFoster: false,
   },
 ];

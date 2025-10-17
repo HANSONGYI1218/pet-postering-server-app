@@ -21,21 +21,17 @@ describe('ensureAnimalWriteAccess', () => {
       status: 'error',
       reason: 'animal-org-only',
     });
-    expect(
-      ensureAnimalWriteAccess(animal, user({ role: 'ORG_ADMIN' })),
-    ).toEqual({ status: 'ok' });
+    expect(ensureAnimalWriteAccess(animal, user({ role: 'ORG_ADMIN' }))).toEqual({
+      status: 'ok',
+    });
   });
 
   it('개인 소유 동물은 소유자만 접근할 수 있다', () => {
     const animal = { orgId: null, ownerUserId: 'owner-1' };
-    expect(
-      ensureAnimalWriteAccess(animal, user({ userId: 'owner-1' })),
-    ).toEqual({
+    expect(ensureAnimalWriteAccess(animal, user({ userId: 'owner-1' }))).toEqual({
       status: 'ok',
     });
-    expect(
-      ensureAnimalWriteAccess(animal, user({ userId: 'intruder' })),
-    ).toEqual({
+    expect(ensureAnimalWriteAccess(animal, user({ userId: 'intruder' }))).toEqual({
       status: 'error',
       reason: 'animal-not-owner',
     });

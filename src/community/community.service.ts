@@ -1,8 +1,4 @@
-import {
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 
 import type {
   BookmarkResponse,
@@ -19,10 +15,7 @@ import {
   mergeCommentLikes,
   resolveParentForCreation,
 } from '../domain/community/domain/comments';
-import {
-  clampPostLimit,
-  preparePaginatedPosts,
-} from '../domain/community/domain/posts';
+import { clampPostLimit, preparePaginatedPosts } from '../domain/community/domain/posts';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -41,10 +34,7 @@ export class CommunityService {
         author: { select: { id: true, displayName: true } },
       },
     });
-    const { items, nextCursor } = preparePaginatedPosts<PostListItem>(
-      posts,
-      normalized,
-    );
+    const { items, nextCursor } = preparePaginatedPosts<PostListItem>(posts, normalized);
     return { items, nextCursor, limit: normalized };
   }
 
@@ -105,10 +95,7 @@ export class CommunityService {
     return { postId, bookmarked: false };
   }
 
-  async listComments(
-    postId: string,
-    userId?: string,
-  ): Promise<ListCommentsResult> {
+  async listComments(postId: string, userId?: string): Promise<ListCommentsResult> {
     const comments = await this.prisma.comment.findMany({
       where: { postId },
       orderBy: { createdAt: 'asc' },
@@ -157,8 +144,7 @@ export class CommunityService {
       where: { id: parentId },
     });
     const resolution = resolveParentForCreation(parent ?? undefined, postId);
-    if (resolution.status === 'error')
-      throw new ForbiddenException(resolution.reason);
+    if (resolution.status === 'error') throw new ForbiddenException(resolution.reason);
 
     const created = await this.prisma.comment.create({
       data: {
@@ -175,10 +161,7 @@ export class CommunityService {
     return { ...created, liked: false };
   }
 
-  async deleteComment(
-    commentId: string,
-    userId: string,
-  ): Promise<DeleteCommentResponse> {
+  async deleteComment(commentId: string, userId: string): Promise<DeleteCommentResponse> {
     const comment = await this.prisma.comment.findUnique({
       where: { id: commentId },
     });
@@ -197,10 +180,7 @@ export class CommunityService {
     return { commentId, deleted: true };
   }
 
-  async likeComment(
-    commentId: string,
-    userId: string,
-  ): Promise<LikeCommentResponse> {
+  async likeComment(commentId: string, userId: string): Promise<LikeCommentResponse> {
     await this.prisma.commentLike.upsert({
       where: { userId_commentId: { userId, commentId } },
       update: {},
@@ -209,10 +189,7 @@ export class CommunityService {
     return { commentId, liked: true };
   }
 
-  async unlikeComment(
-    commentId: string,
-    userId: string,
-  ): Promise<LikeCommentResponse> {
+  async unlikeComment(commentId: string, userId: string): Promise<LikeCommentResponse> {
     await this.prisma.commentLike
       .delete({ where: { userId_commentId: { userId, commentId } } })
       .catch(() => undefined);

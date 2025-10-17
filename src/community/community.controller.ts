@@ -90,10 +90,7 @@ export class CommunityController {
   @ApiOperation({ summary: 'Get post detail; increments view count' })
   @UseGuards(OptionalJwtAuthGuard)
   @ApiOkResponse({ type: PostDetailDto })
-  getPost(
-    @Param('id') id: string,
-    @CurrentUser() user?: AuthUser,
-  ): Promise<PostDetail> {
+  getPost(@Param('id') id: string, @CurrentUser() user?: AuthUser): Promise<PostDetail> {
     return this.svc.getPost(id, user?.userId);
   }
 

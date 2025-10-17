@@ -196,9 +196,9 @@ describe('UsersService', () => {
         notificationSetting: { ...payload },
       });
 
-      await expect(
-        service.updateNotificationSetting('user-1', payload),
-      ).resolves.toEqual(payload);
+      await expect(service.updateNotificationSetting('user-1', payload)).resolves.toEqual(
+        payload,
+      );
 
       expect(prisma.user.update).toHaveBeenCalledWith({
         where: { id: 'user-1' },

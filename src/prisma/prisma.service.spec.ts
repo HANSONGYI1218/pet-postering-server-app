@@ -10,9 +10,7 @@ describe('PrismaService lifecycle', () => {
 
     const service = moduleRef.get(PrismaService);
     const connectSpy = jest.spyOn(service, '$connect').mockResolvedValue();
-    const disconnectSpy = jest
-      .spyOn(service, '$disconnect')
-      .mockResolvedValue();
+    const disconnectSpy = jest.spyOn(service, '$disconnect').mockResolvedValue();
 
     await service.onModuleInit();
     await service.onModuleDestroy();

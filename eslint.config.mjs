@@ -44,11 +44,8 @@ export default tseslint.config(
       '@typescript-eslint/prefer-optional-chain': 'error',
       '@typescript-eslint/prefer-readonly': 'error',
       '@typescript-eslint/switch-exhaustiveness-check': 'error',
-      '@typescript-eslint/no-extraneous-class': [
-        'error',
-        { allowWithDecorator: true },
-      ],
-      'complexity': ['warn', 10],
+      '@typescript-eslint/no-extraneous-class': ['error', { allowWithDecorator: true }],
+      complexity: ['warn', 10],
       'max-lines-per-function': [
         'warn',
         { max: 60, skipBlankLines: true, skipComments: true },
@@ -75,4 +72,3 @@ export default tseslint.config(
     },
   },
 );
-

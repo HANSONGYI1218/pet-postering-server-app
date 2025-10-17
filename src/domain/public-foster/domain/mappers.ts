@@ -36,9 +36,8 @@ type RawAnimal = Animal & AnimalRelations;
 const toNullSafeIsoString = (value: Date | null | undefined): string | null =>
   value ? value.toISOString() : null;
 
-const pluckTagValues = <TValue extends string>(
-  tags: { value: TValue }[],
-): TValue[] => tags.map((tag) => tag.value);
+const pluckTagValues = <TValue extends string>(tags: { value: TValue }[]): TValue[] =>
+  tags.map((tag) => tag.value);
 
 const toOrganization = (
   organization: Organization | null,
@@ -101,12 +100,8 @@ const toBase = (
   emergencyReason: animal.emergencyReason,
   organization: toOrganization(animal.organization),
   healthTags: pluckTagValues<AnimalHealthTagType>(animal.healthTags),
-  personalityTags: pluckTagValues<AnimalPersonalityTagType>(
-    animal.personalityTags,
-  ),
-  environmentTags: pluckTagValues<AnimalEnvironmentTagType>(
-    animal.environmentTags,
-  ),
+  personalityTags: pluckTagValues<AnimalPersonalityTagType>(animal.personalityTags),
+  environmentTags: pluckTagValues<AnimalEnvironmentTagType>(animal.environmentTags),
 });
 
 export const toPublicFosterListItem = (
@@ -117,9 +112,7 @@ export const toPublicFosterListItem = (
   fosterDays,
 });
 
-export const toPublicFosterDetail = (
-  animal: RawAnimal,
-): PublicFosterAnimalDetail => ({
+export const toPublicFosterDetail = (animal: RawAnimal): PublicFosterAnimalDetail => ({
   ...toBase(animal),
   introduction: animal.introduction,
   remark: animal.remark,
@@ -127,9 +120,7 @@ export const toPublicFosterDetail = (
     .slice()
     .sort((left, right) => (left.sortOrder ?? 0) - (right.sortOrder ?? 0))
     .map((image) => image.url),
-  specialNoteTags: pluckTagValues<AnimalSpecialNoteTagType>(
-    animal.specialNoteTags,
-  ),
+  specialNoteTags: pluckTagValues<AnimalSpecialNoteTagType>(animal.specialNoteTags),
   currentFosterStartDate: toNullSafeIsoString(animal.currentFosterStartDate),
   currentFosterEndDate: toNullSafeIsoString(animal.currentFosterEndDate),
 });

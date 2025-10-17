@@ -15,8 +15,7 @@ const BASE_ENV: EnvMap = {
   [`PET_SERVER_${STAGE.toUpperCase()}_JWT_ACCESS_SECRET`]: 'access-secret',
   [`PET_SERVER_${STAGE.toUpperCase()}_JWT_REFRESH_SECRET`]: 'refresh-secret',
   [`PET_SERVER_${STAGE.toUpperCase()}_KAKAO_CLIENT_ID`]: 'kakao-client-id',
-  [`PET_SERVER_${STAGE.toUpperCase()}_KAKAO_CLIENT_SECRET`]:
-    'kakao-client-secret',
+  [`PET_SERVER_${STAGE.toUpperCase()}_KAKAO_CLIENT_SECRET`]: 'kakao-client-secret',
   [`PET_SERVER_${STAGE.toUpperCase()}_KAKAO_REDIRECT_URI`]:
     'https://furdiz.com/auth/kakao/callback',
 };
@@ -80,8 +79,7 @@ describe('PetServerStack custom domain', () => {
 
   it('도메인과 인증서를 제공하면 API Gateway 커스텀 도메인을 생성한다', () => {
     const domainName = 'api.furdiz.com';
-    const certificateArn =
-      'arn:aws:acm:ap-northeast-2:000000000000:certificate/example';
+    const certificateArn = 'arn:aws:acm:ap-northeast-2:000000000000:certificate/example';
 
     withBaseEnv(
       {
@@ -110,8 +108,7 @@ describe('PetServerStack custom domain', () => {
 
   it('호스티드 존 ID가 있으면 Route53 Alias 레코드를 생성한다', () => {
     const domainName = 'api.furdiz.com';
-    const certificateArn =
-      'arn:aws:acm:ap-northeast-2:000000000000:certificate/example';
+    const certificateArn = 'arn:aws:acm:ap-northeast-2:000000000000:certificate/example';
     const hostedZoneId = 'Z1234567890';
 
     withBaseEnv(

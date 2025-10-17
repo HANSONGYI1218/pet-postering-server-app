@@ -35,10 +35,7 @@ export class AuthService {
     if (!trimmedCode) throw new UnauthorizedException('missing-kakao-code');
 
     const kakaoConfig = this.resolveKakaoConfig();
-    const { url, params, headers } = createKakaoTokenRequest(
-      kakaoConfig,
-      trimmedCode,
-    );
+    const { url, params, headers } = createKakaoTokenRequest(kakaoConfig, trimmedCode);
 
     const tokenResponse = await axios
       .post<{ access_token?: string }>(url, params, { headers })
@@ -87,10 +84,7 @@ export class AuthService {
     }
   }
 
-  async devIssueByKakaoId(
-    kakaoId: string,
-    displayName?: string,
-  ): Promise<AuthTokenPair> {
+  async devIssueByKakaoId(kakaoId: string, displayName?: string): Promise<AuthTokenPair> {
     const upsert = toUpsertUserCommand({ id: kakaoId, nickname: displayName });
     const user = await this.prisma.user.upsert(upsert);
     return this.issueTokens(user);
@@ -99,8 +93,7 @@ export class AuthService {
   private resolveKakaoConfig(): KakaoConfig {
     const clientId = this.config.get<string>('KAKAO_CLIENT_ID');
     const redirectUri = this.config.get<string>('KAKAO_REDIRECT_URI');
-    const clientSecret =
-      this.config.get<string>('KAKAO_CLIENT_SECRET') ?? undefined;
+    const clientSecret = this.config.get<string>('KAKAO_CLIENT_SECRET') ?? undefined;
 
     if (!clientId || !redirectUri) {
       throw new UnauthorizedException('missing-kakao-config');
@@ -111,14 +104,10 @@ export class AuthService {
 
   private resolveJwtSettings(): JwtSettings {
     return {
-      accessSecret:
-        this.config.get<string>('JWT_ACCESS_SECRET') ?? 'dev-access',
-      refreshSecret:
-        this.config.get<string>('JWT_REFRESH_SECRET') ?? 'dev-refresh',
-      accessExpiresIn:
-        this.config.get<string>('JWT_ACCESS_EXPIRES_IN') ?? '15m',
-      refreshExpiresIn:
-        this.config.get<string>('JWT_REFRESH_EXPIRES_IN') ?? '14d',
+      accessSecret: this.config.get<string>('JWT_ACCESS_SECRET') ?? 'dev-access',
+      refreshSecret: this.config.get<string>('JWT_REFRESH_SECRET') ?? 'dev-refresh',
+      accessExpiresIn: this.config.get<string>('JWT_ACCESS_EXPIRES_IN') ?? '15m',
+      refreshExpiresIn: this.config.get<string>('JWT_REFRESH_EXPIRES_IN') ?? '14d',
     };
   }
 

@@ -103,25 +103,17 @@ describe('FosterService', () => {
           findMany: jest.fn().mockResolvedValueOnce(images),
         },
       };
-      prisma.$transaction.mockImplementation(
-        (cb: (client: typeof tx) => unknown) => Promise.resolve(cb(tx)),
+      prisma.$transaction.mockImplementation((cb: (client: typeof tx) => unknown) =>
+        Promise.resolve(cb(tx)),
       );
 
       const dto = {
         date: '2024-02-01',
         content: 'new content',
-        images: Array.from(
-          { length: 7 },
-          (_, i) => `https://img/${String(i + 1)}`,
-        ),
+        images: Array.from({ length: 7 }, (_, i) => `https://img/${String(i + 1)}`),
       };
 
-      const result = await service.updateRecord(
-        'animal-1',
-        'record-1',
-        user,
-        dto,
-      );
+      const result = await service.updateRecord('animal-1', 'record-1', user, dto);
 
       expect(prisma.fosterRecord.findUnique).toHaveBeenCalledWith({
         where: { id: 'record-1' },
@@ -404,11 +396,7 @@ describe('FosterService', () => {
       prisma.animal.findUnique.mockResolvedValueOnce(null);
 
       await expect(
-        service.updateAnimal(
-          'animal-1',
-          { userId: 'user-1', role: 'USER' },
-          {},
-        ),
+        service.updateAnimal('animal-1', { userId: 'user-1', role: 'USER' }, {}),
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -421,11 +409,7 @@ describe('FosterService', () => {
       });
 
       await expect(
-        service.updateAnimal(
-          'animal-1',
-          { userId: 'user-2', role: 'USER' },
-          {},
-        ),
+        service.updateAnimal('animal-1', { userId: 'user-2', role: 'USER' }, {}),
       ).rejects.toThrow(ForbiddenException);
       expect(prisma.animal.update).not.toHaveBeenCalled();
     });
@@ -439,11 +423,7 @@ describe('FosterService', () => {
       });
 
       await expect(
-        service.updateAnimal(
-          'animal-1',
-          { userId: 'user-2', role: 'USER' },
-          {},
-        ),
+        service.updateAnimal('animal-1', { userId: 'user-2', role: 'USER' }, {}),
       ).rejects.toThrow(ForbiddenException);
     });
 
@@ -558,10 +538,7 @@ describe('FosterService', () => {
           {
             date: '2024-01-01',
             content: 'daily log',
-            images: Array.from(
-              { length: 8 },
-              (_, i) => `https://img/${String(i)}`,
-            ),
+            images: Array.from({ length: 8 }, (_, i) => `https://img/${String(i)}`),
           },
         ),
       ).resolves.toBe(created);
@@ -826,9 +803,7 @@ describe('FosterService', () => {
       });
       const tx = {
         fosterRecord: {
-          update: jest
-            .fn()
-            .mockResolvedValueOnce({ ...record, content: 'updated' }),
+          update: jest.fn().mockResolvedValueOnce({ ...record, content: 'updated' }),
         },
         fosterRecordImage: {
           deleteMany: jest.fn(),
@@ -836,8 +811,8 @@ describe('FosterService', () => {
           findMany: jest.fn().mockResolvedValueOnce([]),
         },
       };
-      prisma.$transaction.mockImplementation(
-        (cb: (client: typeof tx) => unknown) => Promise.resolve(cb(tx)),
+      prisma.$transaction.mockImplementation((cb: (client: typeof tx) => unknown) =>
+        Promise.resolve(cb(tx)),
       );
 
       await service.updateRecord(

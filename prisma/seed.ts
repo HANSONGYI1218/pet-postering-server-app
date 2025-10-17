@@ -155,9 +155,7 @@ interface UserNotificationSettingUpsertInput {
   marketingKakao: boolean;
 }
 
-const buildUserProfileData = (
-  seed: UserProfileSeed,
-): UserProfileUpsertInput => ({
+const buildUserProfileData = (seed: UserProfileSeed): UserProfileUpsertInput => ({
   name: seed.name ?? null,
   email: seed.email ?? null,
   phoneNumber: seed.phoneNumber ?? null,

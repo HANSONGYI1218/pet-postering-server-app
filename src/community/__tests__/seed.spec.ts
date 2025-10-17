@@ -1,9 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 
-import {
-  communityPostSeeds,
-  communityUserSeeds,
-} from '../../../prisma/seed-data';
+import { communityPostSeeds, communityUserSeeds } from '../../../prisma/seed-data';
 
 describe('community seed data', () => {
   it('최소 한 개 이상의 커뮤니티 게시글 시드를 포함한다', () => {

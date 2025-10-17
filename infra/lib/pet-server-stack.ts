@@ -100,10 +100,7 @@ const collectOptionalEnv = (
     ]),
   );
 
-const maybeEnv = (
-  stage: string,
-  key: OptionalEnvKey,
-): Record<string, string> => {
+const maybeEnv = (stage: string, key: OptionalEnvKey): Record<string, string> => {
   const value = envOrContext(stage, key);
   return value ? { [key]: value } : {};
 };
@@ -295,15 +292,8 @@ export class PetServerStack extends Stack {
       ...optionalEnv,
     });
 
-    const integration = new HttpLambdaIntegration(
-      'PetServerIntegration',
-      lambdaFunction,
-    );
-    const { httpApi, httpStage } = createHttpResources(
-      this,
-      stage,
-      integration,
-    );
+    const integration = new HttpLambdaIntegration('PetServerIntegration', lambdaFunction);
+    const { httpApi, httpStage } = createHttpResources(this, stage, integration);
 
     attachCustomDomain(this, stage, httpApi, httpStage);
     addStageOutputs(this, httpStage.url);

@@ -22,16 +22,14 @@ export type DeletionEvaluation =
 export const mergeCommentLikes = <T extends { id: string; liked: boolean }>(
   comments: readonly T[],
   likedIds: ReadonlySet<string>,
-): T[] =>
-  comments.map((comment) => ({ ...comment, liked: likedIds.has(comment.id) }));
+): T[] => comments.map((comment) => ({ ...comment, liked: likedIds.has(comment.id) }));
 
 export const resolveParentForCreation = (
   parent: MinimalParentComment | null | undefined,
   expectedPostId: string,
 ): ParentResolution => {
   if (parent === null) return { status: 'ok', parentId: null };
-  if (parent === undefined)
-    return { status: 'error', reason: 'parent-not-found' };
+  if (parent === undefined) return { status: 'error', reason: 'parent-not-found' };
   if (parent.postId !== expectedPostId)
     return { status: 'error', reason: 'invalid-parent-post' };
   return { status: 'ok', parentId: parent.id };

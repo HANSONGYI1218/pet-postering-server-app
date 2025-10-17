@@ -71,9 +71,7 @@ export class UsersService {
     return toUserProfileResult(userId, user?.profile ?? null);
   }
 
-  async getNotificationSetting(
-    userId: string,
-  ): Promise<UserNotificationSettingResult> {
+  async getNotificationSetting(userId: string): Promise<UserNotificationSettingResult> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: { notificationSetting: true },

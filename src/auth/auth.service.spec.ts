@@ -85,10 +85,7 @@ describe('AuthService', () => {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       });
       expect(
-        new URLSearchParams(params as URLSearchParams)
-          .toString()
-          .split('&')
-          .sort(),
+        new URLSearchParams(params as URLSearchParams).toString().split('&').sort(),
       ).toEqual(
         [
           'grant_type=authorization_code',
@@ -99,10 +96,9 @@ describe('AuthService', () => {
         ].sort(),
       );
 
-      expect(mockedAxios.get).toHaveBeenCalledWith(
-        'https://kapi.kakao.com/v2/user/me',
-        { headers: { Authorization: 'Bearer kakao-access-token' } },
-      );
+      expect(mockedAxios.get).toHaveBeenCalledWith('https://kapi.kakao.com/v2/user/me', {
+        headers: { Authorization: 'Bearer kakao-access-token' },
+      });
       expect(upsert).toHaveBeenCalledWith({
         where: { kakaoId: '987' },
         update: {
@@ -140,9 +136,7 @@ describe('AuthService', () => {
     it('code가 없으면 UnauthorizedException을 던진다', async () => {
       const { service } = setup();
 
-      await expect(service.kakaoLogin('')).rejects.toThrow(
-        UnauthorizedException,
-      );
+      await expect(service.kakaoLogin('')).rejects.toThrow(UnauthorizedException);
       expect(mockedAxios.post).not.toHaveBeenCalled();
     });
 
@@ -213,9 +207,7 @@ describe('AuthService', () => {
         displayName: 'Tester',
         avatarUrl: 'https://cdn.kakao/tester.png',
       });
-      signAsync
-        .mockResolvedValueOnce('new-access')
-        .mockResolvedValueOnce('new-refresh');
+      signAsync.mockResolvedValueOnce('new-access').mockResolvedValueOnce('new-refresh');
 
       await expect(service.refresh('refresh-token')).resolves.toEqual({
         token: 'new-access',
@@ -252,9 +244,7 @@ describe('AuthService', () => {
       const { service, verifyAsync, signAsync } = setup();
       verifyAsync.mockRejectedValueOnce(new Error('invalid token'));
 
-      await expect(service.refresh('bad-token')).rejects.toThrow(
-        UnauthorizedException,
-      );
+      await expect(service.refresh('bad-token')).rejects.toThrow(UnauthorizedException);
       expect(signAsync).not.toHaveBeenCalled();
     });
   });
@@ -271,9 +261,7 @@ describe('AuthService', () => {
         .mockResolvedValueOnce('access-from-dev')
         .mockResolvedValueOnce('refresh-from-dev');
 
-      await expect(
-        service.devIssueByKakaoId('kakao-123', 'pet lover'),
-      ).resolves.toEqual({
+      await expect(service.devIssueByKakaoId('kakao-123', 'pet lover')).resolves.toEqual({
         token: 'access-from-dev',
         refreshToken: 'refresh-from-dev',
         displayName: 'pet lover',

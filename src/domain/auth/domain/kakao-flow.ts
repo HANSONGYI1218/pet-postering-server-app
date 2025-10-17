@@ -87,9 +87,7 @@ export const extractKakaoProfile = (payload: unknown): KakaoProfile => {
   return result;
 };
 
-export const toUpsertUserCommand = (
-  profile: KakaoProfile,
-): UpsertUserCommand => {
+export const toUpsertUserCommand = (profile: KakaoProfile): UpsertUserCommand => {
   const displayName = profile.nickname?.trim();
   const avatarUrl = profile.avatarUrl?.trim();
   return {

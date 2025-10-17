@@ -22,8 +22,7 @@ export const resolveRecordWindow = (
   now: Date = new Date(),
 ): RecordWindowResult => {
   const parsedFrom = parseIso(from);
-  if (from && !parsedFrom)
-    return { status: 'error', reason: 'invalid-from-date' };
+  if (from && !parsedFrom) return { status: 'error', reason: 'invalid-from-date' };
   const parsedTo = parseIso(to);
   if (to && !parsedTo) return { status: 'error', reason: 'invalid-to-date' };
 

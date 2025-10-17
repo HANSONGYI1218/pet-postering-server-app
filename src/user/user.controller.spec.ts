@@ -40,9 +40,7 @@ describe('UsersController', () => {
     const expected = { commentEmail: true } as any;
     service.getNotificationSetting.mockResolvedValueOnce(expected);
 
-    await expect(controller.getNotificationSetting(authUser)).resolves.toBe(
-      expected,
-    );
+    await expect(controller.getNotificationSetting(authUser)).resolves.toBe(expected);
     expect(service.getNotificationSetting).toHaveBeenCalledWith('user-1');
   });
 
@@ -50,9 +48,7 @@ describe('UsersController', () => {
     const payload = { name: '홍길동' } as any;
     service.updateProfile.mockResolvedValueOnce(payload);
 
-    await expect(controller.updateProfile(authUser, payload)).resolves.toBe(
-      payload,
-    );
+    await expect(controller.updateProfile(authUser, payload)).resolves.toBe(payload);
     expect(service.updateProfile).toHaveBeenCalledWith('user-1', payload);
   });
 
@@ -60,13 +56,10 @@ describe('UsersController', () => {
     const payload = { commentEmail: false } as any;
     service.updateNotificationSetting.mockResolvedValueOnce(payload);
 
-    await expect(
-      controller.updateNotificationSetting(authUser, payload),
-    ).resolves.toBe(payload);
-    expect(service.updateNotificationSetting).toHaveBeenCalledWith(
-      'user-1',
+    await expect(controller.updateNotificationSetting(authUser, payload)).resolves.toBe(
       payload,
     );
+    expect(service.updateNotificationSetting).toHaveBeenCalledWith('user-1', payload);
   });
 
   it('DELETE /users/me', async () => {

@@ -37,9 +37,7 @@ describe('PublicFosterRecordsService', () => {
         findMany: jest.fn(),
       },
     } satisfies Record<string, Record<string, jest.Mock>>;
-    const service = new PublicFosterRecordsService(
-      prisma as unknown as PrismaService,
-    );
+    const service = new PublicFosterRecordsService(prisma as unknown as PrismaService);
     return { service, prisma };
   };
 
@@ -95,8 +93,6 @@ describe('PublicFosterRecordsService', () => {
     const { service, prisma } = build();
     prisma.animal.findUnique.mockResolvedValueOnce(null);
 
-    await expect(service.getAnimal('missing')).rejects.toThrow(
-      NotFoundException,
-    );
+    await expect(service.getAnimal('missing')).rejects.toThrow(NotFoundException);
   });
 });

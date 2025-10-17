@@ -1,7 +1,4 @@
-import type {
-  CreateReportCommand,
-  ReportCreateData,
-} from '../application/types';
+import type { CreateReportCommand, ReportCreateData } from '../application/types';
 
 export type PrepareReportCreationResult =
   | { status: 'ok'; data: ReportCreateData }

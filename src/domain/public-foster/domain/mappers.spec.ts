@@ -15,11 +15,7 @@ import type {
   Organization,
 } from '@prisma/client';
 
-import {
-  type RawAnimal,
-  toPublicFosterDetail,
-  toPublicFosterListItem,
-} from './mappers';
+import { type RawAnimal, toPublicFosterDetail, toPublicFosterListItem } from './mappers';
 
 const createAnimal = (overrides: Partial<RawAnimal> = {}): RawAnimal => {
   const organization: Organization = {

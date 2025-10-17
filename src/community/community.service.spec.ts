@@ -100,9 +100,7 @@ describe('CommunityService', () => {
         },
       });
       expect(result.limit).toBe(50);
-      expect(result.items.map((p: any) => p.id)).toEqual(
-        basePosts.map((p: any) => p.id),
-      );
+      expect(result.items.map((p: any) => p.id)).toEqual(basePosts.map((p: any) => p.id));
       expect(result.nextCursor).toBe('post-overflow');
     });
 
@@ -158,9 +156,8 @@ describe('CommunityService', () => {
         viewCount: 42,
       };
       prisma.post.update.mockResolvedValueOnce(updated);
-      prisma.$transaction.mockImplementation(
-        (cb: (tx: unknown) => Promise<unknown>) =>
-          cb({ post: { update: prisma.post.update } }),
+      prisma.$transaction.mockImplementation((cb: (tx: unknown) => Promise<unknown>) =>
+        cb({ post: { update: prisma.post.update } }),
       );
       prisma.postBookmark.count.mockResolvedValueOnce(1);
 
@@ -191,9 +188,7 @@ describe('CommunityService', () => {
         throw new Error('not found');
       });
 
-      await expect(service.getPost('missing')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.getPost('missing')).rejects.toThrow(NotFoundException);
       expect(prisma.postBookmark.count).not.toHaveBeenCalled();
     });
   });
@@ -231,9 +226,7 @@ describe('CommunityService', () => {
   describe('listComments', () => {
     it('사용자 정보 없이 호출하면 liked가 항상 false다', async () => {
       const { service, prisma } = build();
-      prisma.comment.findMany.mockResolvedValueOnce([
-        makeComment('comment-1', 'post-1'),
-      ]);
+      prisma.comment.findMany.mockResolvedValueOnce([makeComment('comment-1', 'post-1')]);
 
       const result = await service.listComments('post-1');
 
@@ -256,9 +249,7 @@ describe('CommunityService', () => {
         makeComment('comment-1', 'post-1'),
         makeComment('comment-2', 'post-1'),
       ]);
-      prisma.commentLike.findMany.mockResolvedValueOnce([
-        { commentId: 'comment-2' },
-      ]);
+      prisma.commentLike.findMany.mockResolvedValueOnce([{ commentId: 'comment-2' }]);
 
       const result = await service.listComments('post-1', 'user-1');
 
@@ -382,9 +373,9 @@ describe('CommunityService', () => {
       const { service, prisma } = build();
       prisma.comment.findUnique.mockResolvedValueOnce(null);
 
-      await expect(
-        service.deleteComment('comment-1', 'user-1'),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.deleteComment('comment-1', 'user-1')).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('작성자가 아니면 ForbiddenException을 던진다', async () => {
@@ -394,9 +385,9 @@ describe('CommunityService', () => {
         authorId: 'other-user',
       });
 
-      await expect(
-        service.deleteComment('comment-1', 'user-1'),
-      ).rejects.toThrow(ForbiddenException);
+      await expect(service.deleteComment('comment-1', 'user-1')).rejects.toThrow(
+        ForbiddenException,
+      );
     });
 
     it('답글이 남아있으면 ForbiddenException을 던진다', async () => {
@@ -407,9 +398,9 @@ describe('CommunityService', () => {
       });
       prisma.comment.count.mockResolvedValueOnce(2);
 
-      await expect(
-        service.deleteComment('comment-1', 'user-1'),
-      ).rejects.toThrow(ForbiddenException);
+      await expect(service.deleteComment('comment-1', 'user-1')).rejects.toThrow(
+        ForbiddenException,
+      );
       expect(prisma.comment.delete).not.toHaveBeenCalled();
     });
 
@@ -422,9 +413,7 @@ describe('CommunityService', () => {
       prisma.comment.count.mockResolvedValueOnce(0);
       prisma.comment.delete.mockResolvedValueOnce({});
 
-      await expect(
-        service.deleteComment('comment-1', 'user-1'),
-      ).resolves.toEqual({
+      await expect(service.deleteComment('comment-1', 'user-1')).resolves.toEqual({
         commentId: 'comment-1',
         deleted: true,
       });
@@ -439,12 +428,10 @@ describe('CommunityService', () => {
       const { service, prisma } = build();
       prisma.commentLike.upsert.mockResolvedValueOnce({});
 
-      await expect(service.likeComment('comment-1', 'user-1')).resolves.toEqual(
-        {
-          commentId: 'comment-1',
-          liked: true,
-        },
-      );
+      await expect(service.likeComment('comment-1', 'user-1')).resolves.toEqual({
+        commentId: 'comment-1',
+        liked: true,
+      });
       expect(prisma.commentLike.upsert).toHaveBeenCalledWith({
         where: {
           userId_commentId: { userId: 'user-1', commentId: 'comment-1' },
@@ -458,9 +445,7 @@ describe('CommunityService', () => {
       const { service, prisma } = build();
       prisma.commentLike.delete.mockRejectedValueOnce(new Error('missing'));
 
-      await expect(
-        service.unlikeComment('comment-1', 'user-1'),
-      ).resolves.toEqual({
+      await expect(service.unlikeComment('comment-1', 'user-1')).resolves.toEqual({
         commentId: 'comment-1',
         liked: false,
       });
