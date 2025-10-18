@@ -5,6 +5,7 @@ import {
   communityCommentSeeds,
   communityPostSeeds,
   communityUserSeeds,
+  noticeSeeds,
   organizationSeeds,
   recordSeeds,
   type UserNotificationSettingSeed,
@@ -100,6 +101,37 @@ const seedRecords = async (): Promise<void> => {
         },
       });
     }
+  }
+};
+
+const seedNotices = async (): Promise<void> => {
+  console.warn('📢 Seeding notices...');
+  for (const seed of noticeSeeds) {
+    await prisma.notice.upsert({
+      where: { id: seed.id },
+      create: {
+        id: seed.id,
+        title: seed.title,
+        content: seed.content,
+        type: seed.type,
+        isFixed: seed.isFixed ?? false,
+        createdAt: seed.createdAt,
+        attachments: {
+          create: (seed.attachments ?? []).map((url) => ({ url })),
+        },
+      },
+      update: {
+        title: seed.title,
+        content: seed.content,
+        type: seed.type,
+        isFixed: seed.isFixed ?? false,
+        createdAt: seed.createdAt,
+        attachments: {
+          deleteMany: {},
+          create: (seed.attachments ?? []).map((url) => ({ url })),
+        },
+      },
+    });
   }
 };
 
@@ -243,6 +275,7 @@ async function main(): Promise<void> {
   await clearSeedAnimals();
   await seedAnimals();
   await seedRecords();
+  await seedNotices();
   await clearCommunitySeeds();
   await seedCommunityUsers();
   await seedUserProfiles();

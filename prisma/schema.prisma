@@ -86,6 +86,14 @@ enum AnimalSpecialNoteTagType {
   DISABLED_OR_ILL_PETS_ACCEPTED
 }
 
+enum NoticeType {
+  GENERAL
+  EVENT
+  MAINTENANCE
+  POLICY
+  RECRUITMENT
+}
+
 enum ReportTargetType {
   POST
   COMMENT
@@ -239,6 +247,31 @@ model Report {
   reporter    User @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
 
   @@index([targetType, targetId])
+}
+
+model Notice {
+  id        String     @id @default(cuid())
+  title     String
+  content   String
+  type      NoticeType @default(GENERAL)
+  isFixed   Boolean    @default(false)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  attachments NoticeAttachment[]
+
+  @@index([isFixed, createdAt])
+}
+
+model NoticeAttachment {
+  id       String   @id @default(cuid())
+  noticeId String
+  url      String
+  createdAt DateTime @default(now())
+
+  notice   Notice   @relation(fields: [noticeId], references: [id], onDelete: Cascade)
+
+  @@index([noticeId])
 }
 
 model Animal {

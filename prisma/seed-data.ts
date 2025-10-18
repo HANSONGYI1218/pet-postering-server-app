@@ -7,6 +7,7 @@ import {
   AnimalSpecialNoteTagType,
   AnimalStatus,
   AnimalType,
+  NoticeType,
   Role,
 } from '@prisma/client';
 
@@ -89,6 +90,16 @@ export interface CommunityCommentSeed {
   createdAt: Date;
 }
 
+export interface NoticeSeed {
+  id: string;
+  title: string;
+  content: string;
+  type: NoticeType;
+  isFixed?: boolean;
+  createdAt: Date;
+  attachments?: string[];
+}
+
 export const organizationSeeds: OrganizationSeed[] = [
   {
     id: 'seed-org-hope-shelter',
@@ -113,6 +124,39 @@ export const organizationSeeds: OrganizationSeed[] = [
     donationBankName: '신한은행',
     donationAccountNumber: '201-2222-555555',
     donationAccountHolder: '선샤인 케어 센터',
+  },
+];
+
+export const noticeSeeds: NoticeSeed[] = [
+  {
+    id: 'seed-notice-maintenance-oct',
+    title: '10월 정기 점검 안내',
+    content:
+      '안녕하세요, 퍼디즈입니다.\n\n더 안정적인 서비스 제공을 위해 10월 22일(화) 02:00~04:00 사이에 정기 점검을 진행합니다.\n점검 시간 동안 서비스 이용이 일시 중단되니 이용에 참고 부탁드립니다.\n\n감사합니다.',
+    type: NoticeType.MAINTENANCE,
+    isFixed: true,
+    createdAt: new Date('2025-10-15T02:00:00.000Z'),
+    attachments: ['https://cdn.furdiz.com/notices/oct-maintenance.pdf'],
+  },
+  {
+    id: 'seed-notice-event-donation',
+    title: '겨울 맞이 모금 캠페인 참여 안내',
+    content:
+      '추운 겨울을 대비해 보호소 동물들을 위한 모금 캠페인을 시작합니다.\n\n참여 방법\n1. 지정 계좌로 후원금을 보내주세요.\n2. 물품 후원을 원하시면 고객센터로 문의해주세요.\n\n여러분의 따뜻한 관심이 큰 힘이 됩니다.',
+    type: NoticeType.EVENT,
+    isFixed: false,
+    createdAt: new Date('2025-10-10T09:00:00.000Z'),
+    attachments: [],
+  },
+  {
+    id: 'seed-notice-policy-update',
+    title: '개인정보 처리방침 개정 안내',
+    content:
+      '개인정보 처리방침이 2025년 11월 1일부로 개정됩니다.\n주요 변경 사항은 다음과 같습니다.\n- 위탁 업체 목록 업데이트\n- 개인정보 보유 기간 명시 강화\n\n자세한 내용은 첨부된 문서를 확인해주세요.',
+    type: NoticeType.POLICY,
+    isFixed: false,
+    createdAt: new Date('2025-10-05T00:00:00.000Z'),
+    attachments: ['https://cdn.furdiz.com/notices/privacy-policy-2025.pdf'],
   },
 ];
 
