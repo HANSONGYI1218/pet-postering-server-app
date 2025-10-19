@@ -14,19 +14,19 @@ import { PublicFosterRecordsService } from './public-foster-records.service';
 @ApiTags('Public Foster Records')
 @Controller('public/foster/records')
 export class PublicFosterRecordsController {
-  constructor(private readonly service: PublicFosterRecordsService) {}
+  constructor(private readonly publicFosterRecordsService: PublicFosterRecordsService) {}
 
   @Get('animals')
   @ApiOperation({ summary: 'List animals with foster records (public)' })
   @ApiOkResponse({ type: PublicRecordListResponseDto })
   listAnimals(): Promise<PublicRecordListResult> {
-    return this.service.listAnimals();
+    return this.publicFosterRecordsService.listAnimals();
   }
 
   @Get('animals/:id')
   @ApiOperation({ summary: 'Get foster record detail (public)' })
   @ApiOkResponse({ type: PublicRecordDetailDto })
   getAnimal(@Param('id') id: string): Promise<PublicRecordDetail> {
-    return this.service.getAnimal(id);
+    return this.publicFosterRecordsService.getAnimal(id);
   }
 }

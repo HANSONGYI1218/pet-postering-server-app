@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 
-import { calculateFosterDays } from '../domain/foster/domain/metrics';
+import { resolveFosterDaysForAnimal } from '../domain/foster/application/foster-days';
 import type {
   PublicRecordDetail,
   PublicRecordListResult,
@@ -24,20 +24,26 @@ export class PublicFosterRecordsService {
       orderBy: { createdAt: 'desc' },
     });
 
-    const items = animals.map((animal) => {
-      const base = toRecordAnimal(animal);
-      return {
-        ...base,
-        fosterDuration:
-          base.fosterDuration > 0
-            ? base.fosterDuration
-            : calculateFosterDays({
-                now: new Date(),
-                firstRecordDate: null,
-                fallbackCreatedAt: animal.createdAt,
-              }),
-      };
-    });
+    const now = new Date();
+    const items = await Promise.all(
+      animals.map(async (animal) => {
+        const base = toRecordAnimal(animal);
+        if (base.fosterDuration > 0) return base;
+
+        const fallbackDuration = await resolveFosterDaysForAnimal(
+          this.prisma.fosterRecord,
+          {
+            animalId: animal.id,
+            fallbackCreatedAt: animal.createdAt,
+            now,
+          },
+        );
+        return {
+          ...base,
+          fosterDuration: fallbackDuration,
+        };
+      }),
+    );
 
     return { items };
   }

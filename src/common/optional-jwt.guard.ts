@@ -2,19 +2,7 @@ import type { ExecutionContext } from '@nestjs/common';
 import { Injectable } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 
-import type { AuthUser } from './types';
-
-interface RequestWithUser {
-  user?: AuthUser;
-}
-
-const hasSwitchToHttp = (
-  candidate: unknown,
-): candidate is Pick<ExecutionContext, 'switchToHttp'> => {
-  if (!candidate || typeof candidate !== 'object') return false;
-  const { switchToHttp } = candidate as { switchToHttp?: unknown };
-  return typeof switchToHttp === 'function';
-};
+import type { AuthUser, RequestWithAuthUser } from './types';
 
 @Injectable()
 export class OptionalJwtAuthGuard extends AuthGuard('jwt') {
@@ -26,11 +14,7 @@ export class OptionalJwtAuthGuard extends AuthGuard('jwt') {
     _status?: unknown,
   ): TUser | undefined {
     if (user) return user;
-    if (!hasSwitchToHttp(context)) return undefined;
-    const httpContext = context.switchToHttp();
-    if (typeof httpContext.getRequest !== 'function') return undefined;
-    const request = httpContext.getRequest<RequestWithUser | undefined>();
-    const requestUser = request?.user;
-    return requestUser as TUser | undefined;
+    const request = context.switchToHttp().getRequest<RequestWithAuthUser | undefined>();
+    return request?.user as TUser | undefined;
   }
 }

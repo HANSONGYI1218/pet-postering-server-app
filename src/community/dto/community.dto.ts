@@ -1,5 +1,26 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, Length } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsInt, IsOptional, IsString, Length, Max, Min } from 'class-validator';
+
+export class ListPostsQueryDto {
+  @ApiPropertyOptional({ description: 'Cursor (post id) for pagination' })
+  @IsOptional()
+  @IsString()
+  cursor?: string;
+
+  @ApiPropertyOptional({
+    description: 'Page size (1-50)',
+    minimum: 1,
+    maximum: 50,
+    example: 20,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(50)
+  limit?: number;
+}
 
 export class CreatePostDto {
   @ApiProperty({ maxLength: 200 })
@@ -138,7 +159,7 @@ export class CommentListItemDto {
   @ApiProperty({ type: () => CommentAuthorDto })
   author!: CommentAuthorDto;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ nullable: true })
   parentId?: string | null;
 
   @ApiProperty()

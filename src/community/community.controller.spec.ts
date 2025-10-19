@@ -1,4 +1,8 @@
-import type { ExecutionContext, INestApplication } from '@nestjs/common';
+import {
+  type ExecutionContext,
+  type INestApplication,
+  ValidationPipe,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
@@ -54,6 +58,13 @@ describe('CommunityController', () => {
       .compile();
 
     app = moduleRef.createNestApplication();
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        transform: true,
+        forbidNonWhitelisted: false,
+      }),
+    );
     await app.init();
   });
 
@@ -76,6 +87,15 @@ describe('CommunityController', () => {
       .expect({ items: [], nextCursor: null, limit: 10 });
 
     expect(service.listPosts).toHaveBeenCalledWith(10, 'cursor-1');
+  });
+
+  it('GET /community/posts rejects invalid limit values', async () => {
+    await request(app.getHttpServer())
+      .get('/community/posts')
+      .query({ limit: '0' })
+      .expect(400);
+
+    expect(service.listPosts).not.toHaveBeenCalled();
   });
 
   it('POST /community/posts injects authenticated user id', async () => {

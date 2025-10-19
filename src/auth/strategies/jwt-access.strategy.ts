@@ -12,11 +12,11 @@ interface JwtPayload {
 
 @Injectable()
 export class JwtAccessStrategy extends PassportStrategy(Strategy, 'jwt') {
-  constructor(private readonly cs: ConfigService) {
+  constructor(private readonly config: ConfigService) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: cs.get<string>('JWT_ACCESS_SECRET') ?? 'dev-access',
+      secretOrKey: config.get<string>('JWT_ACCESS_SECRET') ?? 'dev-access',
     });
   }
 

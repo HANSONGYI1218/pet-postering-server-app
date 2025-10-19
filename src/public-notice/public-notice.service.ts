@@ -10,7 +10,7 @@ export interface PublicNoticeListItem {
   title: string;
   type: string | null;
   isFixed: boolean;
-  createdAt: string;
+  createdAt: Date;
   attachments: number;
 }
 
@@ -23,7 +23,7 @@ export interface PublicNoticeDetail {
   title: string;
   type: string | null;
   isFixed: boolean;
-  createdAt: string;
+  createdAt: Date;
   content: string;
   attachmentFiles: string[];
 }
@@ -33,7 +33,7 @@ const toListItem = (notice: NoticeWithAttachments): PublicNoticeListItem => ({
   title: notice.title,
   type: notice.type,
   isFixed: notice.isFixed,
-  createdAt: notice.createdAt.toISOString(),
+  createdAt: notice.createdAt,
   attachments: notice.attachments.length,
 });
 
@@ -42,7 +42,7 @@ const toDetail = (notice: NoticeWithAttachments): PublicNoticeDetail => ({
   title: notice.title,
   type: notice.type,
   isFixed: notice.isFixed,
-  createdAt: notice.createdAt.toISOString(),
+  createdAt: notice.createdAt,
   content: notice.content,
   attachmentFiles: notice.attachments.map((attachment) => attachment.url),
 });

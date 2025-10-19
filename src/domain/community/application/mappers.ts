@@ -2,7 +2,7 @@ import type { Comment, Post } from '@prisma/client';
 
 import type { CommentListItem, PostListItem } from './types';
 
-type PostWithRelations = Post & {
+export type PostWithRelations = Post & {
   author: { id: string; displayName: string | null };
   _count: { comments: number };
 };

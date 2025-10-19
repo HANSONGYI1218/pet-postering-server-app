@@ -1,11 +1,14 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { Logger } from 'nestjs-pino';
 
 import { AppModule } from './app.module';
 
 export async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const logger = app.get(Logger);
+  app.useLogger(logger);
   app.enableCors();
   app.useGlobalPipes(
     new ValidationPipe({
@@ -35,7 +38,21 @@ export async function bootstrap(): Promise<void> {
   }
 
   const port = Number(process.env.PORT ?? 3000);
-  await app.listen(port, '0.0.0.0');
+  try {
+    await app.listen(port, '0.0.0.0');
+    logger.log({ msg: 'server-started', port, stage: stage ?? 'local' });
+  } catch (error: unknown) {
+    logger.error({
+      msg: 'server-start-failed',
+      port,
+      stage: stage ?? 'local',
+      err: error,
+    });
+    await app.close();
+    throw error;
+  } finally {
+    app.flushLogs();
+  }
 }
 
 if (!process.env.JEST_WORKER_ID) void bootstrap();

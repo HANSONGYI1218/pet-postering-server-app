@@ -166,8 +166,8 @@ export class FosterRecordDtoOut {
   @ApiProperty()
   animalId!: string;
 
-  @ApiProperty({ description: 'ISO date' })
-  date!: string;
+  @ApiProperty({ type: Date, description: 'Record date' })
+  date!: Date;
 
   @ApiPropertyOptional({ nullable: true })
   content?: string | null;

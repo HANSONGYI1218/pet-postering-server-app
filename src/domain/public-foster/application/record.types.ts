@@ -1,6 +1,6 @@
 import type { AnimalGender, AnimalType } from '@prisma/client';
 
-export type FosterState = 'IN_PROGRESS' | 'FOSTERED' | 'ADOPTED';
+export type FosterState = 'IN_PROGRESS' | 'FOSTERED';
 
 export interface PublicRecordAnimal {
   id: string;

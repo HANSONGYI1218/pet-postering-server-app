@@ -1,6 +1,14 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import { PinoLogger } from 'nestjs-pino';
 
 import {
+  type PostWithRelations,
   toCommentListItem,
   toPostListItem,
 } from '../domain/community/application/mappers';
@@ -24,7 +32,12 @@ import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class CommunityService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly logger: PinoLogger,
+  ) {
+    this.logger.setContext(CommunityService.name);
+  }
 
   async listPosts(limit = 20, cursor?: string): Promise<ListPostsResult> {
     const normalized = clampPostLimit(limit);
@@ -61,22 +74,7 @@ export class CommunityService {
   }
 
   async getPost(postId: string, userId?: string): Promise<PostDetail> {
-    const post = await (async () => {
-      try {
-        return await this.prisma.$transaction(async (tx) =>
-          tx.post.update({
-            where: { id: postId },
-            data: { viewCount: { increment: 1 } },
-            include: {
-              _count: { select: { comments: true } },
-              author: { select: { id: true, displayName: true } },
-            },
-          }),
-        );
-      } catch {
-        return null;
-      }
-    })();
+    const post = await this.fetchPostWithViewIncrement(postId);
 
     if (!post) throw new NotFoundException('post-not-found');
 
@@ -102,7 +100,15 @@ export class CommunityService {
   async unbookmark(postId: string, userId: string): Promise<BookmarkResponse> {
     await this.prisma.postBookmark
       .delete({ where: { userId_postId: { userId, postId } } })
-      .catch(() => undefined);
+      .catch((error: unknown) => {
+        this.logger.warn({
+          msg: 'post-unbookmark-failed',
+          postId,
+          userId,
+          err: error,
+        });
+        return undefined;
+      });
     return { postId, bookmarked: false };
   }
 
@@ -202,7 +208,51 @@ export class CommunityService {
   async unlikeComment(commentId: string, userId: string): Promise<LikeCommentResponse> {
     await this.prisma.commentLike
       .delete({ where: { userId_commentId: { userId, commentId } } })
-      .catch(() => undefined);
+      .catch((error: unknown) => {
+        this.logger.warn({
+          msg: 'comment-unlike-failed',
+          commentId,
+          userId,
+          err: error,
+        });
+        return undefined;
+      });
     return { commentId, liked: false };
+  }
+
+  private async fetchPostWithViewIncrement(
+    postId: string,
+  ): Promise<PostWithRelations | null> {
+    try {
+      return await this.prisma.$transaction(async (tx) =>
+        tx.post.update({
+          where: { id: postId },
+          data: { viewCount: { increment: 1 } },
+          include: {
+            _count: { select: { comments: true } },
+            author: { select: { id: true, displayName: true } },
+          },
+        }),
+      );
+    } catch (error: unknown) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2025'
+      ) {
+        this.logger.warn({
+          msg: 'post-not-found',
+          postId,
+        });
+        return null;
+      }
+      this.logger.error({
+        msg: 'post-fetch-failed',
+        postId,
+        err: error,
+      });
+      throw new InternalServerErrorException('post-fetch-failed', {
+        cause: error,
+      });
+    }
   }
 }

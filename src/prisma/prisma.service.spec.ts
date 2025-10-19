@@ -1,11 +1,22 @@
 import { Test } from '@nestjs/testing';
+import { PinoLogger } from 'nestjs-pino';
 
 import { PrismaService } from './prisma.service';
 
 describe('PrismaService lifecycle', () => {
   it('manages Prisma connections during module init/destroy', async () => {
     const moduleRef = await Test.createTestingModule({
-      providers: [PrismaService],
+      providers: [
+        PrismaService,
+        {
+          provide: PinoLogger,
+          useValue: {
+            setContext: jest.fn(),
+            debug: jest.fn(),
+            error: jest.fn(),
+          },
+        },
+      ],
     }).compile();
 
     const service = moduleRef.get(PrismaService);

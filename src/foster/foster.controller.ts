@@ -59,7 +59,7 @@ import { FosterService } from './foster.service';
 )
 @Controller('foster')
 export class FosterController {
-  constructor(private readonly svc: FosterService) {}
+  constructor(private readonly fosterService: FosterService) {}
 
   @Get('animals')
   @ApiQuery({
@@ -71,14 +71,14 @@ export class FosterController {
   @ApiOperation({ summary: 'List animals by status' })
   @ApiOkResponse({ type: ListAnimalsResponseDto })
   listAnimals(@Query('status') status?: string): Promise<ListAnimalsResult> {
-    return this.svc.listAnimals(status);
+    return this.fosterService.listAnimals(status);
   }
 
   @Get('shared-animals')
   @ApiOperation({ summary: 'List shared animals' })
   @ApiOkResponse({ type: ListAnimalsResponseDto })
   listSharedAnimals(): Promise<ListAnimalsResult> {
-    return this.svc.listSharedAnimals();
+    return this.fosterService.listSharedAnimals();
   }
 
   @Post('animals')
@@ -89,7 +89,7 @@ export class FosterController {
     @CurrentUser() user: AuthUser,
     @Body() body: CreateAnimalDto,
   ): Promise<AnimalListItem> {
-    return this.svc.createAnimal(user, body);
+    return this.fosterService.createAnimal(user, body);
   }
 
   @Patch('animals/:id')
@@ -101,7 +101,7 @@ export class FosterController {
     @CurrentUser() user: AuthUser,
     @Body() body: UpdateAnimalDto,
   ): Promise<AnimalListItem> {
-    return this.svc.updateAnimal(id, user, body);
+    return this.fosterService.updateAnimal(id, user, body);
   }
 
   @Delete('animals/:id')
@@ -112,7 +112,7 @@ export class FosterController {
     @Param('id') id: string,
     @CurrentUser() user: AuthUser,
   ): Promise<DeleteAnimalResult> {
-    return this.svc.deleteAnimal(id, user);
+    return this.fosterService.deleteAnimal(id, user);
   }
 
   @Get('animals/:id/records')
@@ -133,7 +133,7 @@ export class FosterController {
     @Query('from') from?: string,
     @Query('to') to?: string,
   ): Promise<ListRecordsResult> {
-    return this.svc.listRecords(id, from, to);
+    return this.fosterService.listRecords(id, from, to);
   }
 
   @Get('animals/:id/records/:recordId')
@@ -143,7 +143,7 @@ export class FosterController {
     @Param('id') id: string,
     @Param('recordId') recordId: string,
   ): Promise<FosterRecordDetail> {
-    return this.svc.getRecord(id, recordId);
+    return this.fosterService.getRecord(id, recordId);
   }
 
   @Post('animals/:id/records')
@@ -155,7 +155,7 @@ export class FosterController {
     @CurrentUser() user: AuthUser,
     @Body() body: CreateRecordDto,
   ): Promise<FosterRecordBase> {
-    return this.svc.createRecord(id, user, body);
+    return this.fosterService.createRecord(id, user, body);
   }
 
   @Patch('animals/:id/records/:recordId')
@@ -168,7 +168,7 @@ export class FosterController {
     @CurrentUser() user: AuthUser,
     @Body() body: UpdateRecordDto,
   ): Promise<FosterRecordBase> {
-    return this.svc.updateRecord(id, recordId, user, body);
+    return this.fosterService.updateRecord(id, recordId, user, body);
   }
 
   @Delete('animals/:id/records/:recordId')
@@ -180,13 +180,13 @@ export class FosterController {
     @Param('recordId') recordId: string,
     @CurrentUser() user: AuthUser,
   ): Promise<DeleteRecordResult> {
-    return this.svc.deleteRecord(id, recordId, user);
+    return this.fosterService.deleteRecord(id, recordId, user);
   }
 
   @Get('waiting-animals')
   @ApiOperation({ summary: 'List animals in WAITING status' })
   @ApiOkResponse({ type: ListAnimalsResponseDto })
   waitingAnimals(): Promise<ListAnimalsResult> {
-    return this.svc.listAnimals('WAITING');
+    return this.fosterService.listAnimals('WAITING');
   }
 }

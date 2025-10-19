@@ -52,7 +52,7 @@ describe('PublicNoticeService', () => {
           title: '점검 안내',
           type: 'MAINTENANCE',
           isFixed: true,
-          createdAt: '2024-09-30T12:00:00.000Z',
+          createdAt: new Date('2024-09-30T12:00:00.000Z'),
           attachments: 2,
         },
       ],
@@ -83,7 +83,7 @@ describe('PublicNoticeService', () => {
       title: '점검 안내',
       type: 'MAINTENANCE',
       isFixed: true,
-      createdAt: '2024-09-30T12:00:00.000Z',
+      createdAt: new Date('2024-09-30T12:00:00.000Z'),
       content: '10월 2일 02:00~04:00 서버 점검',
       attachmentFiles: ['https://cdn/file-1.pdf', 'https://cdn/file-2.pdf'],
     });

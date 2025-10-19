@@ -15,7 +15,7 @@ import { ReportsService } from './reports.service';
 @ApiBearerAuth()
 @Controller('reports')
 export class ReportsController {
-  constructor(private readonly svc: ReportsService) {}
+  constructor(private readonly reportsService: ReportsService) {}
 
   @Post()
   @UseGuards(AuthGuard('jwt'))
@@ -31,6 +31,6 @@ export class ReportsController {
       reason: body.reason,
       reporterId: user.userId,
     };
-    return this.svc.create(command);
+    return this.reportsService.create(command);
   }
 }

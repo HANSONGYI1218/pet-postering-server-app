@@ -34,9 +34,9 @@ describe('JwtAccessStrategy', () => {
     }).compile();
 
     const strategy = moduleRef.get(JwtAccessStrategy);
-    const payload = strategy.validate({ sub: 'user-1', role: 'ADMIN' });
+    const payload = strategy.validate({ sub: 'user-1', role: 'ORG_ADMIN' });
 
-    expect(payload).toEqual({ userId: 'user-1', role: 'ADMIN' });
+    expect(payload).toEqual({ userId: 'user-1', role: 'ORG_ADMIN' });
     expect(ExtractJwt.fromAuthHeaderAsBearerToken).toHaveBeenCalled();
   });
 });

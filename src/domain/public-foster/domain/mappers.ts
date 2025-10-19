@@ -21,6 +21,7 @@ import type {
   PublicFosterAnimalListItem,
   PublicFosterOrganization,
 } from '../application/types';
+import { firstImageUrlOrNull, sortedImageUrls } from './image-sorting';
 
 interface AnimalRelations {
   organization: Organization | null;
@@ -87,13 +88,7 @@ const toBase = (
   birthDate: toNullSafeIsoString(animal.birthDate),
   status: animal.status,
   shared: animal.shared,
-  mainImageUrl:
-    animal.mainImageUrl ??
-    animal.images
-      .slice()
-      .sort((left, right) => (left.sortOrder ?? 0) - (right.sortOrder ?? 0))
-      .at(0)?.url ??
-    null,
+  mainImageUrl: animal.mainImageUrl ?? firstImageUrlOrNull(animal.images),
   isEmergency: animal.emergency,
   euthanasiaDate: toNullSafeIsoString(animal.euthanasiaDate),
   isFosterCondition: animal.isFosterCondition,
@@ -116,10 +111,7 @@ export const toPublicFosterDetail = (animal: RawAnimal): PublicFosterAnimalDetai
   ...toBase(animal),
   introduction: animal.introduction,
   remark: animal.remark,
-  images: animal.images
-    .slice()
-    .sort((left, right) => (left.sortOrder ?? 0) - (right.sortOrder ?? 0))
-    .map((image) => image.url),
+  images: sortedImageUrls(animal.images),
   specialNoteTags: pluckTagValues<AnimalSpecialNoteTagType>(animal.specialNoteTags),
   currentFosterStartDate: toNullSafeIsoString(animal.currentFosterStartDate),
   currentFosterEndDate: toNullSafeIsoString(animal.currentFosterEndDate),

@@ -12,11 +12,11 @@ interface JwtPayload {
 
 @Injectable()
 export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh') {
-  constructor(private readonly cs: ConfigService) {
+  constructor(private readonly config: ConfigService) {
     super({
       jwtFromRequest: ExtractJwt.fromBodyField('refreshToken'),
       ignoreExpiration: false,
-      secretOrKey: cs.get<string>('JWT_REFRESH_SECRET') ?? 'dev-refresh',
+      secretOrKey: config.get<string>('JWT_REFRESH_SECRET') ?? 'dev-refresh',
       passReqToCallback: false,
     });
   }

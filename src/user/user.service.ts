@@ -14,6 +14,14 @@ type ProfileFragment = Partial<
   Omit<UserProfileResult, 'id'> & { userId?: string | null }
 >;
 
+const stripProfileUserId = (
+  fragment: ProfileFragment,
+): Omit<ProfileFragment, 'userId'> => {
+  const clone: ProfileFragment = { ...fragment };
+  delete clone.userId;
+  return clone;
+};
+
 const DEFAULT_PROFILE_FIELDS: Omit<UserProfileResult, 'id'> = {
   name: null,
   email: null,
@@ -33,13 +41,10 @@ const toUserProfileResult = (
     return { id: userId, ...DEFAULT_PROFILE_FIELDS };
   }
 
-  const { userId: _unusedUserId, ...rest } = profile;
-  void _unusedUserId;
-
   return {
     id: userId,
     ...DEFAULT_PROFILE_FIELDS,
-    ...rest,
+    ...stripProfileUserId(profile),
   };
 };
 

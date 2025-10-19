@@ -4,9 +4,10 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import type { AnimalStatus } from '@prisma/client';
+import type { AnimalStatus, Prisma } from '@prisma/client';
 
 import type { AuthUser } from '../common/types';
+import { resolveFosterDaysForAnimal } from '../domain/foster/application/foster-days';
 import {
   toAnimalListItem,
   toFosterRecordAnimalMeta,
@@ -22,7 +23,6 @@ import type {
   ListRecordsResult,
 } from '../domain/foster/application/types';
 import { parseAnimalStatus } from '../domain/foster/domain/animals';
-import { calculateFosterDays } from '../domain/foster/domain/metrics';
 import { ensureAnimalWriteAccess } from '../domain/foster/domain/permissions';
 import {
   resolveRecordWindow,
@@ -36,51 +36,12 @@ export class FosterService {
 
   async listAnimals(status?: string): Promise<ListAnimalsResult> {
     const statusValue = this.parseStatus(status);
-    const animals = await this.prisma.animal.findMany({
-      where: statusValue ? { status: statusValue } : {},
-      orderBy: { createdAt: 'desc' },
-    });
-    const now = new Date();
-    const items = await Promise.all(
-      animals.map(async (animal) => {
-        const firstRecord = await this.prisma.fosterRecord.findFirst({
-          where: { animalId: animal.id },
-          orderBy: { date: 'asc' },
-          select: { date: true },
-        });
-        const fosterDays = calculateFosterDays({
-          now,
-          firstRecordDate: firstRecord?.date ?? null,
-          fallbackCreatedAt: animal.createdAt,
-        });
-        return toAnimalListItem(animal, fosterDays);
-      }),
-    );
-    return { items };
+    const where = statusValue ? { status: statusValue } : {};
+    return this.listAnimalsWith(where);
   }
 
   async listSharedAnimals(): Promise<ListAnimalsResult> {
-    const animals = await this.prisma.animal.findMany({
-      where: { shared: true },
-      orderBy: { createdAt: 'desc' },
-    });
-    const now = new Date();
-    const items = await Promise.all(
-      animals.map(async (animal) => {
-        const firstRecord = await this.prisma.fosterRecord.findFirst({
-          where: { animalId: animal.id },
-          orderBy: { date: 'asc' },
-          select: { date: true },
-        });
-        const fosterDays = calculateFosterDays({
-          now,
-          firstRecordDate: firstRecord?.date ?? null,
-          fallbackCreatedAt: animal.createdAt,
-        });
-        return toAnimalListItem(animal, fosterDays);
-      }),
-    );
-    return { items };
+    return this.listAnimalsWith({ shared: true });
   }
 
   async createAnimal(
@@ -297,16 +258,32 @@ export class FosterService {
     return animal as Exclude<T, null>;
   }
 
-  private async computeFosterDays(animalId: string, createdAt: Date): Promise<number> {
-    const firstRecord = await this.prisma.fosterRecord.findFirst({
-      where: { animalId },
-      orderBy: { date: 'asc' },
-      select: { date: true },
-    });
-    return calculateFosterDays({
-      now: new Date(),
-      firstRecordDate: firstRecord?.date ?? null,
+  private async computeFosterDays(
+    animalId: string,
+    createdAt: Date,
+    now: Date = new Date(),
+  ): Promise<number> {
+    return resolveFosterDaysForAnimal(this.prisma.fosterRecord, {
+      animalId,
       fallbackCreatedAt: createdAt,
+      now,
     });
+  }
+
+  private async listAnimalsWith(
+    where: Prisma.AnimalWhereInput,
+  ): Promise<ListAnimalsResult> {
+    const animals = await this.prisma.animal.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+    });
+    const now = new Date();
+    const items = await Promise.all(
+      animals.map(async (animal) => {
+        const fosterDays = await this.computeFosterDays(animal.id, animal.createdAt, now);
+        return toAnimalListItem(animal, fosterDays);
+      }),
+    );
+    return { items };
   }
 }

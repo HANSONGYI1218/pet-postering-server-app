@@ -16,9 +16,12 @@ describe('main bootstrap', () => {
 
     const enableCors = jest.fn();
     const useGlobalPipes = jest.fn();
+    const useLogger = jest.fn();
     const listen = jest.fn().mockResolvedValue(undefined);
     const createDocument = jest.fn().mockReturnValue({});
     const setup = jest.fn();
+    const flushLogs = jest.fn();
+    const loggerMock = { log: jest.fn(), error: jest.fn() };
 
     await jest.isolateModulesAsync(async () => {
       jest.doMock('@nestjs/core', () => ({
@@ -26,7 +29,13 @@ describe('main bootstrap', () => {
           create: jest.fn().mockResolvedValue({
             enableCors,
             useGlobalPipes,
+            useLogger,
             listen,
+            flushLogs,
+            get: jest.fn().mockImplementation((token: unknown) => {
+              const { Logger } = require('nestjs-pino');
+              return token === Logger ? loggerMock : undefined;
+            }),
           }),
         },
       }));
@@ -48,12 +57,19 @@ describe('main bootstrap', () => {
 
       await bootstrap();
 
-      expect(NestFactory.create).toHaveBeenCalledWith(AppModule);
+      expect(NestFactory.create).toHaveBeenCalledWith(AppModule, { bufferLogs: true });
       expect(enableCors).toHaveBeenCalled();
       expect(useGlobalPipes).toHaveBeenCalledTimes(1);
+      expect(useLogger).toHaveBeenCalledWith(loggerMock);
       expect(listen).toHaveBeenCalledWith(4000, '0.0.0.0');
       expect(createDocument).toHaveBeenCalledTimes(1);
       expect(setup).toHaveBeenCalled();
+      expect(loggerMock.log).toHaveBeenCalledWith({
+        msg: 'server-started',
+        port: 4000,
+        stage: 'local',
+      });
+      expect(flushLogs).toHaveBeenCalled();
     });
   });
 
@@ -66,6 +82,9 @@ describe('main bootstrap', () => {
     const listen = jest.fn().mockResolvedValue(undefined);
     const createDocument = jest.fn().mockReturnValue({});
     const setup = jest.fn();
+    const useLogger = jest.fn();
+    const flushLogs = jest.fn();
+    const loggerMock = { log: jest.fn(), error: jest.fn() };
 
     await jest.isolateModulesAsync(async () => {
       jest.doMock('@nestjs/core', () => ({
@@ -74,6 +93,12 @@ describe('main bootstrap', () => {
             enableCors,
             useGlobalPipes,
             listen,
+            useLogger,
+            flushLogs,
+            get: jest.fn().mockImplementation((token: unknown) => {
+              const { Logger } = require('nestjs-pino');
+              return token === Logger ? loggerMock : undefined;
+            }),
           }),
         },
       }));
@@ -98,6 +123,12 @@ describe('main bootstrap', () => {
       const paths = setup.mock.calls.map((call) => call[0]);
       expect(paths).toContain('api-docs');
       expect(paths).toContain('beta/api-docs');
+      expect(loggerMock.log).toHaveBeenCalledWith({
+        msg: 'server-started',
+        port: 5000,
+        stage: 'beta',
+      });
+      expect(flushLogs).toHaveBeenCalled();
     });
   });
 });

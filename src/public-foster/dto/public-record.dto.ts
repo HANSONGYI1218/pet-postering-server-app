@@ -28,7 +28,7 @@ class PublicRecordAnimalDto {
   @ApiProperty()
   fosterDuration!: number;
 
-  @ApiProperty({ enum: ['IN_PROGRESS', 'FOSTERED', 'ADOPTED'] })
+  @ApiProperty({ enum: ['IN_PROGRESS', 'FOSTERED'] })
   state!: FosterState;
 
   @ApiProperty()
@@ -90,7 +90,7 @@ class PublicRecordInfoDto {
   @ApiProperty()
   id!: string;
 
-  @ApiProperty({ enum: ['IN_PROGRESS', 'FOSTERED', 'ADOPTED'] })
+  @ApiProperty({ enum: ['IN_PROGRESS', 'FOSTERED'] })
   state!: FosterState;
 
   @ApiProperty()

@@ -33,13 +33,28 @@ describe('AuthService', () => {
     const prisma = {
       user: { upsert, findUnique },
     } as unknown as PrismaService;
+    const logger = {
+      setContext: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+    };
 
-    const service = new AuthService(jwt, config, prisma);
-    return { service, signAsync, verifyAsync, upsert, findUnique, get, values };
+    const service = new AuthService(logger as never, jwt, config, prisma);
+    return {
+      service,
+      signAsync,
+      verifyAsync,
+      upsert,
+      findUnique,
+      get,
+      values,
+      logger,
+    };
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockedAxios.isAxiosError.mockReturnValue(false);
   });
 
   describe('kakaoLogin', () => {
@@ -254,7 +269,7 @@ describe('AuthService', () => {
       const { service, upsert, signAsync } = setup();
       upsert.mockResolvedValueOnce({
         id: 'user-123',
-        role: 'ADMIN',
+        role: 'ORG_ADMIN',
         displayName: 'pet lover',
       });
       signAsync

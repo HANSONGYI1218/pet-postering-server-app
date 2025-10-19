@@ -1,7 +1,10 @@
+import { createHash } from 'node:crypto';
+
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import axios from 'axios';
+import { PinoLogger } from 'nestjs-pino';
 
 import type { AuthTokenPair } from '../domain/auth/application/types';
 import {
@@ -25,10 +28,15 @@ const KAKAO_USER_URL = 'https://kapi.kakao.com/v2/user/me';
 @Injectable()
 export class AuthService {
   constructor(
+    private readonly logger: PinoLogger,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
     private readonly prisma: PrismaService,
-  ) {}
+  ) {
+    this.logger.setContext(AuthService.name);
+  }
+
+  private readonly warnedConfigKeys = new Set<string>();
 
   async kakaoLogin(code: string): Promise<AuthTokenPair> {
     const trimmedCode = code.trim();
@@ -39,8 +47,11 @@ export class AuthService {
 
     const tokenResponse = await axios
       .post<{ access_token?: string }>(url, params, { headers })
-      .catch(() => {
-        throw new UnauthorizedException('kakao-token-request-failed');
+      .catch((error: unknown) => {
+        this.logAxiosFailure('kakao-token-request-failed', error, { endpoint: url });
+        throw new UnauthorizedException('kakao-token-request-failed', {
+          cause: error,
+        });
       });
 
     const accessToken = tokenResponse.data.access_token;
@@ -50,8 +61,13 @@ export class AuthService {
       .get<unknown>(KAKAO_USER_URL, {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
-      .catch(() => {
-        throw new UnauthorizedException('kakao-user-fetch-failed');
+      .catch((error: unknown) => {
+        this.logAxiosFailure('kakao-user-fetch-failed', error, {
+          endpoint: KAKAO_USER_URL,
+        });
+        throw new UnauthorizedException('kakao-user-fetch-failed', {
+          cause: error,
+        });
       });
 
     const profile = this.parseKakaoProfile(userResponse.data);
@@ -77,7 +93,12 @@ export class AuthService {
       }
 
       return await this.issueTokens(user);
-    } catch (error) {
+    } catch (error: unknown) {
+      this.logger.warn({
+        msg: 'refresh-token-verification-failed',
+        tokenDigest: toTokenDigest(refreshToken),
+        err: error,
+      });
       throw new UnauthorizedException('invalid-refresh-token', {
         cause: error,
       });
@@ -96,6 +117,11 @@ export class AuthService {
     const clientSecret = this.config.get<string>('KAKAO_CLIENT_SECRET') ?? undefined;
 
     if (!clientId || !redirectUri) {
+      this.logger.error({
+        msg: 'missing-kakao-config',
+        hasClientId: Boolean(clientId),
+        hasRedirectUri: Boolean(redirectUri),
+      });
       throw new UnauthorizedException('missing-kakao-config');
     }
 
@@ -103,9 +129,14 @@ export class AuthService {
   }
 
   private resolveJwtSettings(): JwtSettings {
+    const accessSecret = this.config.get<string>('JWT_ACCESS_SECRET');
+    const refreshSecret = this.config.get<string>('JWT_REFRESH_SECRET');
+    if (!accessSecret) this.warnMissingSecret('JWT_ACCESS_SECRET');
+    if (!refreshSecret) this.warnMissingSecret('JWT_REFRESH_SECRET');
+
     return {
-      accessSecret: this.config.get<string>('JWT_ACCESS_SECRET') ?? 'dev-access',
-      refreshSecret: this.config.get<string>('JWT_REFRESH_SECRET') ?? 'dev-refresh',
+      accessSecret: accessSecret ?? 'dev-access',
+      refreshSecret: refreshSecret ?? 'dev-refresh',
       accessExpiresIn: this.config.get<string>('JWT_ACCESS_EXPIRES_IN') ?? '15m',
       refreshExpiresIn: this.config.get<string>('JWT_REFRESH_EXPIRES_IN') ?? '14d',
     };
@@ -145,10 +176,44 @@ export class AuthService {
   private parseKakaoProfile(payload: unknown): KakaoProfile {
     try {
       return extractKakaoProfile(payload);
-    } catch (error) {
+    } catch (error: unknown) {
+      this.logger.error({ msg: 'kakao-profile-invalid', err: error });
       throw new UnauthorizedException('kakao-profile-invalid', {
         cause: error,
       });
     }
   }
+
+  private warnMissingSecret(configKey: 'JWT_ACCESS_SECRET' | 'JWT_REFRESH_SECRET'): void {
+    if (this.warnedConfigKeys.has(configKey)) return;
+    this.logger.warn({
+      msg: 'jwt-secret-fallback-used',
+      configKey,
+    });
+    this.warnedConfigKeys.add(configKey);
+  }
+
+  private logAxiosFailure(
+    msg: string,
+    error: unknown,
+    metadata: Record<string, unknown>,
+  ): void {
+    this.logger.error({
+      msg,
+      ...metadata,
+      ...toAxiosMetadata(error),
+      err: error,
+    });
+  }
 }
+
+const toAxiosMetadata = (error: unknown): Record<string, unknown> => {
+  if (!axios.isAxiosError(error)) return {};
+  return {
+    status: error.response?.status,
+    code: error.code,
+  };
+};
+
+const toTokenDigest = (token: string): string =>
+  createHash('sha256').update(token).digest('hex').slice(0, 16);

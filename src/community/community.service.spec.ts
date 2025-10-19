@@ -1,4 +1,9 @@
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 
 import type { PrismaService } from '../prisma/prisma.service';
 import { CommunityService } from './community.service';
@@ -73,8 +78,16 @@ const build = () => {
     },
     $transaction: jest.fn(),
   };
-  const service = new CommunityService(prisma as unknown as PrismaService);
-  return { service, prisma };
+  const logger = {
+    setContext: jest.fn(),
+    error: jest.fn(),
+    warn: jest.fn(),
+  };
+  const service = new CommunityService(
+    prisma as unknown as PrismaService,
+    logger as never,
+  );
+  return { service, prisma, logger };
 };
 
 describe('CommunityService', () => {
@@ -184,12 +197,27 @@ describe('CommunityService', () => {
 
     it('throws NotFoundException when the post is missing', async () => {
       const { service, prisma } = build();
+      const prismaError = new Prisma.PrismaClientKnownRequestError('not found', {
+        code: 'P2025',
+        clientVersion: 'mock',
+      });
       prisma.$transaction.mockImplementation(() => {
-        throw new Error('not found');
+        throw prismaError;
       });
 
       await expect(service.getPost('missing')).rejects.toThrow(NotFoundException);
       expect(prisma.postBookmark.count).not.toHaveBeenCalled();
+    });
+
+    it('throws InternalServerErrorException when Prisma fails unexpectedly', async () => {
+      const { service, prisma } = build();
+      prisma.$transaction.mockImplementation(() => {
+        throw new Error('boom');
+      });
+
+      await expect(service.getPost('post-1')).rejects.toThrow(
+        InternalServerErrorException,
+      );
     });
   });
 

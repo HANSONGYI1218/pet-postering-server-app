@@ -7,11 +7,13 @@ import type {
   Organization,
 } from '@prisma/client';
 
+import { calculateElapsedDays } from '../../foster/domain/metrics';
 import type {
   FosterState,
   PublicRecordAnimal,
   PublicRecordDetail,
 } from '../application/record.types';
+import { sortedImageUrls } from './image-sorting';
 
 const RECORD_STATE_MAP: Record<AnimalStatus, FosterState> = {
   WAITING: 'IN_PROGRESS',
@@ -22,17 +24,13 @@ const RECORD_STATE_MAP: Record<AnimalStatus, FosterState> = {
 const toIsoString = (value: Date | null): string | null =>
   value ? value.toISOString() : null;
 
-const sortImageUrls = (images: { sortOrder: number | null; url: string }[]): string[] =>
-  images
-    .slice()
-    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
-    .map((image) => image.url);
-
-const calculateDuration = (start: Date | null, end: Date | null): number => {
+const calculateDuration = (
+  start: Date | null,
+  end: Date | null,
+  now: Date = new Date(),
+): number => {
   if (!start) return 0;
-  const endDate = end ?? new Date();
-  const diff = endDate.getTime() - start.getTime();
-  return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+  return calculateElapsedDays(start, end ?? now);
 };
 
 export const toRecordAnimal = (
@@ -44,7 +42,7 @@ export const toRecordAnimal = (
   breed: animal.breed ?? null,
   birthDate: toIsoString(animal.birthDate),
   gender: animal.gender ?? null,
-  images: sortImageUrls(animal.images),
+  images: sortedImageUrls(animal.images),
   fosterDuration: calculateDuration(
     animal.currentFosterStartDate,
     animal.currentFosterEndDate,
@@ -86,7 +84,7 @@ export const toRecordDetail = ({
       birthDate: toIsoString(animal.birthDate),
       gender: animal.gender ?? null,
       remark: animal.remark ?? null,
-      images: sortImageUrls(animal.images),
+      images: sortedImageUrls(animal.images),
     },
   },
   records: records
@@ -98,6 +96,6 @@ export const toRecordDetail = ({
       healthNote: record.healthNote ?? '',
       createdAt: record.date.toISOString(),
       updatedAt: record.updatedAt.toISOString(),
-      images: sortImageUrls(record.images),
+      images: sortedImageUrls(record.images),
     })),
 });
