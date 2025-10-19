@@ -1,4 +1,4 @@
-import type { Report, ReportTargetType } from '@prisma/client';
+import type { ReportTargetType } from '@prisma/client';
 
 export interface CreateReportCommand {
   targetType: ReportTargetType;
@@ -14,4 +14,12 @@ export interface ReportCreateData {
   reporterId: string;
 }
 
-export type ReportView = Report;
+export interface ReportView {
+  id: string;
+  targetType: ReportTargetType;
+  targetId: string;
+  reason: string;
+  reporterId: string;
+  createdAt: Date;
+  updatedAt: Date;
+}

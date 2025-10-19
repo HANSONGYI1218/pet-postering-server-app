@@ -84,6 +84,8 @@ describe('FosterService', () => {
         animalId: 'animal-1',
         date: new Date('2024-02-01T00:00:00.000Z'),
         content: 'new content',
+        createdAt: new Date('2024-01-01T00:00:00.000Z'),
+        updatedAt: new Date('2024-02-01T12:00:00.000Z'),
       } as any;
       const images = [
         {
@@ -144,8 +146,13 @@ describe('FosterService', () => {
         orderBy: { sortOrder: 'asc' },
       });
       expect(result).toEqual({
-        ...updated,
-        images,
+        id: 'record-1',
+        animalId: 'animal-1',
+        date: updated.date,
+        content: updated.content,
+        createdAt: updated.createdAt,
+        updatedAt: updated.updatedAt,
+        images: images.map(({ id, url, sortOrder }) => ({ id, url, sortOrder })),
       });
     });
 
@@ -528,7 +535,15 @@ describe('FosterService', () => {
         orgId: null,
         ownerUserId: 'user-1',
       });
-      const created = { id: 'record-1', images: [] };
+      const created = {
+        id: 'record-1',
+        animalId: 'animal-1',
+        date: new Date('2024-01-01T00:00:00.000Z'),
+        content: 'daily log',
+        createdAt: new Date('2024-01-01T01:00:00.000Z'),
+        updatedAt: new Date('2024-01-01T01:00:00.000Z'),
+        images: [],
+      };
       prisma.fosterRecord.create.mockResolvedValueOnce(created as any);
 
       await expect(
@@ -541,7 +556,7 @@ describe('FosterService', () => {
             images: Array.from({ length: 8 }, (_, i) => `https://img/${String(i)}`),
           },
         ),
-      ).resolves.toBe(created);
+      ).resolves.toEqual(created);
       expect(prisma.fosterRecord.create).toHaveBeenCalledWith({
         data: {
           animalId: 'animal-1',

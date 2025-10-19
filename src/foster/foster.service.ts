@@ -7,6 +7,11 @@ import {
 import type { AnimalStatus } from '@prisma/client';
 
 import type { AuthUser } from '../common/types';
+import {
+  toAnimalListItem,
+  toFosterRecordAnimalMeta,
+  toFosterRecordBase,
+} from '../domain/foster/application/mappers';
 import type {
   AnimalListItem,
   DeleteAnimalResult,
@@ -48,7 +53,7 @@ export class FosterService {
           firstRecordDate: firstRecord?.date ?? null,
           fallbackCreatedAt: animal.createdAt,
         });
-        return { ...animal, fosterDays } satisfies AnimalListItem;
+        return toAnimalListItem(animal, fosterDays);
       }),
     );
     return { items };
@@ -72,7 +77,7 @@ export class FosterService {
           firstRecordDate: firstRecord?.date ?? null,
           fallbackCreatedAt: animal.createdAt,
         });
-        return { ...animal, fosterDays } satisfies AnimalListItem;
+        return toAnimalListItem(animal, fosterDays);
       }),
     );
     return { items };
@@ -94,7 +99,7 @@ export class FosterService {
             shared: dto.shared ?? false,
           },
     });
-    return { ...created, fosterDays: 0 } satisfies AnimalListItem;
+    return toAnimalListItem(created, 0);
   }
 
   async updateAnimal(
@@ -117,7 +122,7 @@ export class FosterService {
       },
     });
     const fosterDays = await this.computeFosterDays(updated.id, updated.createdAt);
-    return { ...updated, fosterDays } satisfies AnimalListItem;
+    return toAnimalListItem(updated, fosterDays);
   }
 
   async deleteAnimal(id: string, user: AuthUser): Promise<DeleteAnimalResult> {
@@ -142,24 +147,20 @@ export class FosterService {
       include: { organization: { select: { id: true, name: true } } },
     });
     if (!animal) throw new NotFoundException('animal-not-found');
+    const animalMeta = toFosterRecordAnimalMeta(animal);
 
     const items = await this.prisma.fosterRecord.findMany({
       where: { animalId, date: { gte: window.from, lte: window.to } },
       orderBy: { date: 'asc' },
       include: { images: { orderBy: { sortOrder: 'asc' } } },
     });
+    const mappedItems = items.map((record) => toFosterRecordBase(record, record.images));
     return {
       animalId,
-      animal: {
-        id: animal.id,
-        name: animal.name,
-        status: animal.status,
-        shared: animal.shared,
-        organization: animal.organization ?? null,
-      },
+      animal: animalMeta,
       from: window.from.toISOString(),
       to: window.to.toISOString(),
-      items,
+      items: mappedItems,
     };
   }
 
@@ -170,22 +171,17 @@ export class FosterService {
     });
     if (!record || record.animalId !== animalId)
       throw new NotFoundException('record-not-found');
+    const base = toFosterRecordBase(record, record.images);
 
     const animal = await this.prisma.animal.findUnique({
       where: { id: animalId },
       include: { organization: { select: { id: true, name: true } } },
     });
-    if (!animal) return record as FosterRecordBase;
+    if (!animal) return base;
     return {
-      ...record,
-      animal: {
-        id: animal.id,
-        name: animal.name,
-        status: animal.status,
-        shared: animal.shared,
-        organization: animal.organization ?? null,
-      },
-    } satisfies FosterRecordDetail;
+      ...base,
+      animal: toFosterRecordAnimalMeta(animal),
+    };
   }
 
   async createRecord(
@@ -199,7 +195,7 @@ export class FosterService {
     );
 
     const images = toImageCreateInputs(dto.images);
-    return this.prisma.fosterRecord.create({
+    const created = await this.prisma.fosterRecord.create({
       data: {
         animalId,
         date: new Date(dto.date),
@@ -215,6 +211,7 @@ export class FosterService {
       },
       include: { images: true },
     });
+    return toFosterRecordBase(created, created.images);
   }
 
   async updateRecord(
@@ -257,7 +254,7 @@ export class FosterService {
         where: { recordId },
         orderBy: { sortOrder: 'asc' },
       });
-      return { ...updated, images: currentImages } satisfies FosterRecordBase;
+      return toFosterRecordBase(updated, currentImages);
     });
   }
 

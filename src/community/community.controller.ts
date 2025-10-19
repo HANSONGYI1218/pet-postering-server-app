@@ -31,6 +31,7 @@ import type {
   PostDetail,
   PostListItem,
 } from '../domain/community/application/types';
+import { CommunityService } from './community.service';
 import {
   BookmarkResponseDto,
   CommentListItemDto,
@@ -42,8 +43,7 @@ import {
   PostDetailDto,
   PostListItemDto,
   PostListResponseDto,
-} from '../domain/community/presentation/dto/community.dto';
-import { CommunityService } from './community.service';
+} from './dto/community.dto';
 
 @ApiTags('Community')
 @ApiBearerAuth()

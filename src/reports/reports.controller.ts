@@ -8,10 +8,7 @@ import type {
   CreateReportCommand,
   ReportView,
 } from '../domain/reports/application/types';
-import {
-  CreateReportDto,
-  ReportDto,
-} from '../domain/reports/presentation/dto/reports.dto';
+import { CreateReportDto, ReportDto } from './dto/reports.dto';
 import { ReportsService } from './reports.service';
 
 @ApiTags('Reports')

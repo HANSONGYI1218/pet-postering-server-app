@@ -1,8 +1,22 @@
-import type { Comment, Post } from '@prisma/client';
+export interface PostAuthor {
+  id: string;
+  displayName: string | null;
+}
 
-export interface PostListItem extends Post {
-  author: { id: string; displayName: string | null };
-  _count: { comments: number };
+export interface PostCount {
+  comments: number;
+}
+
+export interface PostListItem {
+  id: string;
+  authorId: string;
+  title: string;
+  content: string;
+  viewCount: number;
+  createdAt: Date;
+  updatedAt: Date;
+  author: PostAuthor;
+  _count: PostCount;
 }
 
 export interface PostDetail extends PostListItem {
@@ -14,10 +28,27 @@ export interface BookmarkResponse {
   bookmarked: boolean;
 }
 
-export interface CommentListItem extends Comment {
-  author: { id: string; displayName: string | null };
+export interface CommentAuthor {
+  id: string;
+  displayName: string | null;
+}
+
+export interface CommentCount {
+  likes: number;
+  replies: number;
+}
+
+export interface CommentListItem {
+  id: string;
+  postId: string;
+  authorId: string;
+  parentId: string | null;
+  content: string;
+  createdAt: Date;
+  updatedAt: Date;
   liked: boolean;
-  _count: { likes: number; replies: number };
+  author: CommentAuthor;
+  _count: CommentCount;
 }
 
 export interface ListPostsResult {

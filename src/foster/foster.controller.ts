@@ -44,7 +44,7 @@ import {
   ListRecordsResponseDto,
   UpdateAnimalDto,
   UpdateRecordDto,
-} from '../domain/foster/presentation/dto/foster.dto';
+} from './dto/foster.dto';
 import { FosterService } from './foster.service';
 
 @ApiTags('Foster')

@@ -1,5 +1,9 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 
+import {
+  toCommentListItem,
+  toPostListItem,
+} from '../domain/community/application/mappers';
 import type {
   BookmarkResponse,
   CommentListItem,
@@ -34,7 +38,11 @@ export class CommunityService {
         author: { select: { id: true, displayName: true } },
       },
     });
-    const { items, nextCursor } = preparePaginatedPosts<PostListItem>(posts, normalized);
+    const mappedPosts = posts.map((post) => toPostListItem(post));
+    const { items, nextCursor } = preparePaginatedPosts<PostListItem>(
+      mappedPosts,
+      normalized,
+    );
     return { items, nextCursor, limit: normalized };
   }
 
@@ -42,13 +50,14 @@ export class CommunityService {
     authorId: string,
     dto: { title: string; content: string },
   ): Promise<PostListItem> {
-    return this.prisma.post.create({
+    const created = await this.prisma.post.create({
       data: { authorId, title: dto.title, content: dto.content },
       include: {
         _count: { select: { comments: true } },
         author: { select: { id: true, displayName: true } },
       },
     });
+    return toPostListItem(created);
   }
 
   async getPost(postId: string, userId?: string): Promise<PostDetail> {
@@ -71,12 +80,14 @@ export class CommunityService {
 
     if (!post) throw new NotFoundException('post-not-found');
 
-    if (!userId) return { ...post, isBookmarked: false };
+    const mapped = toPostListItem(post);
+
+    if (!userId) return { ...mapped, isBookmarked: false };
 
     const bookmarkCount = await this.prisma.postBookmark.count({
       where: { userId, postId },
     });
-    return { ...post, isBookmarked: bookmarkCount > 0 };
+    return { ...mapped, isBookmarked: bookmarkCount > 0 };
   }
 
   async bookmark(postId: string, userId: string): Promise<BookmarkResponse> {
@@ -104,10 +115,9 @@ export class CommunityService {
         author: { select: { id: true, displayName: true } },
       },
     });
-    const baseItems: CommentListItem[] = comments.map((comment) => ({
-      ...comment,
-      liked: false,
-    }));
+    const baseItems: CommentListItem[] = comments.map((comment) =>
+      toCommentListItem(comment),
+    );
     if (!userId || baseItems.length === 0) return { postId, items: baseItems };
 
     const liked = await this.prisma.commentLike.findMany({
@@ -137,7 +147,7 @@ export class CommunityService {
           author: { select: { id: true, displayName: true } },
         },
       });
-      return { ...created, liked: false };
+      return toCommentListItem(created);
     }
 
     const parent = await this.prisma.comment.findUnique({
@@ -158,7 +168,7 @@ export class CommunityService {
         author: { select: { id: true, displayName: true } },
       },
     });
-    return { ...created, liked: false };
+    return toCommentListItem(created);
   }
 
   async deleteComment(commentId: string, userId: string): Promise<DeleteCommentResponse> {

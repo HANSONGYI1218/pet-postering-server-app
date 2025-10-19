@@ -1,9 +1,4 @@
-import type {
-  AnimalGender,
-  AnimalType,
-  FosterRecord,
-  FosterRecordImage,
-} from '@prisma/client';
+import type { AnimalGender, AnimalType } from '@prisma/client';
 
 export type FosterState = 'IN_PROGRESS' | 'FOSTERED' | 'ADOPTED';
 
@@ -24,10 +19,14 @@ export interface PublicRecordListResult {
   items: PublicRecordAnimal[];
 }
 
-export type PublicRecordEntry = Omit<FosterRecord, 'images' | 'animalId'> & {
+export interface PublicRecordEntry {
+  id: string;
+  content: string | null;
   healthNote: string | null;
-  images: FosterRecordImage[];
-};
+  createdAt: string;
+  updatedAt: string;
+  images: string[];
+}
 
 export interface PublicRecordDetail {
   id: string;
@@ -54,12 +53,5 @@ export interface PublicRecordDetail {
       images: string[];
     };
   };
-  records: {
-    id: string;
-    content: string | null;
-    healthNote: string | null;
-    createdAt: string;
-    updatedAt: string;
-    images: string[];
-  }[];
+  records: PublicRecordEntry[];
 }

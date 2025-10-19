@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 
+import { toReportView } from '../domain/reports/application/mappers';
 import type {
   CreateReportCommand,
   ReportView,
@@ -16,6 +17,7 @@ export class ReportsService {
     if (prepared.status === 'error') {
       throw new BadRequestException(prepared.reason);
     }
-    return this.prisma.report.create({ data: prepared.data });
+    const created = await this.prisma.report.create({ data: prepared.data });
+    return toReportView(created);
   }
 }

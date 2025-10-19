@@ -128,12 +128,12 @@ describe('CommunityService', () => {
   describe('createPost', () => {
     it('passes author and content to Prisma', async () => {
       const { service, prisma } = build();
-      const created = { id: 'post-1' } as any;
+      const created = makePost('post-1');
       prisma.post.create.mockResolvedValueOnce(created);
 
       await expect(
         service.createPost('author-1', { title: 'Hello', content: 'World' }),
-      ).resolves.toBe(created);
+      ).resolves.toEqual(created);
       expect(prisma.post.create).toHaveBeenCalledWith({
         data: {
           authorId: 'author-1',
@@ -274,9 +274,9 @@ describe('CommunityService', () => {
     it('creates a top-level comment with parentId null', async () => {
       const { service, prisma } = build();
       const created = {
-        id: 'comment-1',
-        postId: 'post-1',
+        ...makeComment('comment-1', 'post-1'),
         authorId: 'user-1',
+        author: { id: 'user-1', displayName: 'User 1' },
         content: 'hello',
         parentId: null,
       };
@@ -336,9 +336,9 @@ describe('CommunityService', () => {
         postId: 'post-1',
       });
       const created = {
-        id: 'comment-2',
-        postId: 'post-1',
+        ...makeComment('comment-2', 'post-1'),
         authorId: 'user-2',
+        author: { id: 'user-2', displayName: 'User 2' },
         content: 'reply',
         parentId: 'parent-1',
       };

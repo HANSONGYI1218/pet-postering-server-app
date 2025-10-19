@@ -28,10 +28,12 @@ describe('ReportsService', () => {
       targetId: 'target-id',
       reason: 'inappropriate',
       reporterId: 'reporter-id',
+      createdAt: new Date('2024-01-01T00:00:00.000Z'),
+      updatedAt: new Date('2024-01-01T00:00:00.000Z'),
     };
     create.mockResolvedValueOnce(saved);
 
-    await expect(service.create(command)).resolves.toBe(saved);
+    await expect(service.create(command)).resolves.toEqual(saved);
     expect(create).toHaveBeenCalledTimes(1);
     expect(create).toHaveBeenCalledWith({
       data: {
