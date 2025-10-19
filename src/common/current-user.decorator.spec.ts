@@ -1,3 +1,4 @@
+import { afterEach, beforeEach, describe, it } from '@jest/globals';
 import { Controller, Get, type INestApplication, Module } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import type { NextFunction, Request, Response } from 'express';
@@ -28,11 +29,12 @@ describe('CurrentUser decorator', () => {
     app = moduleRef.createNestApplication();
     app.use((req: Request, _res: Response, next: NextFunction) => {
       const header = req.headers['x-test-user'] as string | undefined;
-      if (header)
+      if (header) {
         (req as Request & { user?: AuthUser }).user = {
           userId: header,
           role: 'USER',
         };
+      }
       next();
     });
     await app.init();

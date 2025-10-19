@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
+import { afterEach, describe, expect, it, jest } from '@jest/globals';
 
 describe('main bootstrap', () => {
   const originalPort = process.env.PORT;
@@ -33,7 +33,8 @@ describe('main bootstrap', () => {
             listen,
             flushLogs,
             get: jest.fn().mockImplementation((token: unknown) => {
-              const { Logger } = require('nestjs-pino');
+              const { Logger } =
+                jest.requireActual<typeof import('nestjs-pino')>('nestjs-pino');
               return token === Logger ? loggerMock : undefined;
             }),
           }),
@@ -51,9 +52,13 @@ describe('main bootstrap', () => {
         DocumentBuilder: actualSwagger.DocumentBuilder,
       }));
 
-      const { bootstrap } = require('./main') as typeof import('./main');
-      const { AppModule } = require('./app.module');
-      const { NestFactory } = require('@nestjs/core');
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const mainModule = require('./main') as typeof import('./main');
+      const { bootstrap } = mainModule;
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { AppModule } = require('./app.module') as typeof import('./app.module');
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { NestFactory } = require('@nestjs/core') as typeof import('@nestjs/core');
 
       await bootstrap();
 
@@ -96,7 +101,8 @@ describe('main bootstrap', () => {
             useLogger,
             flushLogs,
             get: jest.fn().mockImplementation((token: unknown) => {
-              const { Logger } = require('nestjs-pino');
+              const { Logger } =
+                jest.requireActual<typeof import('nestjs-pino')>('nestjs-pino');
               return token === Logger ? loggerMock : undefined;
             }),
           }),
@@ -114,6 +120,7 @@ describe('main bootstrap', () => {
         DocumentBuilder: actualSwagger.DocumentBuilder,
       }));
 
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { bootstrap } = require('./main') as typeof import('./main');
 
       await bootstrap();

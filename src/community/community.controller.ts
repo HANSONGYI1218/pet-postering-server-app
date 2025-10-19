@@ -31,6 +31,7 @@ import type {
   PostDetail,
   PostListItem,
 } from '../domain/community/application/types';
+import { DEFAULT_POST_PAGE_SIZE } from './community.constants';
 import { CommunityService } from './community.service';
 import {
   BookmarkResponseDto,
@@ -71,7 +72,7 @@ export class CommunityController {
   @ApiOkResponse({ type: PostListResponseDto })
   listPosts(@Query() query: ListPostsQueryDto): Promise<ListPostsResult> {
     const { cursor, limit } = query;
-    return this.communityService.listPosts(limit ?? 20, cursor);
+    return this.communityService.listPosts(limit ?? DEFAULT_POST_PAGE_SIZE, cursor);
   }
 
   @Post('posts')

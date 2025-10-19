@@ -6,6 +6,10 @@ import type {
   PublicRecordListResult,
 } from '../domain/public-foster/application/record.types';
 import {
+  PUBLIC_FOSTER_ANIMAL_INCLUDE,
+  PUBLIC_FOSTER_ANIMAL_QUERY,
+} from '../domain/public-foster/domain/mappers';
+import {
   toRecordAnimal,
   toRecordDetail,
 } from '../domain/public-foster/domain/record-mappers';
@@ -18,17 +22,17 @@ export class PublicFosterRecordsService {
   async listAnimals(): Promise<PublicRecordListResult> {
     const animals = await this.prisma.animal.findMany({
       where: { records: { some: {} } },
-      include: {
-        images: true,
-      },
+      ...PUBLIC_FOSTER_ANIMAL_QUERY,
       orderBy: { createdAt: 'desc' },
     });
 
     const now = new Date();
     const items = await Promise.all(
       animals.map(async (animal) => {
-        const base = toRecordAnimal(animal);
-        if (base.fosterDuration > 0) return base;
+        const base = toRecordAnimal(animal, { now });
+        if (base.fosterDuration > 0) {
+          return base;
+        }
 
         const fallbackDuration = await resolveFosterDaysForAnimal(
           this.prisma.fosterRecord,
@@ -51,12 +55,11 @@ export class PublicFosterRecordsService {
   async getAnimal(id: string): Promise<PublicRecordDetail> {
     const animal = await this.prisma.animal.findUnique({
       where: { id },
-      include: {
-        images: true,
-        organization: true,
-      },
+      include: PUBLIC_FOSTER_ANIMAL_INCLUDE,
     });
-    if (!animal) throw new NotFoundException('public-record-animal-not-found');
+    if (!animal) {
+      throw new NotFoundException('public-record-animal-not-found');
+    }
 
     const records = await this.prisma.fosterRecord.findMany({
       where: { animalId: id },

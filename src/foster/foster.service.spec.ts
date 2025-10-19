@@ -1,3 +1,4 @@
+import { describe, expect, it, jest } from '@jest/globals';
 import {
   BadRequestException,
   ForbiddenException,
@@ -154,6 +155,53 @@ describe('FosterService', () => {
         updatedAt: updated.updatedAt,
         images: images.map(({ id, url, sortOrder }) => ({ id, url, sortOrder })),
       });
+    });
+
+    it('removes all images when dto.images is an empty array', async () => {
+      const { service, prisma } = build();
+      const user: AuthUser = { userId: 'admin', role: 'ORG_ADMIN' };
+      prisma.fosterRecord.findUnique.mockResolvedValueOnce({
+        id: 'record-2',
+        animalId: 'animal-2',
+      });
+      prisma.animal.findUnique.mockResolvedValueOnce({
+        id: 'animal-2',
+        orgId: 'org-1',
+        ownerUserId: null,
+      });
+
+      const updated = {
+        id: 'record-2',
+        animalId: 'animal-2',
+        date: new Date('2024-03-01T00:00:00.000Z'),
+        content: 'without images',
+        createdAt: new Date('2024-02-01T00:00:00.000Z'),
+        updatedAt: new Date('2024-03-02T00:00:00.000Z'),
+      } as any;
+      const tx = {
+        fosterRecord: {
+          update: jest.fn().mockResolvedValueOnce(updated),
+        },
+        fosterRecordImage: {
+          deleteMany: jest.fn().mockResolvedValueOnce(undefined),
+          createMany: jest.fn(),
+          findMany: jest.fn().mockResolvedValueOnce([]),
+        },
+      };
+      prisma.$transaction.mockImplementation((cb: (client: typeof tx) => unknown) =>
+        Promise.resolve(cb(tx)),
+      );
+
+      const result = await service.updateRecord('animal-2', 'record-2', user, {
+        images: [],
+        content: 'without images',
+      });
+
+      expect(tx.fosterRecordImage.deleteMany).toHaveBeenCalledWith({
+        where: { recordId: 'record-2' },
+      });
+      expect(tx.fosterRecordImage.createMany).not.toHaveBeenCalled();
+      expect(result.images).toEqual([]);
     });
 
     it('throws ForbiddenException when the user lacks write permission', async () => {
@@ -750,19 +798,41 @@ describe('FosterService', () => {
   });
 
   describe('getRecord', () => {
-    it('returns only the record data when animal info is missing', async () => {
+    it('returns record data along with animal metadata', async () => {
       const { service, prisma } = build();
-      prisma.fosterRecord.findUnique.mockResolvedValueOnce({
+      const record = {
         id: 'record-1',
         animalId: 'animal-1',
-        images: [],
+        date: new Date('2024-01-05T00:00:00.000Z'),
+        content: 'daily note',
+        createdAt: new Date('2024-01-05T00:00:00.000Z'),
+        updatedAt: new Date('2024-01-06T00:00:00.000Z'),
+        images: [{ id: 'img-1', url: 'https://img/1', sortOrder: 0 }],
+      } as any;
+      prisma.fosterRecord.findUnique.mockResolvedValueOnce(record);
+      prisma.animal.findUnique.mockResolvedValueOnce({
+        id: 'animal-1',
+        name: 'Buddy',
+        status: 'WAITING',
+        shared: true,
+        organization: { id: 'org-1', name: 'Foster Org' },
       });
-      prisma.animal.findUnique.mockResolvedValueOnce(null);
 
       await expect(service.getRecord('animal-1', 'record-1')).resolves.toEqual({
         id: 'record-1',
         animalId: 'animal-1',
-        images: [],
+        date: record.date,
+        content: record.content,
+        createdAt: record.createdAt,
+        updatedAt: record.updatedAt,
+        images: [{ id: 'img-1', url: 'https://img/1', sortOrder: 0 }],
+        animal: {
+          id: 'animal-1',
+          name: 'Buddy',
+          status: 'WAITING',
+          shared: true,
+          organization: { id: 'org-1', name: 'Foster Org' },
+        },
       });
     });
 
@@ -779,6 +849,20 @@ describe('FosterService', () => {
         animalId: 'animal-2',
         images: [],
       });
+
+      await expect(service.getRecord('animal-1', 'record-1')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('throws NotFoundException when the animal is missing', async () => {
+      const { service, prisma } = build();
+      prisma.fosterRecord.findUnique.mockResolvedValueOnce({
+        id: 'record-1',
+        animalId: 'animal-1',
+        images: [],
+      });
+      prisma.animal.findUnique.mockResolvedValueOnce(null);
 
       await expect(service.getRecord('animal-1', 'record-1')).rejects.toThrow(
         NotFoundException,

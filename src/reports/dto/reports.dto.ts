@@ -35,4 +35,7 @@ export class ReportDto {
 
   @ApiProperty()
   createdAt!: Date;
+
+  @ApiProperty()
+  updatedAt!: Date;
 }

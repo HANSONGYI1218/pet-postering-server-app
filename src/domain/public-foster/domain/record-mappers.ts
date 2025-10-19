@@ -24,17 +24,16 @@ const RECORD_STATE_MAP: Record<AnimalStatus, FosterState> = {
 const toIsoString = (value: Date | null): string | null =>
   value ? value.toISOString() : null;
 
-const calculateDuration = (
-  start: Date | null,
-  end: Date | null,
-  now: Date = new Date(),
-): number => {
-  if (!start) return 0;
+const calculateDuration = (start: Date | null, end: Date | null, now: Date): number => {
+  if (!start) {
+    return 0;
+  }
   return calculateElapsedDays(start, end ?? now);
 };
 
 export const toRecordAnimal = (
   animal: Animal & { images: AnimalImage[] },
+  options: { now?: Date } = {},
 ): PublicRecordAnimal => ({
   id: animal.id,
   name: animal.name,
@@ -46,6 +45,7 @@ export const toRecordAnimal = (
   fosterDuration: calculateDuration(
     animal.currentFosterStartDate,
     animal.currentFosterEndDate,
+    options.now ?? new Date(),
   ),
   state: RECORD_STATE_MAP[animal.status],
   matchId: animal.id,
@@ -92,8 +92,8 @@ export const toRecordDetail = ({
     .sort((left, right) => left.date.getTime() - right.date.getTime())
     .map((record) => ({
       id: record.id,
-      content: record.content ?? '',
-      healthNote: record.healthNote ?? '',
+      content: record.content ?? null,
+      healthNote: record.healthNote ?? null,
       createdAt: record.date.toISOString(),
       updatedAt: record.updatedAt.toISOString(),
       images: sortedImageUrls(record.images),

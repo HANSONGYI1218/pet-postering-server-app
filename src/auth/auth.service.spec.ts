@@ -1,3 +1,4 @@
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { UnauthorizedException } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
 import type { JwtService } from '@nestjs/jwt';
@@ -5,6 +6,7 @@ import axios from 'axios';
 
 import type { PrismaService } from '../prisma/prisma.service';
 import { AuthService } from './auth.service';
+import { DEFAULT_JWT_ACCESS_SECRET, DEFAULT_JWT_REFRESH_SECRET } from './constants';
 
 jest.mock('axios');
 
@@ -261,6 +263,53 @@ describe('AuthService', () => {
 
       await expect(service.refresh('bad-token')).rejects.toThrow(UnauthorizedException);
       expect(signAsync).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('jwt fallback configuration', () => {
+    it('falls back to shared default secrets when config values are absent', async () => {
+      const { service, signAsync, upsert, values, logger } = setup();
+      delete values.JWT_ACCESS_SECRET;
+      delete values.JWT_REFRESH_SECRET;
+      upsert.mockResolvedValueOnce({
+        id: 'user-1',
+        role: 'USER',
+        displayName: null,
+        avatarUrl: null,
+      });
+      signAsync.mockResolvedValueOnce('token-1').mockResolvedValueOnce('token-2');
+
+      await expect(service.devIssueByKakaoId('kakao-1')).resolves.toEqual({
+        token: 'token-1',
+        refreshToken: 'token-2',
+        displayName: null,
+        avatarUrl: null,
+      });
+
+      expect(signAsync).toHaveBeenNthCalledWith(
+        1,
+        {
+          sub: 'user-1',
+          role: 'USER',
+        },
+        expect.objectContaining({ secret: DEFAULT_JWT_ACCESS_SECRET }),
+      );
+      expect(signAsync).toHaveBeenNthCalledWith(
+        2,
+        {
+          sub: 'user-1',
+          role: 'USER',
+        },
+        expect.objectContaining({ secret: DEFAULT_JWT_REFRESH_SECRET }),
+      );
+      expect(logger.warn).toHaveBeenCalledWith({
+        msg: 'jwt-secret-fallback-used',
+        configKey: 'JWT_ACCESS_SECRET',
+      });
+      expect(logger.warn).toHaveBeenCalledWith({
+        msg: 'jwt-secret-fallback-used',
+        configKey: 'JWT_REFRESH_SECRET',
+      });
     });
   });
 

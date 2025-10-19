@@ -15,6 +15,8 @@ import {
   toUpsertUserCommand,
 } from '../domain/auth/domain/kakao-flow';
 import { PrismaService } from '../prisma/prisma.service';
+import { DEFAULT_JWT_ACCESS_SECRET, DEFAULT_JWT_REFRESH_SECRET } from './constants';
+import type { JwtPayload } from './jwt-payload';
 
 interface JwtSettings {
   accessSecret: string;
@@ -40,7 +42,9 @@ export class AuthService {
 
   async kakaoLogin(code: string): Promise<AuthTokenPair> {
     const trimmedCode = code.trim();
-    if (!trimmedCode) throw new UnauthorizedException('missing-kakao-code');
+    if (!trimmedCode) {
+      throw new UnauthorizedException('missing-kakao-code');
+    }
 
     const kakaoConfig = this.resolveKakaoConfig();
     const { url, params, headers } = createKakaoTokenRequest(kakaoConfig, trimmedCode);
@@ -55,7 +59,9 @@ export class AuthService {
       });
 
     const accessToken = tokenResponse.data.access_token;
-    if (!accessToken) throw new UnauthorizedException('kakao-token-missing');
+    if (!accessToken) {
+      throw new UnauthorizedException('kakao-token-missing');
+    }
 
     const userResponse = await axios
       .get<unknown>(KAKAO_USER_URL, {
@@ -80,10 +86,9 @@ export class AuthService {
   async refresh(refreshToken: string): Promise<AuthTokenPair> {
     try {
       const { refreshSecret } = this.resolveJwtSettings();
-      const payload = await this.jwt.verifyAsync<{ sub: string; role: string }>(
-        refreshToken,
-        { secret: refreshSecret },
-      );
+      const payload = await this.jwt.verifyAsync<JwtPayload>(refreshToken, {
+        secret: refreshSecret,
+      });
       const user = await this.prisma.user.findUnique({
         where: { id: payload.sub },
       });
@@ -131,12 +136,16 @@ export class AuthService {
   private resolveJwtSettings(): JwtSettings {
     const accessSecret = this.config.get<string>('JWT_ACCESS_SECRET');
     const refreshSecret = this.config.get<string>('JWT_REFRESH_SECRET');
-    if (!accessSecret) this.warnMissingSecret('JWT_ACCESS_SECRET');
-    if (!refreshSecret) this.warnMissingSecret('JWT_REFRESH_SECRET');
+    if (!accessSecret) {
+      this.warnMissingSecret('JWT_ACCESS_SECRET');
+    }
+    if (!refreshSecret) {
+      this.warnMissingSecret('JWT_REFRESH_SECRET');
+    }
 
     return {
-      accessSecret: accessSecret ?? 'dev-access',
-      refreshSecret: refreshSecret ?? 'dev-refresh',
+      accessSecret: accessSecret ?? DEFAULT_JWT_ACCESS_SECRET,
+      refreshSecret: refreshSecret ?? DEFAULT_JWT_REFRESH_SECRET,
       accessExpiresIn: this.config.get<string>('JWT_ACCESS_EXPIRES_IN') ?? '15m',
       refreshExpiresIn: this.config.get<string>('JWT_REFRESH_EXPIRES_IN') ?? '14d',
     };
@@ -149,7 +158,7 @@ export class AuthService {
     avatarUrl?: string | null;
   }): Promise<AuthTokenPair> {
     const settings = this.resolveJwtSettings();
-    const payload = {
+    const payload: JwtPayload = {
       sub: user.id,
       role: user.role,
       ...(user.displayName ? { displayName: user.displayName } : {}),
@@ -185,7 +194,9 @@ export class AuthService {
   }
 
   private warnMissingSecret(configKey: 'JWT_ACCESS_SECRET' | 'JWT_REFRESH_SECRET'): void {
-    if (this.warnedConfigKeys.has(configKey)) return;
+    if (this.warnedConfigKeys.has(configKey)) {
+      return;
+    }
     this.logger.warn({
       msg: 'jwt-secret-fallback-used',
       configKey,
@@ -208,7 +219,9 @@ export class AuthService {
 }
 
 const toAxiosMetadata = (error: unknown): Record<string, unknown> => {
-  if (!axios.isAxiosError(error)) return {};
+  if (!axios.isAxiosError(error)) {
+    return {};
+  }
   return {
     status: error.response?.status,
     code: error.code,

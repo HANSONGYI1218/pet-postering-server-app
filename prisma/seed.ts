@@ -16,8 +16,12 @@ import {
 
 const prisma = new PrismaClient();
 
+const log = (message: string): void => {
+  console.warn(`[seed] ${message}`);
+};
+
 const seedOrganizations = async (): Promise<void> => {
-  console.warn('🌱 Seeding organizations...');
+  log('seeding organizations...');
   for (const org of organizationSeeds) {
     await prisma.organization.upsert({
       where: { id: org.id },
@@ -28,7 +32,7 @@ const seedOrganizations = async (): Promise<void> => {
 };
 
 const clearSeedAnimals = async (): Promise<void> => {
-  console.warn('🧹 Clearing existing seeded animals...');
+  log('clearing existing animal seeds...');
   await prisma.animal.deleteMany({
     where: {
       id: { in: animalSeeds.map((seed) => seed.id) },
@@ -37,7 +41,7 @@ const clearSeedAnimals = async (): Promise<void> => {
 };
 
 const seedAnimals = async (): Promise<void> => {
-  console.warn('🐾 Creating foster animals...');
+  log('seeding animals...');
   for (const seed of animalSeeds) {
     const mainImageUrl = seed.images[0]?.url;
     await prisma.animal.create({
@@ -83,7 +87,7 @@ const seedAnimals = async (): Promise<void> => {
 };
 
 const seedRecords = async (): Promise<void> => {
-  console.warn('📝 Creating foster records...');
+  log('seeding foster records...');
   for (const { animalId, entries } of recordSeeds) {
     for (const entry of entries) {
       await prisma.fosterRecord.create({
@@ -105,7 +109,7 @@ const seedRecords = async (): Promise<void> => {
 };
 
 const seedNotices = async (): Promise<void> => {
-  console.warn('📢 Seeding notices...');
+  log('seeding notices...');
   for (const seed of noticeSeeds) {
     await prisma.notice.upsert({
       where: { id: seed.id },
@@ -136,7 +140,7 @@ const seedNotices = async (): Promise<void> => {
 };
 
 const clearCommunitySeeds = async (): Promise<void> => {
-  console.warn('🧹 Clearing existing community seeds...');
+  log('clearing existing community seeds...');
   const userIds = communityUserSeeds.map((seed) => seed.id);
   await prisma.userNotificationSetting.deleteMany({
     where: { userId: { in: userIds } },
@@ -154,7 +158,7 @@ const clearCommunitySeeds = async (): Promise<void> => {
 };
 
 const seedCommunityUsers = async (): Promise<void> => {
-  console.warn('👤 Seeding community users...');
+  log('seeding community users...');
   for (const seed of communityUserSeeds) {
     await prisma.user.create({
       data: {
@@ -209,7 +213,7 @@ const buildUserNotificationSettingData = (
 });
 
 const seedUserProfiles = async (): Promise<void> => {
-  console.warn('👥 Seeding user profiles...');
+  log('seeding user profiles...');
   await Promise.all(
     userProfileSeeds.map((seed) =>
       prisma.userProfile.upsert({
@@ -222,7 +226,7 @@ const seedUserProfiles = async (): Promise<void> => {
 };
 
 const seedUserNotificationSettings = async (): Promise<void> => {
-  console.warn('🔔 Seeding user notification settings...');
+  log('seeding user notification settings...');
   await Promise.all(
     userNotificationSettingSeeds.map((seed) =>
       prisma.userNotificationSetting.upsert({
@@ -238,7 +242,7 @@ const seedUserNotificationSettings = async (): Promise<void> => {
 };
 
 const seedCommunityPosts = async (): Promise<void> => {
-  console.warn('💬 Seeding community posts...');
+  log('seeding community posts...');
   for (const seed of communityPostSeeds) {
     await prisma.post.create({
       data: {
@@ -255,7 +259,7 @@ const seedCommunityPosts = async (): Promise<void> => {
 };
 
 const seedCommunityComments = async (): Promise<void> => {
-  console.warn('💭 Seeding community comments...');
+  log('seeding community comments...');
   for (const seed of communityCommentSeeds) {
     await prisma.comment.create({
       data: {
@@ -282,12 +286,12 @@ async function main(): Promise<void> {
   await seedUserNotificationSettings();
   await seedCommunityPosts();
   await seedCommunityComments();
-  console.warn('✅ Seeding finished!');
+  log('seed completed successfully.');
 }
 
 main()
   .catch((error: unknown) => {
-    console.error('❌ Seeding failed', error);
+    console.error('[seed] seeding failed.', error);
     process.exitCode = 1;
   })
   .finally(() => {

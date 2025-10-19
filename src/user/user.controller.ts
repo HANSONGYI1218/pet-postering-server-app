@@ -28,13 +28,13 @@ import { UsersService } from './user.service';
 @UseGuards(AuthGuard('jwt'))
 @Controller('users/me')
 export class UsersController {
-  constructor(private readonly users: UsersService) {}
+  constructor(private readonly usersService: UsersService) {}
 
   @Get('profile')
   @ApiOperation({ summary: 'Get current user profile' })
   @ApiOkResponse({ type: UserProfileDto })
   getProfile(@CurrentUser() user: AuthUser): Promise<UserProfileDto> {
-    return this.users.getProfile(user.userId);
+    return this.usersService.getProfile(user.userId);
   }
 
   @Get('notification-settings')
@@ -43,7 +43,7 @@ export class UsersController {
   getNotificationSetting(
     @CurrentUser() user: AuthUser,
   ): Promise<UserNotificationSettingDto> {
-    return this.users.getNotificationSetting(user.userId);
+    return this.usersService.getNotificationSetting(user.userId);
   }
 
   @Patch('profile')
@@ -53,7 +53,7 @@ export class UsersController {
     @CurrentUser() user: AuthUser,
     @Body() body: UpdateUserProfileDto,
   ): Promise<UserProfileDto> {
-    return this.users.updateProfile(user.userId, body);
+    return this.usersService.updateProfile(user.userId, body);
   }
 
   @Patch('notification-settings')
@@ -63,27 +63,27 @@ export class UsersController {
     @CurrentUser() user: AuthUser,
     @Body() body: UpdateUserNotificationSettingDto,
   ): Promise<UserNotificationSettingDto> {
-    return this.users.updateNotificationSetting(user.userId, body);
+    return this.usersService.updateNotificationSetting(user.userId, body);
   }
 
   @Delete()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete current user account' })
   deleteAccount(@CurrentUser() user: AuthUser): Promise<void> {
-    return this.users.deleteAccount(user.userId);
+    return this.usersService.deleteAccount(user.userId);
   }
 
   @Get('posts')
   @ApiOperation({ summary: 'List community posts authored by current user' })
   @ApiOkResponse({ type: UserPostItemDto, isArray: true })
   listMyPosts(@CurrentUser() user: AuthUser): Promise<UserPostItemDto[]> {
-    return this.users.listMyPosts(user.userId);
+    return this.usersService.listMyPosts(user.userId);
   }
 
   @Get('comments')
   @ApiOperation({ summary: 'List community comments authored by current user' })
   @ApiOkResponse({ type: UserCommentItemDto, isArray: true })
   listMyComments(@CurrentUser() user: AuthUser): Promise<UserCommentItemDto[]> {
-    return this.users.listMyComments(user.userId);
+    return this.usersService.listMyComments(user.userId);
   }
 }

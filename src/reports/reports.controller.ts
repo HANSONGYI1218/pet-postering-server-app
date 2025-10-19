@@ -1,6 +1,11 @@
 import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 
 import { CurrentUser } from '../common/current-user.decorator';
 import type { AuthUser } from '../common/types';
@@ -20,7 +25,7 @@ export class ReportsController {
   @Post()
   @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Report a post or comment' })
-  @ApiOkResponse({ type: ReportDto })
+  @ApiCreatedResponse({ type: ReportDto })
   create(
     @CurrentUser() user: AuthUser,
     @Body() body: CreateReportDto,

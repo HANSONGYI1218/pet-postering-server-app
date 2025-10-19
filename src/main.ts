@@ -55,4 +55,6 @@ export async function bootstrap(): Promise<void> {
   }
 }
 
-if (!process.env.JEST_WORKER_ID) void bootstrap();
+if (!process.env.JEST_WORKER_ID) {
+  void bootstrap();
+}

@@ -1,12 +1,16 @@
 #!/bin/sh
 set -euo pipefail
 
+log() {
+  echo "[entrypoint] $1"
+}
+
 if [ "${SKIP_MIGRATE:-0}" != "1" ]; then
-  echo "Running prisma migrate deploy"
+  log "running Prisma migrations"
   npx prisma migrate deploy
 else
-  echo "Skipping Prisma migrations (SKIP_MIGRATE=${SKIP_MIGRATE:-})"
+  log "skipping Prisma migrations (SKIP_MIGRATE=${SKIP_MIGRATE:-})"
 fi
 
-echo "Starting application: $*"
+log "starting application: $*"
 exec "$@"

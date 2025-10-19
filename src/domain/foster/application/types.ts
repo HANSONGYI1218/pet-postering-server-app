@@ -41,7 +41,7 @@ export interface FosterRecordAnimalMeta {
 }
 
 export interface FosterRecordDetail extends FosterRecordBase {
-  animal?: FosterRecordAnimalMeta;
+  animal: FosterRecordAnimalMeta;
 }
 
 export interface ListRecordsResult {

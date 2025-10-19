@@ -309,6 +309,32 @@ describe('UsersService', () => {
       });
     });
 
+    it('returns post as null when the relation is missing', async () => {
+      const { service, prisma } = buildService();
+      prisma.comment.findMany.mockResolvedValueOnce([
+        {
+          id: 'comment-2',
+          postId: 'post-2',
+          authorId: 'user-1',
+          content: 'Detached comment',
+          createdAt: new Date('2025-02-01T00:00:00Z'),
+          post: null,
+        },
+      ]);
+      prisma.commentLike.groupBy.mockResolvedValueOnce([]);
+
+      await expect(service.listMyComments('user-1')).resolves.toEqual([
+        {
+          id: 'comment-2',
+          postId: 'post-2',
+          content: 'Detached comment',
+          createdAt: new Date('2025-02-01T00:00:00Z'),
+          likes: 0,
+          post: null,
+        },
+      ]);
+    });
+
     it('returns an empty array when the user has no comments', async () => {
       const { service, prisma } = buildService();
       prisma.comment.findMany.mockResolvedValueOnce([]);

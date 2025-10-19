@@ -1,3 +1,4 @@
+import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import {
   type ExecutionContext,
   type INestApplication,
@@ -8,6 +9,7 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 
 import { OptionalJwtAuthGuard } from '../common/optional-jwt.guard';
+import { DEFAULT_POST_PAGE_SIZE } from './community.constants';
 import { CommunityController } from './community.controller';
 import { CommunityService } from './community.service';
 
@@ -51,7 +53,9 @@ describe('CommunityController', () => {
         canActivate: (ctx: ExecutionContext) => {
           const req = ctx.switchToHttp().getRequest();
           const header = req.headers['x-test-user'] as string | undefined;
-          if (header) req.user = { userId: header, role: 'USER' };
+          if (header) {
+            req.user = { userId: header, role: 'USER' };
+          }
           return true;
         },
       })
@@ -96,6 +100,22 @@ describe('CommunityController', () => {
       .expect(400);
 
     expect(service.listPosts).not.toHaveBeenCalled();
+  });
+
+  it('GET /community/posts applies the default page size when limit is omitted', async () => {
+    service.listPosts.mockResolvedValueOnce({
+      items: [],
+      nextCursor: null,
+      limit: DEFAULT_POST_PAGE_SIZE,
+    });
+
+    await request(app.getHttpServer()).get('/community/posts').expect(200).expect({
+      items: [],
+      nextCursor: null,
+      limit: DEFAULT_POST_PAGE_SIZE,
+    });
+
+    expect(service.listPosts).toHaveBeenCalledWith(DEFAULT_POST_PAGE_SIZE, undefined);
   });
 
   it('POST /community/posts injects authenticated user id', async () => {

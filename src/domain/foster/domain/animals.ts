@@ -5,7 +5,9 @@ export type ParseAnimalStatusResult =
   | { status: 'error'; reason: 'invalid-animal-status' };
 
 export const parseAnimalStatus = (rawStatus?: string): ParseAnimalStatusResult => {
-  if (!rawStatus) return { status: 'ok', value: undefined };
+  if (!rawStatus) {
+    return { status: 'ok', value: undefined };
+  }
   if ((Object.values(AnimalStatus) as string[]).includes(rawStatus)) {
     return { status: 'ok', value: rawStatus as AnimalStatus };
   }

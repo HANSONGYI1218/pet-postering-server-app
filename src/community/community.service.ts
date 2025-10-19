@@ -29,6 +29,17 @@ import {
 } from '../domain/community/domain/comments';
 import { clampPostLimit, preparePaginatedPosts } from '../domain/community/domain/posts';
 import { PrismaService } from '../prisma/prisma.service';
+import { DEFAULT_POST_PAGE_SIZE } from './community.constants';
+
+const POST_RELATIONS = {
+  _count: { select: { comments: true } },
+  author: { select: { id: true, displayName: true } },
+} as const;
+
+const COMMENT_RELATIONS = {
+  _count: { select: { likes: true, replies: true } },
+  author: { select: { id: true, displayName: true } },
+} as const;
 
 @Injectable()
 export class CommunityService {
@@ -39,17 +50,17 @@ export class CommunityService {
     this.logger.setContext(CommunityService.name);
   }
 
-  async listPosts(limit = 20, cursor?: string): Promise<ListPostsResult> {
+  async listPosts(
+    limit = DEFAULT_POST_PAGE_SIZE,
+    cursor?: string,
+  ): Promise<ListPostsResult> {
     const normalized = clampPostLimit(limit);
     const posts = await this.prisma.post.findMany({
       take: normalized + 1,
       skip: cursor ? 1 : 0,
       ...(cursor ? { cursor: { id: cursor } } : {}),
       orderBy: { createdAt: 'desc' },
-      include: {
-        _count: { select: { comments: true } },
-        author: { select: { id: true, displayName: true } },
-      },
+      include: POST_RELATIONS,
     });
     const mappedPosts = posts.map((post) => toPostListItem(post));
     const { items, nextCursor } = preparePaginatedPosts<PostListItem>(
@@ -65,10 +76,7 @@ export class CommunityService {
   ): Promise<PostListItem> {
     const created = await this.prisma.post.create({
       data: { authorId, title: dto.title, content: dto.content },
-      include: {
-        _count: { select: { comments: true } },
-        author: { select: { id: true, displayName: true } },
-      },
+      include: POST_RELATIONS,
     });
     return toPostListItem(created);
   }
@@ -76,11 +84,15 @@ export class CommunityService {
   async getPost(postId: string, userId?: string): Promise<PostDetail> {
     const post = await this.fetchPostWithViewIncrement(postId);
 
-    if (!post) throw new NotFoundException('post-not-found');
+    if (!post) {
+      throw new NotFoundException('post-not-found');
+    }
 
     const mapped = toPostListItem(post);
 
-    if (!userId) return { ...mapped, isBookmarked: false };
+    if (!userId) {
+      return { ...mapped, isBookmarked: false };
+    }
 
     const bookmarkCount = await this.prisma.postBookmark.count({
       where: { userId, postId },
@@ -98,17 +110,29 @@ export class CommunityService {
   }
 
   async unbookmark(postId: string, userId: string): Promise<BookmarkResponse> {
-    await this.prisma.postBookmark
-      .delete({ where: { userId_postId: { userId, postId } } })
-      .catch((error: unknown) => {
+    try {
+      await this.prisma.postBookmark.delete({
+        where: { userId_postId: { userId, postId } },
+      });
+    } catch (error: unknown) {
+      if (this.isPrismaNotFoundError(error)) {
         this.logger.warn({
+          msg: 'post-unbookmark-missing',
+          postId,
+          userId,
+        });
+      } else {
+        this.logger.error({
           msg: 'post-unbookmark-failed',
           postId,
           userId,
           err: error,
         });
-        return undefined;
-      });
+        throw new InternalServerErrorException('post-unbookmark-failed', {
+          cause: error,
+        });
+      }
+    }
     return { postId, bookmarked: false };
   }
 
@@ -116,15 +140,14 @@ export class CommunityService {
     const comments = await this.prisma.comment.findMany({
       where: { postId },
       orderBy: { createdAt: 'asc' },
-      include: {
-        _count: { select: { likes: true, replies: true } },
-        author: { select: { id: true, displayName: true } },
-      },
+      include: COMMENT_RELATIONS,
     });
     const baseItems: CommentListItem[] = comments.map((comment) =>
       toCommentListItem(comment),
     );
-    if (!userId || baseItems.length === 0) return { postId, items: baseItems };
+    if (!userId || baseItems.length === 0) {
+      return { postId, items: baseItems };
+    }
 
     const liked = await this.prisma.commentLike.findMany({
       where: { userId, commentId: { in: baseItems.map((c) => c.id) } },
@@ -148,10 +171,7 @@ export class CommunityService {
           content: dto.content,
           parentId: null,
         },
-        include: {
-          _count: { select: { likes: true, replies: true } },
-          author: { select: { id: true, displayName: true } },
-        },
+        include: COMMENT_RELATIONS,
       });
       return toCommentListItem(created);
     }
@@ -160,7 +180,9 @@ export class CommunityService {
       where: { id: parentId },
     });
     const resolution = resolveParentForCreation(parent ?? undefined, postId);
-    if (resolution.status === 'error') throw new ForbiddenException(resolution.reason);
+    if (resolution.status === 'error') {
+      throw new ForbiddenException(resolution.reason);
+    }
 
     const created = await this.prisma.comment.create({
       data: {
@@ -169,10 +191,7 @@ export class CommunityService {
         content: dto.content,
         parentId: resolution.parentId,
       },
-      include: {
-        _count: { select: { likes: true, replies: true } },
-        author: { select: { id: true, displayName: true } },
-      },
+      include: COMMENT_RELATIONS,
     });
     return toCommentListItem(created);
   }
@@ -188,8 +207,9 @@ export class CommunityService {
       : 0;
     const evaluation = evaluateCommentDeletion(comment, userId, childCount);
     if (evaluation.status === 'error') {
-      if (evaluation.reason === 'comment-not-found')
+      if (evaluation.reason === 'comment-not-found') {
         throw new NotFoundException(evaluation.reason);
+      }
       throw new ForbiddenException(evaluation.reason);
     }
     await this.prisma.comment.delete({ where: { id: commentId } });
@@ -206,18 +226,36 @@ export class CommunityService {
   }
 
   async unlikeComment(commentId: string, userId: string): Promise<LikeCommentResponse> {
-    await this.prisma.commentLike
-      .delete({ where: { userId_commentId: { userId, commentId } } })
-      .catch((error: unknown) => {
+    try {
+      await this.prisma.commentLike.delete({
+        where: { userId_commentId: { userId, commentId } },
+      });
+    } catch (error: unknown) {
+      if (this.isPrismaNotFoundError(error)) {
         this.logger.warn({
+          msg: 'comment-unlike-missing',
+          commentId,
+          userId,
+        });
+      } else {
+        this.logger.error({
           msg: 'comment-unlike-failed',
           commentId,
           userId,
           err: error,
         });
-        return undefined;
-      });
+        throw new InternalServerErrorException('comment-unlike-failed', {
+          cause: error,
+        });
+      }
+    }
     return { commentId, liked: false };
+  }
+
+  private isPrismaNotFoundError(error: unknown): boolean {
+    return (
+      error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025'
+    );
   }
 
   private async fetchPostWithViewIncrement(
@@ -228,10 +266,7 @@ export class CommunityService {
         tx.post.update({
           where: { id: postId },
           data: { viewCount: { increment: 1 } },
-          include: {
-            _count: { select: { comments: true } },
-            author: { select: { id: true, displayName: true } },
-          },
+          include: POST_RELATIONS,
         }),
       );
     } catch (error: unknown) {

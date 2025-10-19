@@ -1,20 +1,15 @@
 import type {
-  Animal,
-  AnimalEnvironmentTag,
   AnimalEnvironmentTagType,
   AnimalGender,
-  AnimalHealthTag,
   AnimalHealthTagType,
-  AnimalImage,
-  AnimalPersonalityTag,
   AnimalPersonalityTagType,
   AnimalSize,
-  AnimalSpecialNoteTag,
   AnimalSpecialNoteTagType,
   AnimalStatus,
   AnimalType,
   Organization,
 } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 
 import type {
   PublicFosterAnimalDetail,
@@ -23,16 +18,24 @@ import type {
 } from '../application/types';
 import { firstImageUrlOrNull, sortedImageUrls } from './image-sorting';
 
-interface AnimalRelations {
-  organization: Organization | null;
-  images: AnimalImage[];
-  healthTags: AnimalHealthTag[];
-  personalityTags: AnimalPersonalityTag[];
-  environmentTags: AnimalEnvironmentTag[];
-  specialNoteTags: AnimalSpecialNoteTag[];
-}
+const rawAnimalArgs = Prisma.validator<Prisma.AnimalDefaultArgs>()({
+  include: {
+    organization: true,
+    images: true,
+    healthTags: true,
+    personalityTags: true,
+    environmentTags: true,
+    specialNoteTags: true,
+  },
+});
 
-type RawAnimal = Animal & AnimalRelations;
+export type RawAnimal = Prisma.AnimalGetPayload<typeof rawAnimalArgs>;
+
+export const PUBLIC_FOSTER_ANIMAL_INCLUDE = rawAnimalArgs.include;
+
+export const PUBLIC_FOSTER_ANIMAL_QUERY = Prisma.validator<Prisma.AnimalFindManyArgs>()({
+  include: PUBLIC_FOSTER_ANIMAL_INCLUDE,
+});
 
 const toNullSafeIsoString = (value: Date | null | undefined): string | null =>
   value ? value.toISOString() : null;
@@ -43,7 +46,9 @@ const pluckTagValues = <TValue extends string>(tags: { value: TValue }[]): TValu
 const toOrganization = (
   organization: Organization | null,
 ): PublicFosterOrganization | null => {
-  if (!organization) return null;
+  if (!organization) {
+    return null;
+  }
 
   return {
     id: organization.id,

@@ -13,10 +13,14 @@ export const prepareReportCreation = (
   command: CreateReportCommand,
 ): PrepareReportCreationResult => {
   const targetId = normalize(command.targetId);
-  if (!targetId) return { status: 'error', reason: 'report-target-empty' };
+  if (!targetId) {
+    return { status: 'error', reason: 'report-target-empty' };
+  }
 
   const reason = normalize(command.reason);
-  if (!reason) return { status: 'error', reason: 'report-reason-empty' };
+  if (!reason) {
+    return { status: 'error', reason: 'report-reason-empty' };
+  }
 
   return {
     status: 'ok',

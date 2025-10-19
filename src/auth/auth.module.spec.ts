@@ -1,3 +1,4 @@
+import { describe, expect, it, jest } from '@jest/globals';
 import { Test } from '@nestjs/testing';
 import { LoggerModule, PinoLogger } from 'nestjs-pino';
 

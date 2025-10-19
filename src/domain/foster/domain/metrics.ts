@@ -8,7 +8,9 @@ interface FosterDaysInput {
 
 export const calculateElapsedDays = (start: Date, end: Date): number => {
   const diffMs = end.getTime() - start.getTime();
-  if (Number.isNaN(diffMs)) return 0;
+  if (Number.isNaN(diffMs)) {
+    return 0;
+  }
   const days = Math.floor(diffMs / MS_PER_DAY);
   return days < 0 ? 0 : days;
 };

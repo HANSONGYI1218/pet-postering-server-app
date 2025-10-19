@@ -19,6 +19,7 @@ import {
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
+import { AnimalStatus } from '@prisma/client';
 
 import { CurrentUser } from '../common/current-user.decorator';
 import type { AuthUser } from '../common/types';
@@ -186,7 +187,7 @@ export class FosterController {
   @Get('waiting-animals')
   @ApiOperation({ summary: 'List animals in WAITING status' })
   @ApiOkResponse({ type: ListAnimalsResponseDto })
-  waitingAnimals(): Promise<ListAnimalsResult> {
-    return this.fosterService.listAnimals('WAITING');
+  listWaitingAnimals(): Promise<ListAnimalsResult> {
+    return this.fosterService.listAnimals(AnimalStatus.WAITING);
   }
 }

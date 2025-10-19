@@ -1,18 +1,29 @@
+import { describe, expect, it } from '@jest/globals';
+
+import {
+  POST_PAGE_SIZE_DEFAULT,
+  POST_PAGE_SIZE_MAX,
+  POST_PAGE_SIZE_MIN,
+} from '../constants';
 import { clampPostLimit, preparePaginatedPosts } from '../posts';
 
 describe('community posts domain', () => {
   describe('clampPostLimit', () => {
-    it('clamps values below the minimum to 1', () => {
-      expect(clampPostLimit(0)).toBe(1);
-      expect(clampPostLimit(-10)).toBe(1);
+    it('clamps values below the minimum boundary', () => {
+      expect(clampPostLimit(0)).toBe(POST_PAGE_SIZE_MIN);
+      expect(clampPostLimit(-10)).toBe(POST_PAGE_SIZE_MIN);
     });
 
-    it('clamps values above the maximum to 50', () => {
-      expect(clampPostLimit(999)).toBe(50);
+    it('clamps values above the maximum boundary', () => {
+      expect(clampPostLimit(999)).toBe(POST_PAGE_SIZE_MAX);
     });
 
     it('keeps values within the range unchanged', () => {
       expect(clampPostLimit(15)).toBe(15);
+    });
+
+    it('returns the default page size when limit is NaN', () => {
+      expect(clampPostLimit(Number.NaN)).toBe(POST_PAGE_SIZE_DEFAULT);
     });
   });
 

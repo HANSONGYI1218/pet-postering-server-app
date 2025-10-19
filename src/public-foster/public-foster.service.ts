@@ -1,5 +1,4 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import type { Prisma } from '@prisma/client';
 
 import { resolveFosterDaysForAnimal } from '../domain/foster/application/foster-days';
 import type {
@@ -7,20 +6,12 @@ import type {
   PublicFosterAnimalListResult,
 } from '../domain/public-foster/application/types';
 import {
-  type RawAnimal,
+  PUBLIC_FOSTER_ANIMAL_INCLUDE,
+  PUBLIC_FOSTER_ANIMAL_QUERY,
   toPublicFosterDetail,
   toPublicFosterListItem,
 } from '../domain/public-foster/domain/mappers';
 import { PrismaService } from '../prisma/prisma.service';
-
-const ANIMAL_INCLUDE: Prisma.AnimalInclude = {
-  organization: true,
-  images: true,
-  healthTags: true,
-  personalityTags: true,
-  environmentTags: true,
-  specialNoteTags: true,
-};
 
 @Injectable()
 export class PublicFosterService {
@@ -28,7 +19,7 @@ export class PublicFosterService {
 
   async listAnimals(): Promise<PublicFosterAnimalListResult> {
     const animals = await this.prisma.animal.findMany({
-      include: ANIMAL_INCLUDE,
+      ...PUBLIC_FOSTER_ANIMAL_QUERY,
       orderBy: { createdAt: 'desc' },
     });
     const now = new Date();
@@ -39,7 +30,7 @@ export class PublicFosterService {
           fallbackCreatedAt: animal.createdAt,
           now,
         });
-        return toPublicFosterListItem(animal as RawAnimal, fosterDays);
+        return toPublicFosterListItem(animal, fosterDays);
       }),
     );
     return { items };
@@ -48,9 +39,11 @@ export class PublicFosterService {
   async getAnimal(id: string): Promise<PublicFosterAnimalDetail> {
     const animal = await this.prisma.animal.findUnique({
       where: { id },
-      include: ANIMAL_INCLUDE,
+      include: PUBLIC_FOSTER_ANIMAL_INCLUDE,
     });
-    if (!animal) throw new NotFoundException('public-animal-not-found');
-    return toPublicFosterDetail(animal as RawAnimal);
+    if (!animal) {
+      throw new NotFoundException('public-animal-not-found');
+    }
+    return toPublicFosterDetail(animal);
   }
 }

@@ -42,7 +42,9 @@ export const createKakaoTokenRequest = (
     redirect_uri: config.redirectUri,
     code,
   });
-  if (config.clientSecret) params.append('client_secret', config.clientSecret);
+  if (config.clientSecret) {
+    params.append('client_secret', config.clientSecret);
+  }
 
   return {
     url: KAKAO_TOKEN_URL,

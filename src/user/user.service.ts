@@ -163,13 +163,16 @@ export class UsersService {
       likeCounts.map((item) => [item.commentId, item._count.commentId]),
     );
 
-    return comments.map((comment) => ({
-      id: comment.id,
-      postId: comment.postId,
-      content: comment.content,
-      createdAt: comment.createdAt,
-      likes: likeMap.get(comment.id) ?? 0,
-      post: { id: comment.post.id, title: comment.post.title },
-    }));
+    return comments.map((comment) => {
+      const post = comment.post as { id: string; title: string } | null;
+      return {
+        id: comment.id,
+        postId: comment.postId,
+        content: comment.content,
+        createdAt: comment.createdAt,
+        likes: likeMap.get(comment.id) ?? 0,
+        post: post ? { id: post.id, title: post.title } : null,
+      } satisfies UserCommentListItem;
+    });
   }
 }

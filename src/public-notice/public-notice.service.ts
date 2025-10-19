@@ -1,51 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import type { Notice, NoticeAttachment } from '@prisma/client';
 
+import {
+  toPublicNoticeDetail,
+  toPublicNoticeListItem,
+} from '../domain/public-notice/application/mappers';
+import type {
+  PublicNoticeDetail,
+  PublicNoticeListResult,
+} from '../domain/public-notice/application/types';
 import { PrismaService } from '../prisma/prisma.service';
-
-type NoticeWithAttachments = Notice & { attachments: NoticeAttachment[] };
-
-export interface PublicNoticeListItem {
-  id: string;
-  title: string;
-  type: string | null;
-  isFixed: boolean;
-  createdAt: Date;
-  attachments: number;
-}
-
-export interface PublicNoticeListResult {
-  items: PublicNoticeListItem[];
-}
-
-export interface PublicNoticeDetail {
-  id: string;
-  title: string;
-  type: string | null;
-  isFixed: boolean;
-  createdAt: Date;
-  content: string;
-  attachmentFiles: string[];
-}
-
-const toListItem = (notice: NoticeWithAttachments): PublicNoticeListItem => ({
-  id: notice.id,
-  title: notice.title,
-  type: notice.type,
-  isFixed: notice.isFixed,
-  createdAt: notice.createdAt,
-  attachments: notice.attachments.length,
-});
-
-const toDetail = (notice: NoticeWithAttachments): PublicNoticeDetail => ({
-  id: notice.id,
-  title: notice.title,
-  type: notice.type,
-  isFixed: notice.isFixed,
-  createdAt: notice.createdAt,
-  content: notice.content,
-  attachmentFiles: notice.attachments.map((attachment) => attachment.url),
-});
 
 @Injectable()
 export class PublicNoticeService {
@@ -58,7 +21,7 @@ export class PublicNoticeService {
     });
 
     return {
-      items: notices.map(toListItem),
+      items: notices.map(toPublicNoticeListItem),
     };
   }
 
@@ -72,6 +35,6 @@ export class PublicNoticeService {
       throw new NotFoundException('public-notice-not-found');
     }
 
-    return toDetail(notice);
+    return toPublicNoticeDetail(notice);
   }
 }

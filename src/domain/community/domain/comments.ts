@@ -28,10 +28,15 @@ export const resolveParentForCreation = (
   parent: MinimalParentComment | null | undefined,
   expectedPostId: string,
 ): ParentResolution => {
-  if (parent === null) return { status: 'ok', parentId: null };
-  if (parent === undefined) return { status: 'error', reason: 'parent-not-found' };
-  if (parent.postId !== expectedPostId)
+  if (parent === null) {
+    return { status: 'ok', parentId: null };
+  }
+  if (parent === undefined) {
+    return { status: 'error', reason: 'parent-not-found' };
+  }
+  if (parent.postId !== expectedPostId) {
     return { status: 'error', reason: 'invalid-parent-post' };
+  }
   return { status: 'ok', parentId: parent.id };
 };
 
@@ -40,9 +45,14 @@ export const evaluateCommentDeletion = (
   userId: string,
   childCount: number,
 ): DeletionEvaluation => {
-  if (!comment) return { status: 'error', reason: 'comment-not-found' };
-  if (comment.authorId !== userId)
+  if (!comment) {
+    return { status: 'error', reason: 'comment-not-found' };
+  }
+  if (comment.authorId !== userId) {
     return { status: 'error', reason: 'comment-not-owner' };
-  if (childCount > 0) return { status: 'error', reason: 'comment-has-replies' };
+  }
+  if (childCount > 0) {
+    return { status: 'error', reason: 'comment-has-replies' };
+  }
   return { status: 'ok' };
 };

@@ -4,11 +4,8 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 
 import type { AuthUser } from '../../common/types';
-
-interface JwtPayload {
-  sub: string;
-  role: string;
-}
+import { DEFAULT_JWT_REFRESH_SECRET } from '../constants';
+import type { JwtPayload } from '../jwt-payload';
 
 @Injectable()
 export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh') {
@@ -16,7 +13,7 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
     super({
       jwtFromRequest: ExtractJwt.fromBodyField('refreshToken'),
       ignoreExpiration: false,
-      secretOrKey: config.get<string>('JWT_REFRESH_SECRET') ?? 'dev-refresh',
+      secretOrKey: config.get<string>('JWT_REFRESH_SECRET') ?? DEFAULT_JWT_REFRESH_SECRET,
       passReqToCallback: false,
     });
   }

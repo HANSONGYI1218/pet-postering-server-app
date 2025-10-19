@@ -48,8 +48,9 @@ export class FosterService {
     user: AuthUser,
     dto: { name: string; orgId?: string; shared?: boolean },
   ): Promise<AnimalListItem> {
-    if (dto.orgId && user.role !== 'ORG_ADMIN')
+    if (dto.orgId && user.role !== 'ORG_ADMIN') {
       throw new ForbiddenException('animal-org-only');
+    }
 
     const created = await this.prisma.animal.create({
       data: dto.orgId
@@ -68,10 +69,7 @@ export class FosterService {
     user: AuthUser,
     dto: { name?: string; shared?: boolean; status?: string },
   ): Promise<AnimalListItem> {
-    this.requireAnimalAccess(
-      await this.prisma.animal.findUnique({ where: { id } }),
-      user,
-    );
+    await this.ensureWritableAnimal(id, user);
     const statusValue = this.parseStatus(dto.status);
 
     const updated = await this.prisma.animal.update({
@@ -87,10 +85,7 @@ export class FosterService {
   }
 
   async deleteAnimal(id: string, user: AuthUser): Promise<DeleteAnimalResult> {
-    this.requireAnimalAccess(
-      await this.prisma.animal.findUnique({ where: { id } }),
-      user,
-    );
+    await this.ensureWritableAnimal(id, user);
     await this.prisma.animal.delete({ where: { id } });
     return { id, deleted: true };
   }
@@ -101,13 +96,17 @@ export class FosterService {
     to?: string,
   ): Promise<ListRecordsResult> {
     const window = resolveRecordWindow(from, to);
-    if ('status' in window) throw new BadRequestException(window.reason);
+    if ('status' in window) {
+      throw new BadRequestException(window.reason);
+    }
 
     const animal = await this.prisma.animal.findUnique({
       where: { id: animalId },
       include: { organization: { select: { id: true, name: true } } },
     });
-    if (!animal) throw new NotFoundException('animal-not-found');
+    if (!animal) {
+      throw new NotFoundException('animal-not-found');
+    }
     const animalMeta = toFosterRecordAnimalMeta(animal);
 
     const items = await this.prisma.fosterRecord.findMany({
@@ -130,19 +129,18 @@ export class FosterService {
       where: { id: recordId },
       include: { images: true },
     });
-    if (!record || record.animalId !== animalId)
+    if (!record || record.animalId !== animalId) {
       throw new NotFoundException('record-not-found');
-    const base = toFosterRecordBase(record, record.images);
-
+    }
     const animal = await this.prisma.animal.findUnique({
       where: { id: animalId },
       include: { organization: { select: { id: true, name: true } } },
     });
-    if (!animal) return base;
-    return {
-      ...base,
-      animal: toFosterRecordAnimalMeta(animal),
-    };
+    if (!animal) {
+      throw new NotFoundException('animal-not-found');
+    }
+    const base = toFosterRecordBase(record, record.images);
+    return { ...base, animal: toFosterRecordAnimalMeta(animal) };
   }
 
   async createRecord(
@@ -150,10 +148,7 @@ export class FosterService {
     user: AuthUser,
     dto: { date: string; content?: string; images?: string[] },
   ): Promise<FosterRecordBase> {
-    this.requireAnimalAccess(
-      await this.prisma.animal.findUnique({ where: { id: animalId } }),
-      user,
-    );
+    await this.ensureWritableAnimal(animalId, user);
 
     const images = toImageCreateInputs(dto.images);
     const created = await this.prisma.fosterRecord.create({
@@ -184,13 +179,14 @@ export class FosterService {
     const record = await this.prisma.fosterRecord.findUnique({
       where: { id: recordId },
     });
-    if (!record || record.animalId !== animalId)
+    if (!record || record.animalId !== animalId) {
       throw new NotFoundException('record-not-found');
+    }
 
-    this.requireAnimalAccess(
-      await this.prisma.animal.findUnique({ where: { id: animalId } }),
-      user,
-    );
+    await this.ensureWritableAnimal(animalId, user);
+
+    const hasImagePayload = dto.images !== undefined;
+    const images = toImageCreateInputs(dto.images);
 
     return this.prisma.$transaction(async (tx) => {
       const updated = await tx.fosterRecord.update({
@@ -200,16 +196,18 @@ export class FosterService {
           date: dto.date ? new Date(dto.date) : undefined,
         },
       });
-      const images = toImageCreateInputs(dto.images);
-      if (images.length > 0) {
+
+      if (hasImagePayload) {
         await tx.fosterRecordImage.deleteMany({ where: { recordId } });
-        await tx.fosterRecordImage.createMany({
-          data: images.map((image) => ({
-            recordId,
-            url: image.url,
-            sortOrder: image.sortOrder,
-          })),
-        });
+        if (images.length > 0) {
+          await tx.fosterRecordImage.createMany({
+            data: images.map((image) => ({
+              recordId,
+              url: image.url,
+              sortOrder: image.sortOrder,
+            })),
+          });
+        }
       }
       const currentImages = await tx.fosterRecordImage.findMany({
         where: { recordId },
@@ -227,13 +225,11 @@ export class FosterService {
     const record = await this.prisma.fosterRecord.findUnique({
       where: { id: recordId },
     });
-    if (!record || record.animalId !== animalId)
+    if (!record || record.animalId !== animalId) {
       throw new NotFoundException('record-not-found');
+    }
 
-    this.requireAnimalAccess(
-      await this.prisma.animal.findUnique({ where: { id: animalId } }),
-      user,
-    );
+    await this.ensureWritableAnimal(animalId, user);
 
     await this.prisma.fosterRecord.delete({ where: { id: recordId } });
     return { animalId, id: recordId, deleted: true };
@@ -241,21 +237,21 @@ export class FosterService {
 
   private parseStatus(status?: string): AnimalStatus | undefined {
     const result = parseAnimalStatus(status);
-    if (result.status === 'error') throw new BadRequestException(result.reason);
+    if (result.status === 'error') {
+      throw new BadRequestException(result.reason);
+    }
     return result.value;
   }
 
-  private requireAnimalAccess<
-    T extends { orgId: string | null; ownerUserId: string | null } | null,
-  >(animal: T, user: AuthUser): Exclude<T, null> {
-    if (!animal) throw new NotFoundException('animal-not-found');
+  private async ensureWritableAnimal(animalId: string, user: AuthUser): Promise<void> {
+    const animal = await this.prisma.animal.findUnique({ where: { id: animalId } });
     const access = ensureAnimalWriteAccess(animal, user);
     if (access.status === 'error') {
-      if (access.reason === 'animal-not-found')
+      if (access.reason === 'animal-not-found') {
         throw new NotFoundException(access.reason);
+      }
       throw new ForbiddenException(access.reason);
     }
-    return animal as Exclude<T, null>;
   }
 
   private async computeFosterDays(

@@ -5,6 +5,7 @@ import { PassportModule } from '@nestjs/passport';
 
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { DEFAULT_JWT_ACCESS_SECRET } from './constants';
 import { JwtAccessStrategy } from './strategies/jwt-access.strategy';
 import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
 
@@ -15,10 +16,11 @@ import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (cs: ConfigService) => ({
-        secret: cs.get<string>('JWT_ACCESS_SECRET') ?? 'dev-access',
+      useFactory: (configService: ConfigService) => ({
+        secret:
+          configService.get<string>('JWT_ACCESS_SECRET') ?? DEFAULT_JWT_ACCESS_SECRET,
         signOptions: {
-          expiresIn: cs.get<string>('JWT_ACCESS_EXPIRES_IN') ?? '15m',
+          expiresIn: configService.get<string>('JWT_ACCESS_EXPIRES_IN') ?? '15m',
         },
       }),
     }),

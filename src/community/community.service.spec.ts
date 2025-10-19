@@ -1,3 +1,4 @@
+import { describe, expect, it, jest } from '@jest/globals';
 import {
   ForbiddenException,
   InternalServerErrorException,
@@ -237,17 +238,29 @@ describe('CommunityService', () => {
       });
     });
 
-    it('allows deletion failure when unbookmarking', async () => {
-      const { service, prisma } = build();
-      prisma.postBookmark.delete.mockRejectedValueOnce(new Error('missing'));
+    it('ignores Prisma not-found errors when unbookmarking', async () => {
+      const { service, prisma, logger } = build();
+      prisma.postBookmark.delete.mockRejectedValueOnce(
+        new Prisma.PrismaClientKnownRequestError('missing', {
+          code: 'P2025',
+          clientVersion: 'mock',
+        }),
+      );
 
       await expect(service.unbookmark('post-1', 'user-9')).resolves.toEqual({
         postId: 'post-1',
         bookmarked: false,
       });
-      expect(prisma.postBookmark.delete).toHaveBeenCalledWith({
-        where: { userId_postId: { userId: 'user-9', postId: 'post-1' } },
-      });
+      expect(logger.warn).toHaveBeenCalled();
+    });
+
+    it('throws when unbookmarking fails unexpectedly', async () => {
+      const { service, prisma } = build();
+      prisma.postBookmark.delete.mockRejectedValueOnce(new Error('boom'));
+
+      await expect(service.unbookmark('post-1', 'user-9')).rejects.toThrow(
+        InternalServerErrorException,
+      );
     });
   });
 
@@ -469,19 +482,29 @@ describe('CommunityService', () => {
       });
     });
 
-    it('allows deletion failure when unliking', async () => {
-      const { service, prisma } = build();
-      prisma.commentLike.delete.mockRejectedValueOnce(new Error('missing'));
+    it('ignores Prisma not-found errors when unliking', async () => {
+      const { service, prisma, logger } = build();
+      prisma.commentLike.delete.mockRejectedValueOnce(
+        new Prisma.PrismaClientKnownRequestError('missing', {
+          code: 'P2025',
+          clientVersion: 'mock',
+        }),
+      );
 
       await expect(service.unlikeComment('comment-1', 'user-1')).resolves.toEqual({
         commentId: 'comment-1',
         liked: false,
       });
-      expect(prisma.commentLike.delete).toHaveBeenCalledWith({
-        where: {
-          userId_commentId: { userId: 'user-1', commentId: 'comment-1' },
-        },
-      });
+      expect(logger.warn).toHaveBeenCalled();
+    });
+
+    it('throws when unliking fails unexpectedly', async () => {
+      const { service, prisma } = build();
+      prisma.commentLike.delete.mockRejectedValueOnce(new Error('boom'));
+
+      await expect(service.unlikeComment('comment-1', 'user-1')).rejects.toThrow(
+        InternalServerErrorException,
+      );
     });
   });
 });

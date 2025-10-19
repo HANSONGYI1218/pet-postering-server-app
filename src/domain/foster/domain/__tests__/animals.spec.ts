@@ -1,3 +1,4 @@
+import { describe, expect, it } from '@jest/globals';
 import { AnimalStatus } from '@prisma/client';
 
 import { parseAnimalStatus } from '../animals';

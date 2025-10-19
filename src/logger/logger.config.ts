@@ -16,9 +16,13 @@ const resolveLevel = (env: NodeJS.ProcessEnv): string =>
 const normalizeRequestId = (
   incoming: string | string[] | undefined,
 ): string | undefined => {
-  if (!incoming) return undefined;
+  if (!incoming) {
+    return undefined;
+  }
   const value = Array.isArray(incoming) ? incoming[0] : incoming;
-  if (typeof value !== 'string') return undefined;
+  if (typeof value !== 'string') {
+    return undefined;
+  }
   const trimmed = value.trim();
   return trimmed ? trimmed : undefined;
 };
@@ -45,7 +49,9 @@ export const buildLoggerOptions = (env: NodeJS.ProcessEnv): Params => {
         'req.body.refreshToken',
       ],
       genReqId(request: RequestWithId, response: ResponseWithHeaders) {
-        if (request.id) return request.id;
+        if (request.id) {
+          return request.id;
+        }
         const normalized = normalizeRequestId(request.headers['x-request-id']);
         const requestId = normalized ?? randomUUID();
         response.setHeader('x-request-id', requestId);

@@ -1,4 +1,5 @@
-import { Body, Controller, HttpCode, Post } from '@nestjs/common';
+import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   ApiCreatedResponse,
   ApiExcludeEndpoint,
@@ -20,7 +21,10 @@ import {
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly configService: ConfigService,
+  ) {}
 
   @Post('kakao')
   @ApiOperation({ summary: 'Exchange Kakao auth code for JWTs' })
@@ -30,7 +34,7 @@ export class AuthController {
   }
 
   @Post('refresh')
-  @HttpCode(200)
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Refresh access token using refresh token' })
   @ApiOkResponse({ type: AuthTokenPairDto })
   async refresh(@Body() body: RefreshDto): Promise<AuthTokenPair> {
@@ -38,7 +42,7 @@ export class AuthController {
   }
 
   @Post('logout')
-  @HttpCode(200)
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Logout current user (no-op server-side)' })
   @ApiOkResponse({ type: LogoutResponseDto })
   logout(): { ok: true } {
@@ -46,17 +50,23 @@ export class AuthController {
   }
 
   @Post('dev-token')
+  @HttpCode(HttpStatus.OK)
   @ApiExcludeEndpoint()
   @ApiOperation({
     summary: '[Dev] Issue tokens without Kakao (non-production)',
   })
+  @ApiOkResponse({ type: AuthTokenPairDto })
   async devToken(
     @Body() body: DevTokenDto,
   ): Promise<AuthTokenPair | { error: 'disabled' }> {
-    if (process.env.NODE_ENV === 'production') {
+    if (this.isProduction()) {
       return { error: 'disabled' };
     }
     const kakaoId = body.kakaoId ?? `dev:${body.userId ?? 'user'}`;
     return this.authService.devIssueByKakaoId(kakaoId, body.displayName);
+  }
+
+  private isProduction(): boolean {
+    return this.configService.get<string>('NODE_ENV') === 'production';
   }
 }

@@ -1,3 +1,5 @@
+import { describe, expect, it } from '@jest/globals';
+
 import type { AuthUser } from '../../../../common/types';
 import { ensureAnimalWriteAccess } from '../permissions';
 

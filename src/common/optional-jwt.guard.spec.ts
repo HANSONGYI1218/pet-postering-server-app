@@ -1,3 +1,5 @@
+import { describe, expect, it } from '@jest/globals';
+
 import { OptionalJwtAuthGuard } from './optional-jwt.guard';
 import type { AuthUser } from './types';
 

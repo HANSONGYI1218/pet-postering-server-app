@@ -1,3 +1,4 @@
+import { describe, expect, it } from '@jest/globals';
 import type {
   AnimalEnvironmentTag,
   AnimalEnvironmentTagType,
@@ -12,10 +13,13 @@ import type {
   AnimalSpecialNoteTagType,
   AnimalStatus,
   AnimalType,
+  FosterRecord,
+  FosterRecordImage,
   Organization,
 } from '@prisma/client';
 
 import { type RawAnimal, toPublicFosterDetail, toPublicFosterListItem } from './mappers';
+import { toRecordAnimal, toRecordDetail } from './record-mappers';
 
 const createAnimal = (overrides: Partial<RawAnimal> = {}): RawAnimal => {
   const organization: Organization = {
@@ -155,5 +159,49 @@ describe('public foster mappers', () => {
     const result = toPublicFosterListItem(animal, 0);
 
     expect(result.organization).toBeNull();
+  });
+
+  it('preserves nullable record fields as null in details', () => {
+    const animal = createAnimal({ remark: null });
+    const records: (FosterRecord & { images: FosterRecordImage[] })[] = [
+      {
+        id: 'record-1',
+        animalId: animal.id,
+        content: null,
+        healthNote: null,
+        date: new Date('2024-07-01T00:00:00.000Z'),
+        updatedAt: new Date('2024-07-01T00:00:00.000Z'),
+        createdAt: new Date('2024-07-01T00:00:00.000Z'),
+        images: [],
+      },
+    ];
+
+    const detail = toPublicFosterDetail(animal);
+    const recordDetail = toRecordDetail({
+      animal: {
+        ...animal,
+        remark: null,
+      },
+      records,
+    });
+
+    expect(detail.remark).toBeNull();
+    expect(recordDetail.records[0]).toMatchObject({
+      content: null,
+      healthNote: null,
+    });
+  });
+
+  it('computes foster duration with the provided now parameter', () => {
+    const animal = createAnimal({
+      currentFosterStartDate: new Date('2024-01-01T00:00:00.000Z'),
+      currentFosterEndDate: null,
+    });
+
+    const result = toRecordAnimal(animal, {
+      now: new Date('2024-01-05T00:00:00.000Z'),
+    });
+
+    expect(result.fosterDuration).toBe(4);
   });
 });
