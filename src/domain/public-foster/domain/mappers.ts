@@ -121,5 +121,3 @@ export const toPublicFosterDetail = (animal: RawAnimal): PublicFosterAnimalDetai
   currentFosterStartDate: toNullSafeIsoString(animal.currentFosterStartDate),
   currentFosterEndDate: toNullSafeIsoString(animal.currentFosterEndDate),
 });
-
-export type { RawAnimal };

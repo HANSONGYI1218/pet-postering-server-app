@@ -5,7 +5,7 @@ import type { Params } from 'nestjs-pino';
 
 type RequestWithId = IncomingMessage & { id?: string };
 type ResponseWithHeaders = ServerResponse & {
-  setHeader(name: string, value: string): this;
+  setHeader(name: string, value: string): ServerResponse;
 };
 
 const APP_NAME = 'pet-server';

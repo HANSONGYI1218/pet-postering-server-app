@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import type { Role } from '@prisma/client';
 import axios from 'axios';
 import { PinoLogger } from 'nestjs-pino';
 
@@ -153,7 +154,7 @@ export class AuthService {
 
   private async issueTokens(user: {
     id: string;
-    role: string;
+    role: Role;
     displayName?: string | null;
     avatarUrl?: string | null;
   }): Promise<AuthTokenPair> {

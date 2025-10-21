@@ -3,7 +3,10 @@ import { Prisma, PrismaClient } from '@prisma/client';
 import { PinoLogger } from 'nestjs-pino';
 
 @Injectable()
-export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
+export class PrismaService
+  extends PrismaClient<Prisma.PrismaClientOptions, 'error'>
+  implements OnModuleInit, OnModuleDestroy
+{
   constructor(private readonly logger: PinoLogger) {
     super({
       log: [{ emit: 'event', level: 'error' }],

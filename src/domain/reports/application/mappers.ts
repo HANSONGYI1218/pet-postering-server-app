@@ -7,7 +7,7 @@ interface ReportRecord {
   reason: ReportView['reason'];
   reporterId: ReportView['reporterId'];
   createdAt: ReportView['createdAt'];
-  updatedAt: ReportView['updatedAt'];
+  updatedAt?: ReportView['updatedAt'];
 }
 
 export const toReportView = (report: ReportRecord): ReportView => ({
@@ -17,5 +17,5 @@ export const toReportView = (report: ReportRecord): ReportView => ({
   reason: report.reason,
   reporterId: report.reporterId,
   createdAt: report.createdAt,
-  updatedAt: report.updatedAt,
+  updatedAt: report.updatedAt ?? report.createdAt,
 });
