@@ -36,6 +36,7 @@ describe('PublicFosterRecordsService', () => {
       },
       fosterRecord: {
         findMany: jest.fn(),
+        groupBy: jest.fn().mockResolvedValue([]),
       },
     } satisfies Record<string, Record<string, jest.Mock>>;
     const service = new PublicFosterRecordsService(prisma as unknown as PrismaService);
@@ -63,6 +64,33 @@ describe('PublicFosterRecordsService', () => {
       fosterDuration: 9,
       state: 'IN_PROGRESS',
     });
+  });
+
+  it('falls back to earliest record date when foster duration is zero', async () => {
+    const { service, prisma } = build();
+    const fallbackAnimal = {
+      ...mockAnimal,
+      id: 'animal-2',
+      currentFosterStartDate: null,
+      currentFosterEndDate: null,
+      createdAt: new Date('2024-08-05T00:00:00.000Z'),
+    };
+    prisma.animal.findMany.mockResolvedValueOnce([fallbackAnimal]);
+    prisma.fosterRecord.groupBy.mockResolvedValueOnce([
+      {
+        animalId: 'animal-2',
+        _min: { date: new Date('2024-08-06T00:00:00.000Z') },
+      },
+    ]);
+
+    const result = await service.listAnimals();
+
+    expect(prisma.fosterRecord.groupBy).toHaveBeenCalledWith({
+      by: ['animalId'],
+      _min: { date: true },
+      where: { animalId: { in: ['animal-2'] } },
+    });
+    expect(result.items[0].fosterDuration).toBe(6);
   });
 
   it('returns detail when animal exists', async () => {

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { UnauthorizedException } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
 import type { JwtService } from '@nestjs/jwt';
-import axios from 'axios';
+import axios, { type AxiosInstance } from 'axios';
 
 import type { PrismaService } from '../prisma/prisma.service';
 import { AuthService } from './auth.service';
@@ -41,6 +41,13 @@ describe('AuthService', () => {
       error: jest.fn(),
     };
 
+    const post = jest.fn();
+    const getAxios = jest.fn();
+    mockedAxios.create.mockReturnValue({
+      post,
+      get: getAxios,
+    } as unknown as AxiosInstance);
+
     const service = new AuthService(logger as never, jwt, config, prisma);
     return {
       service,
@@ -51,6 +58,8 @@ describe('AuthService', () => {
       get,
       values,
       logger,
+      httpPost: post,
+      httpGet: getAxios,
     };
   };
 
@@ -61,11 +70,15 @@ describe('AuthService', () => {
 
   describe('kakaoLogin', () => {
     it('issues tokens after fetching user info with a Kakao code', async () => {
-      const { service, signAsync, upsert } = setup();
-      mockedAxios.post.mockResolvedValueOnce({
+      const { service, signAsync, upsert, httpPost, httpGet } = setup();
+      const axiosConfig = mockedAxios.create.mock.calls[0][0];
+      expect(axiosConfig.timeout).toBe(5000);
+      expect(axiosConfig.validateStatus(200)).toBe(true);
+      expect(axiosConfig.validateStatus(400)).toBe(false);
+      httpPost.mockResolvedValueOnce({
         data: { access_token: 'kakao-access-token' },
       });
-      mockedAxios.get.mockResolvedValueOnce({
+      httpGet.mockResolvedValueOnce({
         data: {
           id: 987,
           kakao_account: {
@@ -93,11 +106,9 @@ describe('AuthService', () => {
         avatarUrl: 'https://cdn.kakao/neo.png',
       });
 
-      expect(mockedAxios.post).toHaveBeenCalledTimes(1);
-      const [, params, config] = mockedAxios.post.mock.calls[0];
-      expect(mockedAxios.post.mock.calls[0][0]).toBe(
-        'https://kauth.kakao.com/oauth/token',
-      );
+      expect(httpPost).toHaveBeenCalledTimes(1);
+      const [, params, config] = httpPost.mock.calls[0];
+      expect(httpPost.mock.calls[0][0]).toBe('https://kauth.kakao.com/oauth/token');
       expect(config).toEqual({
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       });
@@ -113,7 +124,7 @@ describe('AuthService', () => {
         ].sort(),
       );
 
-      expect(mockedAxios.get).toHaveBeenCalledWith('https://kapi.kakao.com/v2/user/me', {
+      expect(httpGet).toHaveBeenCalledWith('https://kapi.kakao.com/v2/user/me', {
         headers: { Authorization: 'Bearer kakao-access-token' },
       });
       expect(upsert).toHaveBeenCalledWith({
@@ -151,14 +162,14 @@ describe('AuthService', () => {
     });
 
     it('throws UnauthorizedException when the code is empty', async () => {
-      const { service } = setup();
+      const { service, httpPost } = setup();
 
       await expect(service.kakaoLogin('')).rejects.toThrow(UnauthorizedException);
-      expect(mockedAxios.post).not.toHaveBeenCalled();
+      expect(httpPost).not.toHaveBeenCalled();
     });
 
     it('throws UnauthorizedException when required Kakao config is missing', async () => {
-      const { service, get } = setup();
+      const { service, get, httpPost } = setup();
       get.mockImplementation((key: string) =>
         key === 'KAKAO_CLIENT_ID' ? undefined : 'value',
       );
@@ -166,35 +177,35 @@ describe('AuthService', () => {
       await expect(service.kakaoLogin('auth-code')).rejects.toThrow(
         UnauthorizedException,
       );
-      expect(mockedAxios.post).not.toHaveBeenCalled();
+      expect(httpPost).not.toHaveBeenCalled();
     });
 
     it('throws UnauthorizedException when access_token is missing in the response', async () => {
-      const { service } = setup();
-      mockedAxios.post.mockResolvedValueOnce({ data: {} });
+      const { service, httpPost, httpGet } = setup();
+      httpPost.mockResolvedValueOnce({ data: {} });
 
       await expect(service.kakaoLogin('auth-code')).rejects.toThrow(
         UnauthorizedException,
       );
-      expect(mockedAxios.get).not.toHaveBeenCalled();
+      expect(httpGet).not.toHaveBeenCalled();
     });
 
     it('throws UnauthorizedException when the token request fails', async () => {
-      const { service } = setup();
-      mockedAxios.post.mockRejectedValueOnce(new Error('network down'));
+      const { service, httpPost, httpGet } = setup();
+      httpPost.mockRejectedValueOnce(new Error('network down'));
 
       await expect(service.kakaoLogin('auth-code')).rejects.toThrow(
         UnauthorizedException,
       );
-      expect(mockedAxios.get).not.toHaveBeenCalled();
+      expect(httpGet).not.toHaveBeenCalled();
     });
 
     it('throws UnauthorizedException when fetching user information fails', async () => {
-      const { service } = setup();
-      mockedAxios.post.mockResolvedValueOnce({
+      const { service, httpPost, httpGet } = setup();
+      httpPost.mockResolvedValueOnce({
         data: { access_token: 'kakao-access-token' },
       });
-      mockedAxios.get.mockRejectedValueOnce(new Error('user api error'));
+      httpGet.mockRejectedValueOnce(new Error('user api error'));
 
       await expect(service.kakaoLogin('auth-code')).rejects.toThrow(
         UnauthorizedException,
@@ -202,11 +213,11 @@ describe('AuthService', () => {
     });
 
     it('throws UnauthorizedException when Kakao response lacks an id', async () => {
-      const { service } = setup();
-      mockedAxios.post.mockResolvedValueOnce({
+      const { service, httpPost, httpGet } = setup();
+      httpPost.mockResolvedValueOnce({
         data: { access_token: 'kakao-access-token' },
       });
-      mockedAxios.get.mockResolvedValueOnce({ data: { kakao_account: {} } });
+      httpGet.mockResolvedValueOnce({ data: { kakao_account: {} } });
 
       await expect(service.kakaoLogin('auth-code')).rejects.toThrow(
         UnauthorizedException,

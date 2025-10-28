@@ -7,7 +7,10 @@ import {
 import type { AnimalStatus, Prisma } from '@prisma/client';
 
 import type { AuthUser } from '../common/types';
-import { resolveFosterDaysForAnimal } from '../domain/foster/application/foster-days';
+import {
+  loadFirstRecordDateMap,
+  resolveFosterDaysForAnimal,
+} from '../domain/foster/application/foster-days';
 import {
   toAnimalListItem,
   toFosterRecordAnimalMeta,
@@ -23,6 +26,7 @@ import type {
   ListRecordsResult,
 } from '../domain/foster/application/types';
 import { parseAnimalStatus } from '../domain/foster/domain/animals';
+import { calculateFosterDays } from '../domain/foster/domain/metrics';
 import { ensureAnimalWriteAccess } from '../domain/foster/domain/permissions';
 import {
   resolveRecordWindow,
@@ -274,12 +278,19 @@ export class FosterService {
       orderBy: { createdAt: 'desc' },
     });
     const now = new Date();
-    const items = await Promise.all(
-      animals.map(async (animal) => {
-        const fosterDays = await this.computeFosterDays(animal.id, animal.createdAt, now);
-        return toAnimalListItem(animal, fosterDays);
-      }),
+    const firstRecordMap = await loadFirstRecordDateMap(
+      this.prisma.fosterRecord,
+      animals.map((animal) => animal.id),
     );
+    const items = animals.map((animal) => {
+      const firstRecordDate = firstRecordMap.get(animal.id) ?? null;
+      const fosterDays = calculateFosterDays({
+        now,
+        firstRecordDate,
+        fallbackCreatedAt: animal.createdAt,
+      });
+      return toAnimalListItem(animal, fosterDays);
+    });
     return { items };
   }
 }

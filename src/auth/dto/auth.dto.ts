@@ -48,3 +48,8 @@ export class DevTokenDto {
   @IsString()
   displayName?: string;
 }
+
+export class DevTokenDisabledDto {
+  @ApiProperty({ enum: ['disabled'] })
+  error!: 'disabled';
+}

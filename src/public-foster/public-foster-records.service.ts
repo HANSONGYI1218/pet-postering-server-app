@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 
-import { resolveFosterDaysForAnimal } from '../domain/foster/application/foster-days';
+import { loadFirstRecordDateMap } from '../domain/foster/application/foster-days';
+import { calculateFosterDays } from '../domain/foster/domain/metrics';
 import type {
   PublicRecordDetail,
   PublicRecordListResult,
@@ -27,27 +28,31 @@ export class PublicFosterRecordsService {
     });
 
     const now = new Date();
-    const items = await Promise.all(
-      animals.map(async (animal) => {
-        const base = toRecordAnimal(animal, { now });
-        if (base.fosterDuration > 0) {
-          return base;
-        }
-
-        const fallbackDuration = await resolveFosterDaysForAnimal(
-          this.prisma.fosterRecord,
-          {
-            animalId: animal.id,
-            fallbackCreatedAt: animal.createdAt,
-            now,
-          },
-        );
-        return {
-          ...base,
-          fosterDuration: fallbackDuration,
-        };
-      }),
+    const baseAnimals = animals.map((animal) => ({
+      animal,
+      base: toRecordAnimal(animal, { now }),
+    }));
+    const fallbackAnimalIds = baseAnimals
+      .filter(({ base }) => base.fosterDuration === 0)
+      .map(({ animal }) => animal.id);
+    const firstRecordMap = await loadFirstRecordDateMap(
+      this.prisma.fosterRecord,
+      fallbackAnimalIds,
     );
+    const items = baseAnimals.map(({ animal, base }) => {
+      if (base.fosterDuration > 0) {
+        return base;
+      }
+      const fosterDuration = calculateFosterDays({
+        now,
+        firstRecordDate: firstRecordMap.get(animal.id) ?? null,
+        fallbackCreatedAt: animal.createdAt,
+      });
+      return {
+        ...base,
+        fosterDuration,
+      };
+    });
 
     return { items };
   }

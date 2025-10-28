@@ -191,7 +191,7 @@ describe('CommunityController', () => {
     await request(app.getHttpServer())
       .post('/community/posts/post-1/bookmarks')
       .set('x-test-user', 'user-7')
-      .expect(201)
+      .expect(200)
       .expect({ postId: 'post-1', bookmarked: true });
 
     expect(service.bookmark).toHaveBeenCalledWith('post-1', 'user-7');
@@ -221,7 +221,7 @@ describe('CommunityController', () => {
     await request(app.getHttpServer())
       .post('/community/comments/comment-1/likes')
       .set('x-test-user', 'user-3')
-      .expect(201)
+      .expect(200)
       .expect({ commentId: 'comment-1', liked: true });
 
     expect(service.likeComment).toHaveBeenCalledWith('comment-1', 'user-3');

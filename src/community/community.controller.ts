@@ -3,6 +3,8 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   Post,
   Query,
@@ -96,6 +98,7 @@ export class CommunityController {
 
   @Post('posts/:id/bookmarks')
   @UseGuards(AuthGuard('jwt'))
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Bookmark a post' })
   @ApiOkResponse({ type: BookmarkResponseDto })
   bookmark(
@@ -152,6 +155,7 @@ export class CommunityController {
 
   @Post('comments/:commentId/likes')
   @UseGuards(AuthGuard('jwt'))
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Like a comment' })
   @ApiOkResponse({ type: LikeCommentResponseDto })
   likeComment(

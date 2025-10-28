@@ -6,12 +6,14 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiTags,
+  getSchemaPath,
 } from '@nestjs/swagger';
 
 import type { AuthTokenPair } from '../domain/auth/application/types';
 import { AuthService } from './auth.service';
 import {
   AuthTokenPairDto,
+  DevTokenDisabledDto,
   DevTokenDto,
   KakaoAuthDto,
   LogoutResponseDto,
@@ -55,10 +57,17 @@ export class AuthController {
   @ApiOperation({
     summary: '[Dev] Issue tokens without Kakao (non-production)',
   })
-  @ApiOkResponse({ type: AuthTokenPairDto })
+  @ApiOkResponse({
+    schema: {
+      oneOf: [
+        { $ref: getSchemaPath(AuthTokenPairDto) },
+        { $ref: getSchemaPath(DevTokenDisabledDto) },
+      ],
+    },
+  })
   async devToken(
     @Body() body: DevTokenDto,
-  ): Promise<AuthTokenPair | { error: 'disabled' }> {
+  ): Promise<AuthTokenPair | DevTokenDisabledDto> {
     if (this.isProduction()) {
       return { error: 'disabled' };
     }

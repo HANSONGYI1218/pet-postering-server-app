@@ -26,6 +26,7 @@ interface PrismaMock {
     create: MockFn;
     update: MockFn;
     delete: MockFn;
+    groupBy: MockFn;
   };
   fosterRecordImage: {
     deleteMany: MockFn;
@@ -51,6 +52,7 @@ const build = () => {
       create: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
+      groupBy: jest.fn().mockResolvedValue([]),
     },
     fosterRecordImage: {
       deleteMany: jest.fn(),
@@ -240,9 +242,12 @@ describe('FosterService', () => {
         { id: 'animal-a', status: 'WAITING', createdAt: createdAtA } as any,
         { id: 'animal-b', status: 'WAITING', createdAt: createdAtB } as any,
       ]);
-      prisma.fosterRecord.findFirst
-        .mockResolvedValueOnce({ date: new Date('2023-12-31T00:00:00.000Z') })
-        .mockResolvedValueOnce(null);
+      prisma.fosterRecord.groupBy.mockResolvedValueOnce([
+        {
+          animalId: 'animal-a',
+          _min: { date: new Date('2023-12-31T00:00:00.000Z') },
+        },
+      ]);
 
       jest.useFakeTimers();
       jest.setSystemTime(new Date('2024-01-10T00:00:00.000Z'));
@@ -255,15 +260,10 @@ describe('FosterService', () => {
         where: { status: 'WAITING' },
         orderBy: { createdAt: 'desc' },
       });
-      expect(prisma.fosterRecord.findFirst).toHaveBeenNthCalledWith(1, {
-        where: { animalId: 'animal-a' },
-        orderBy: { date: 'asc' },
-        select: { date: true },
-      });
-      expect(prisma.fosterRecord.findFirst).toHaveBeenNthCalledWith(2, {
-        where: { animalId: 'animal-b' },
-        orderBy: { date: 'asc' },
-        select: { date: true },
+      expect(prisma.fosterRecord.groupBy).toHaveBeenCalledWith({
+        by: ['animalId'],
+        _min: { date: true },
+        where: { animalId: { in: ['animal-a', 'animal-b'] } },
       });
       const daysById = Object.fromEntries(
         result.items.map((item: any) => [item.id, item.fosterDays]),
@@ -279,8 +279,6 @@ describe('FosterService', () => {
           createdAt: new Date('2024-01-01T00:00:00.000Z'),
         } as any,
       ]);
-      prisma.fosterRecord.findFirst.mockResolvedValueOnce(null);
-
       jest.useFakeTimers().setSystemTime(new Date('2024-01-03T00:00:00.000Z'));
       await service.listAnimals();
       jest.useRealTimers();
@@ -298,8 +296,6 @@ describe('FosterService', () => {
       prisma.animal.findMany.mockResolvedValueOnce([
         { id: 'animal-1', shared: true, createdAt: new Date() } as any,
       ]);
-      prisma.fosterRecord.findFirst.mockResolvedValueOnce(null);
-
       jest.useFakeTimers().setSystemTime(new Date('2024-01-02T00:00:00.000Z'));
       await service.listSharedAnimals();
       jest.useRealTimers();

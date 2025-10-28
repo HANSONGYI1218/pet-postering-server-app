@@ -18,7 +18,7 @@ interface PrismaMock {
     findUnique: jest.Mock;
   };
   fosterRecord: {
-    findFirst: jest.Mock;
+    groupBy: jest.Mock;
   };
 }
 
@@ -30,7 +30,7 @@ describe('PublicFosterService', () => {
         findUnique: jest.fn(),
       },
       fosterRecord: {
-        findFirst: jest.fn(),
+        groupBy: jest.fn().mockResolvedValue([]),
       },
     };
     const service = new PublicFosterService(prisma as unknown as PrismaService);
@@ -101,9 +101,12 @@ describe('PublicFosterService', () => {
       specialNoteTags: [],
     };
     prisma.animal.findMany.mockResolvedValueOnce([animal]);
-    prisma.fosterRecord.findFirst.mockResolvedValueOnce({
-      date: new Date('2024-08-05T00:00:00.000Z'),
-    });
+    prisma.fosterRecord.groupBy.mockResolvedValueOnce([
+      {
+        animalId: 'a-1',
+        _min: { date: new Date('2024-08-05T00:00:00.000Z') },
+      },
+    ]);
 
     const result = await service.listAnimals();
 

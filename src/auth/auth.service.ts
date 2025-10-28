@@ -4,7 +4,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import type { Role } from '@prisma/client';
-import axios from 'axios';
+import axios, { type AxiosInstance } from 'axios';
 import { PinoLogger } from 'nestjs-pino';
 
 import type { AuthTokenPair } from '../domain/auth/application/types';
@@ -27,9 +27,12 @@ interface JwtSettings {
 }
 
 const KAKAO_USER_URL = 'https://kapi.kakao.com/v2/user/me';
+const DEFAULT_KAKAO_HTTP_TIMEOUT_MS = 5000;
 
 @Injectable()
 export class AuthService {
+  private readonly kakaoHttp: AxiosInstance;
+
   constructor(
     private readonly logger: PinoLogger,
     private readonly jwt: JwtService,
@@ -37,6 +40,10 @@ export class AuthService {
     private readonly prisma: PrismaService,
   ) {
     this.logger.setContext(AuthService.name);
+    this.kakaoHttp = axios.create({
+      timeout: this.resolveKakaoHttpTimeout(),
+      validateStatus: (status) => status >= 200 && status < 300,
+    });
   }
 
   private readonly warnedConfigKeys = new Set<string>();
@@ -50,7 +57,7 @@ export class AuthService {
     const kakaoConfig = this.resolveKakaoConfig();
     const { url, params, headers } = createKakaoTokenRequest(kakaoConfig, trimmedCode);
 
-    const tokenResponse = await axios
+    const tokenResponse = await this.kakaoHttp
       .post<{ access_token?: string }>(url, params, { headers })
       .catch((error: unknown) => {
         this.logAxiosFailure('kakao-token-request-failed', error, { endpoint: url });
@@ -64,7 +71,7 @@ export class AuthService {
       throw new UnauthorizedException('kakao-token-missing');
     }
 
-    const userResponse = await axios
+    const userResponse = await this.kakaoHttp
       .get<unknown>(KAKAO_USER_URL, {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
@@ -216,6 +223,22 @@ export class AuthService {
       ...toAxiosMetadata(error),
       err: error,
     });
+  }
+
+  private resolveKakaoHttpTimeout(): number {
+    const raw = this.config.get<string>('KAKAO_HTTP_TIMEOUT_MS');
+    if (!raw) {
+      return DEFAULT_KAKAO_HTTP_TIMEOUT_MS;
+    }
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      this.logger.warn({
+        msg: 'kakao-timeout-invalid',
+        raw,
+      });
+      return DEFAULT_KAKAO_HTTP_TIMEOUT_MS;
+    }
+    return parsed;
   }
 }
 
