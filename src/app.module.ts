@@ -8,6 +8,7 @@ import { AuthModule } from './auth/auth.module';
 import { CommunityModule } from './community/community.module';
 import { FosterModule } from './foster/foster.module';
 import { buildLoggerOptions } from './logger/logger.config';
+import { OrganizationModule } from './organization/organization.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { PublicFosterModule } from './public-foster/public-foster.module';
 import { PublicNoticeModule } from './public-notice/public-notice.module';
@@ -22,6 +23,7 @@ import { UsersModule } from './user/user.module';
     AuthModule,
     CommunityModule,
     FosterModule,
+    OrganizationModule,
     ReportsModule,
     PublicFosterModule,
     PublicNoticeModule,

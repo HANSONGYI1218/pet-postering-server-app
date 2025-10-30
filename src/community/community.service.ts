@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   InternalServerErrorException,
@@ -79,6 +80,70 @@ export class CommunityService {
       include: POST_RELATIONS,
     });
     return toPostListItem(created);
+  }
+
+  async updatePost(
+    postId: string,
+    userId: string,
+    dto: { title?: string; content?: string },
+  ): Promise<PostListItem> {
+    if (!dto.title && !dto.content) {
+      throw new BadRequestException('post-update-empty');
+    }
+    const post = await this.prisma.post.findUnique({
+      where: { id: postId },
+      select: { authorId: true },
+    });
+    if (!post) {
+      throw new NotFoundException('post-not-found');
+    }
+    if (post.authorId !== userId) {
+      throw new ForbiddenException('post-update-forbidden');
+    }
+    const updated = await this.prisma.post.update({
+      where: { id: postId },
+      data: {
+        ...(dto.title ? { title: dto.title } : {}),
+        ...(dto.content ? { content: dto.content } : {}),
+      },
+      include: POST_RELATIONS,
+    });
+    return toPostListItem(updated);
+  }
+
+  async deletePost(postId: string, userId: string): Promise<void> {
+    const post = await this.prisma.post.findUnique({
+      where: { id: postId },
+      select: { authorId: true },
+    });
+    if (!post) {
+      throw new NotFoundException('post-not-found');
+    }
+    if (post.authorId !== userId) {
+      throw new ForbiddenException('post-delete-forbidden');
+    }
+    await this.prisma.post.delete({ where: { id: postId } });
+  }
+
+  async incrementPostView(postId: string): Promise<void> {
+    try {
+      await this.prisma.post.update({
+        where: { id: postId },
+        data: { viewCount: { increment: 1 } },
+      });
+    } catch (error: unknown) {
+      if (this.isPrismaNotFoundError(error)) {
+        throw new NotFoundException('post-not-found');
+      }
+      this.logger.error({
+        msg: 'post-view-increment-failed',
+        postId,
+        err: error,
+      });
+      throw new InternalServerErrorException('post-view-increment-failed', {
+        cause: error,
+      });
+    }
   }
 
   async getPost(postId: string, userId?: string): Promise<PostDetail> {
@@ -196,15 +261,47 @@ export class CommunityService {
     return toCommentListItem(created);
   }
 
-  async deleteComment(commentId: string, userId: string): Promise<DeleteCommentResponse> {
+  async updateComment(
+    postId: string,
+    commentId: string,
+    userId: string,
+    dto: { content: string },
+  ): Promise<CommentListItem> {
+    const existing = await this.prisma.comment.findUnique({
+      where: { id: commentId },
+      select: { id: true, authorId: true, postId: true },
+    });
+    if (!existing || existing.postId !== postId) {
+      throw new NotFoundException('comment-not-found');
+    }
+    if (existing.authorId !== userId) {
+      throw new ForbiddenException('comment-update-forbidden');
+    }
+    const updated = await this.prisma.comment.update({
+      where: { id: commentId },
+      data: { content: dto.content },
+      include: COMMENT_RELATIONS,
+    });
+    return toCommentListItem(updated);
+  }
+
+  async deleteComment(
+    commentId: string,
+    userId: string,
+    postId?: string,
+  ): Promise<DeleteCommentResponse> {
     const comment = await this.prisma.comment.findUnique({
       where: { id: commentId },
+      select: { id: true, authorId: true, postId: true },
     });
     const childCount = comment
       ? await this.prisma.comment.count({
           where: { parentId: commentId },
         })
       : 0;
+    if (comment && postId && comment.postId !== postId) {
+      throw new NotFoundException('comment-not-found');
+    }
     const evaluation = evaluateCommentDeletion(comment, userId, childCount);
     if (evaluation.status === 'error') {
       if (evaluation.reason === 'comment-not-found') {

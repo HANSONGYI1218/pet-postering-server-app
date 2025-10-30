@@ -34,6 +34,20 @@ export class CreatePostDto {
   content!: string;
 }
 
+export class UpdatePostDto {
+  @ApiPropertyOptional({ maxLength: 200 })
+  @IsOptional()
+  @IsString()
+  @Length(1, 200)
+  title?: string;
+
+  @ApiPropertyOptional({ description: 'Post content' })
+  @IsOptional()
+  @IsString()
+  @Length(1, 5000)
+  content?: string;
+}
+
 export class CreateCommentDto {
   @ApiProperty({ description: 'Comment content' })
   @IsString()
@@ -44,6 +58,13 @@ export class CreateCommentDto {
   @IsOptional()
   @IsString()
   parentId?: string;
+}
+
+export class UpdateCommentDto {
+  @ApiProperty({ description: 'Comment content' })
+  @IsString()
+  @Length(1, 2000)
+  content!: string;
 }
 
 // ======== Small Response DTOs ========

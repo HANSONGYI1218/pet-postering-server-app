@@ -12,11 +12,18 @@ import { CommunityService } from './community.service';
 type MockFn = jest.Mock;
 
 interface PrismaMock {
-  post: { findMany: MockFn; create: MockFn; update: MockFn };
+  post: {
+    findMany: MockFn;
+    findUnique: MockFn;
+    create: MockFn;
+    update: MockFn;
+    delete: MockFn;
+  };
   comment: {
     findMany: MockFn;
     findUnique: MockFn;
     create: MockFn;
+    update: MockFn;
     count: MockFn;
     delete: MockFn;
   };
@@ -57,13 +64,16 @@ const build = () => {
   const prisma: PrismaMock = {
     post: {
       findMany: jest.fn(),
+      findUnique: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
+      delete: jest.fn(),
     },
     comment: {
       findMany: jest.fn(),
       findUnique: jest.fn(),
       create: jest.fn(),
+      update: jest.fn(),
       count: jest.fn(),
       delete: jest.fn(),
     },
@@ -159,6 +169,110 @@ describe('CommunityService', () => {
           author: { select: { id: true, displayName: true } },
         },
       });
+    });
+  });
+
+  describe('updatePost', () => {
+    it('updates provided fields when requester is author', async () => {
+      const { service, prisma } = build();
+      prisma.post.findUnique.mockResolvedValueOnce({ authorId: 'author-1' });
+      const updated = makePost('post-1');
+      prisma.post.update.mockResolvedValueOnce(updated);
+
+      await expect(
+        service.updatePost('post-1', 'author-1', { title: 'Edited' }),
+      ).resolves.toEqual(updated);
+      expect(prisma.post.update).toHaveBeenCalledWith({
+        where: { id: 'post-1' },
+        data: { title: 'Edited' },
+        include: {
+          _count: { select: { comments: true } },
+          author: { select: { id: true, displayName: true } },
+        },
+      });
+    });
+
+    it('throws BadRequest when no fields provided', async () => {
+      const { service } = build();
+
+      await expect(service.updatePost('post-1', 'author-1', {})).rejects.toThrow(
+        'post-update-empty',
+      );
+    });
+
+    it('throws NotFound when post missing', async () => {
+      const { service, prisma } = build();
+      prisma.post.findUnique.mockResolvedValueOnce(null);
+
+      await expect(
+        service.updatePost('post-1', 'author-1', { title: 'Edited' }),
+      ).rejects.toThrow('post-not-found');
+    });
+
+    it('throws Forbidden when requester is not author', async () => {
+      const { service, prisma } = build();
+      prisma.post.findUnique.mockResolvedValueOnce({ authorId: 'someone-else' });
+
+      await expect(
+        service.updatePost('post-1', 'author-1', { content: 'Updated' }),
+      ).rejects.toThrow('post-update-forbidden');
+      expect(prisma.post.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('deletePost', () => {
+    it('deletes when user is author', async () => {
+      const { service, prisma } = build();
+      prisma.post.findUnique.mockResolvedValueOnce({ authorId: 'author-1' });
+      prisma.post.delete.mockResolvedValueOnce({});
+
+      await expect(service.deletePost('post-1', 'author-1')).resolves.toBeUndefined();
+      expect(prisma.post.delete).toHaveBeenCalledWith({ where: { id: 'post-1' } });
+    });
+
+    it('throws NotFound when post missing', async () => {
+      const { service, prisma } = build();
+      prisma.post.findUnique.mockResolvedValueOnce(null);
+
+      await expect(service.deletePost('post-1', 'author-1')).rejects.toThrow(
+        'post-not-found',
+      );
+      expect(prisma.post.delete).not.toHaveBeenCalled();
+    });
+
+    it('throws Forbidden when user not author', async () => {
+      const { service, prisma } = build();
+      prisma.post.findUnique.mockResolvedValueOnce({ authorId: 'someone-else' });
+
+      await expect(service.deletePost('post-1', 'author-1')).rejects.toThrow(
+        'post-delete-forbidden',
+      );
+      expect(prisma.post.delete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('incrementPostView', () => {
+    it('increments view count', async () => {
+      const { service, prisma } = build();
+      prisma.post.update.mockResolvedValueOnce({});
+
+      await expect(service.incrementPostView('post-1')).resolves.toBeUndefined();
+      expect(prisma.post.update).toHaveBeenCalledWith({
+        where: { id: 'post-1' },
+        data: { viewCount: { increment: 1 } },
+      });
+    });
+
+    it('throws NotFound when post missing', async () => {
+      const { service, prisma } = build();
+      prisma.post.update.mockRejectedValueOnce(
+        new Prisma.PrismaClientKnownRequestError('missing', {
+          code: 'P2025',
+          clientVersion: 'mock',
+        }),
+      );
+
+      await expect(service.incrementPostView('post-1')).rejects.toThrow('post-not-found');
     });
   });
 
@@ -409,6 +523,59 @@ describe('CommunityService', () => {
     });
   });
 
+  describe('updateComment', () => {
+    it('updates comment content when author matches', async () => {
+      const { service, prisma } = build();
+      prisma.comment.findUnique.mockResolvedValueOnce({
+        id: 'comment-1',
+        authorId: 'user-1',
+        postId: 'post-1',
+      });
+      const updated = makeComment('comment-1', 'post-1');
+      prisma.comment.update.mockResolvedValueOnce(updated);
+
+      await expect(
+        service.updateComment('post-1', 'comment-1', 'user-1', { content: '변경' }),
+      ).resolves.toEqual({ ...updated, liked: false });
+      expect(prisma.comment.update).toHaveBeenCalledWith({
+        where: { id: 'comment-1' },
+        data: { content: '변경' },
+        include: {
+          _count: { select: { likes: true, replies: true } },
+          author: { select: { id: true, displayName: true } },
+        },
+      });
+    });
+
+    it('throws NotFound when comment belongs to another post', async () => {
+      const { service, prisma } = build();
+      prisma.comment.findUnique.mockResolvedValueOnce({
+        id: 'comment-1',
+        authorId: 'user-1',
+        postId: 'post-9',
+      });
+
+      await expect(
+        service.updateComment('post-1', 'comment-1', 'user-1', { content: '변경' }),
+      ).rejects.toThrow('comment-not-found');
+      expect(prisma.comment.update).not.toHaveBeenCalled();
+    });
+
+    it('throws Forbidden when user mismatch', async () => {
+      const { service, prisma } = build();
+      prisma.comment.findUnique.mockResolvedValueOnce({
+        id: 'comment-1',
+        authorId: 'another',
+        postId: 'post-1',
+      });
+
+      await expect(
+        service.updateComment('post-1', 'comment-1', 'user-1', { content: '변경' }),
+      ).rejects.toThrow('comment-update-forbidden');
+      expect(prisma.comment.update).not.toHaveBeenCalled();
+    });
+  });
+
   describe('deleteComment', () => {
     it('throws NotFoundException when the comment does not exist', async () => {
       const { service, prisma } = build();
@@ -419,11 +586,26 @@ describe('CommunityService', () => {
       );
     });
 
+    it('throws NotFoundException when postId does not match', async () => {
+      const { service, prisma } = build();
+      prisma.comment.findUnique.mockResolvedValueOnce({
+        id: 'comment-1',
+        authorId: 'user-1',
+        postId: 'post-2',
+      });
+
+      await expect(
+        service.deleteComment('comment-1', 'user-1', 'post-1'),
+      ).rejects.toThrow(NotFoundException);
+      expect(prisma.comment.delete).not.toHaveBeenCalled();
+    });
+
     it('throws ForbiddenException when the user is not the author', async () => {
       const { service, prisma } = build();
       prisma.comment.findUnique.mockResolvedValueOnce({
         id: 'comment-1',
         authorId: 'other-user',
+        postId: 'post-1',
       });
 
       await expect(service.deleteComment('comment-1', 'user-1')).rejects.toThrow(
@@ -436,6 +618,7 @@ describe('CommunityService', () => {
       prisma.comment.findUnique.mockResolvedValueOnce({
         id: 'comment-1',
         authorId: 'user-1',
+        postId: 'post-1',
       });
       prisma.comment.count.mockResolvedValueOnce(2);
 
@@ -450,6 +633,7 @@ describe('CommunityService', () => {
       prisma.comment.findUnique.mockResolvedValueOnce({
         id: 'comment-1',
         authorId: 'user-1',
+        postId: 'post-1',
       });
       prisma.comment.count.mockResolvedValueOnce(0);
       prisma.comment.delete.mockResolvedValueOnce({});

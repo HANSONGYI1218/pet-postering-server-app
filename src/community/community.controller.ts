@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  Patch,
   Post,
   Query,
   UseGuards,
@@ -47,6 +48,8 @@ import {
   PostDetailDto,
   PostListItemDto,
   PostListResponseDto,
+  UpdateCommentDto,
+  UpdatePostDto,
 } from './dto/community.dto';
 
 @ApiTags('Community')
@@ -119,6 +122,36 @@ export class CommunityController {
     return this.communityService.unbookmark(id, user.userId);
   }
 
+  @Patch('posts/:id')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({ summary: 'Update own post' })
+  @ApiOkResponse({ type: PostListItemDto })
+  updatePost(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthUser,
+    @Body() body: UpdatePostDto,
+  ): Promise<PostListItem> {
+    return this.communityService.updatePost(id, user.userId, body);
+  }
+
+  @Delete('posts/:id')
+  @UseGuards(AuthGuard('jwt'))
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete own post' })
+  async deletePost(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthUser,
+  ): Promise<void> {
+    await this.communityService.deletePost(id, user.userId);
+  }
+
+  @Patch('posts/:id/views')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Increment post view count' })
+  async incrementPostView(@Param('id') id: string): Promise<void> {
+    await this.communityService.incrementPostView(id);
+  }
+
   @Get('posts/:id/comments')
   @ApiOperation({ summary: 'List comments with like count and my-like flag' })
   @UseGuards(OptionalJwtAuthGuard)
@@ -142,6 +175,19 @@ export class CommunityController {
     return this.communityService.createComment(id, user.userId, body);
   }
 
+  @Patch('posts/:postId/comments/:commentId')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({ summary: 'Update own comment' })
+  @ApiOkResponse({ type: CommentListItemDto })
+  updateComment(
+    @Param('postId') postId: string,
+    @Param('commentId') commentId: string,
+    @CurrentUser() user: AuthUser,
+    @Body() body: UpdateCommentDto,
+  ): Promise<CommentListItem> {
+    return this.communityService.updateComment(postId, commentId, user.userId, body);
+  }
+
   @Delete('comments/:commentId')
   @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Delete own comment (no children allowed)' })
@@ -151,6 +197,18 @@ export class CommunityController {
     @CurrentUser() user: AuthUser,
   ): Promise<DeleteCommentResponse> {
     return this.communityService.deleteComment(commentId, user.userId);
+  }
+
+  @Delete('posts/:postId/comments/:commentId')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({ summary: 'Delete own comment (post-scoped path)' })
+  @ApiOkResponse({ type: DeleteCommentResponseDto })
+  deleteCommentFromPost(
+    @Param('postId') postId: string,
+    @Param('commentId') commentId: string,
+    @CurrentUser() user: AuthUser,
+  ): Promise<DeleteCommentResponse> {
+    return this.communityService.deleteComment(commentId, user.userId, postId);
   }
 
   @Post('comments/:commentId/likes')

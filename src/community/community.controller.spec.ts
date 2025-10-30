@@ -23,10 +23,14 @@ describe('CommunityController', () => {
       listPosts: jest.fn(),
       createPost: jest.fn(),
       getPost: jest.fn(),
+      updatePost: jest.fn(),
+      deletePost: jest.fn(),
+      incrementPostView: jest.fn(),
       bookmark: jest.fn(),
       unbookmark: jest.fn(),
       listComments: jest.fn(),
       createComment: jest.fn(),
+      updateComment: jest.fn(),
       deleteComment: jest.fn(),
       likeComment: jest.fn(),
       unlikeComment: jest.fn(),
@@ -212,6 +216,41 @@ describe('CommunityController', () => {
     expect(service.unbookmark).toHaveBeenCalledWith('post-1', 'user-7');
   });
 
+  it('PATCH /community/posts/:id updates post content', async () => {
+    const updated = { id: 'post-1', title: 'New', content: 'Updated' };
+    service.updatePost.mockResolvedValueOnce(updated as any);
+
+    await request(app.getHttpServer())
+      .patch('/community/posts/post-1')
+      .set('x-test-user', 'author-1')
+      .send({ title: 'New' })
+      .expect(200)
+      .expect(updated);
+
+    expect(service.updatePost).toHaveBeenCalledWith('post-1', 'author-1', {
+      title: 'New',
+    });
+  });
+
+  it('DELETE /community/posts/:id removes the post', async () => {
+    service.deletePost.mockResolvedValueOnce();
+
+    await request(app.getHttpServer())
+      .delete('/community/posts/post-1')
+      .set('x-test-user', 'author-1')
+      .expect(204);
+
+    expect(service.deletePost).toHaveBeenCalledWith('post-1', 'author-1');
+  });
+
+  it('PATCH /community/posts/:id/views increments without auth', async () => {
+    service.incrementPostView.mockResolvedValueOnce();
+
+    await request(app.getHttpServer()).patch('/community/posts/post-3/views').expect(204);
+
+    expect(service.incrementPostView).toHaveBeenCalledWith('post-3');
+  });
+
   it('POST /community/comments/:id/likes injects user', async () => {
     service.likeComment.mockResolvedValueOnce({
       commentId: 'comment-1',
@@ -255,5 +294,36 @@ describe('CommunityController', () => {
       .expect({ commentId: 'comment-1', deleted: true });
 
     expect(service.deleteComment).toHaveBeenCalledWith('comment-1', 'user-3');
+  });
+
+  it('PATCH /community/posts/:postId/comments/:commentId updates comment', async () => {
+    const updated = { id: 'comment-1', content: '변경' };
+    service.updateComment.mockResolvedValueOnce(updated as any);
+
+    await request(app.getHttpServer())
+      .patch('/community/posts/post-9/comments/comment-1')
+      .set('x-test-user', 'user-3')
+      .send({ content: '변경' })
+      .expect(200)
+      .expect(updated);
+
+    expect(service.updateComment).toHaveBeenCalledWith('post-9', 'comment-1', 'user-3', {
+      content: '변경',
+    });
+  });
+
+  it('DELETE /community/posts/:postId/comments/:commentId forwards post id', async () => {
+    service.deleteComment.mockResolvedValueOnce({
+      commentId: 'comment-3',
+      deleted: true,
+    } as any);
+
+    await request(app.getHttpServer())
+      .delete('/community/posts/post-9/comments/comment-3')
+      .set('x-test-user', 'user-3')
+      .expect(200)
+      .expect({ commentId: 'comment-3', deleted: true });
+
+    expect(service.deleteComment).toHaveBeenCalledWith('comment-3', 'user-3', 'post-9');
   });
 });
