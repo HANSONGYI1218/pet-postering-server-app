@@ -151,14 +151,6 @@ export class PostListResponseDto {
   limit!: number;
 }
 
-export class CommentCountDto {
-  @ApiProperty()
-  likes!: number;
-
-  @ApiProperty()
-  replies!: number;
-}
-
 export class CommentAuthorDto {
   @ApiProperty()
   id!: string;
@@ -195,8 +187,11 @@ export class CommentListItemDto {
   @ApiProperty()
   liked!: boolean;
 
-  @ApiProperty({ type: () => CommentCountDto })
-  _count!: CommentCountDto;
+  @ApiProperty()
+  likeCount!: number;
+
+  @ApiProperty({ type: () => [CommentListItemDto] })
+  replies!: CommentListItemDto[];
 }
 
 export class ListCommentsResponseDto {

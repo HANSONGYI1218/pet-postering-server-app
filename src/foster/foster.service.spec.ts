@@ -19,6 +19,26 @@ interface PrismaMock {
     update: MockFn;
     delete: MockFn;
   };
+  animalImage: {
+    deleteMany: MockFn;
+    createMany: MockFn;
+  };
+  animalHealthTag: {
+    deleteMany: MockFn;
+    createMany: MockFn;
+  };
+  animalPersonalityTag: {
+    deleteMany: MockFn;
+    createMany: MockFn;
+  };
+  animalEnvironmentTag: {
+    deleteMany: MockFn;
+    createMany: MockFn;
+  };
+  animalSpecialNoteTag: {
+    deleteMany: MockFn;
+    createMany: MockFn;
+  };
   fosterRecord: {
     findFirst: MockFn;
     findMany: MockFn;
@@ -45,6 +65,26 @@ const build = () => {
       update: jest.fn(),
       delete: jest.fn(),
     },
+    animalImage: {
+      deleteMany: jest.fn(),
+      createMany: jest.fn(),
+    },
+    animalHealthTag: {
+      deleteMany: jest.fn(),
+      createMany: jest.fn(),
+    },
+    animalPersonalityTag: {
+      deleteMany: jest.fn(),
+      createMany: jest.fn(),
+    },
+    animalEnvironmentTag: {
+      deleteMany: jest.fn(),
+      createMany: jest.fn(),
+    },
+    animalSpecialNoteTag: {
+      deleteMany: jest.fn(),
+      createMany: jest.fn(),
+    },
     fosterRecord: {
       findFirst: jest.fn(),
       findMany: jest.fn(),
@@ -61,11 +101,368 @@ const build = () => {
     },
     $transaction: jest.fn(),
   };
+  prisma.$transaction.mockImplementation((cb: (client: typeof prisma) => unknown) =>
+    Promise.resolve(cb(prisma)),
+  );
   const service = new FosterService(prisma as unknown as PrismaService);
   return { service, prisma };
 };
 
 describe('FosterService', () => {
+  describe('createAnimal', () => {
+    it('persists detailed fields, images, and tags', async () => {
+      const { service, prisma } = build();
+      const user: AuthUser = { userId: 'org-admin', role: 'ORG_ADMIN' };
+      const created = {
+        id: 'animal-1',
+        name: 'Buddy',
+        status: 'WAITING',
+        shared: true,
+        orgId: 'org-1',
+        ownerUserId: null,
+        createdAt: new Date('2024-01-01T00:00:00.000Z'),
+        updatedAt: new Date('2024-01-01T00:00:00.000Z'),
+      } as any;
+
+      let tx: {
+        animal: { create: MockFn };
+        animalImage: { createMany: MockFn; deleteMany: MockFn };
+        animalHealthTag: { createMany: MockFn; deleteMany: MockFn };
+        animalPersonalityTag: { createMany: MockFn; deleteMany: MockFn };
+        animalEnvironmentTag: { createMany: MockFn; deleteMany: MockFn };
+        animalSpecialNoteTag: { createMany: MockFn; deleteMany: MockFn };
+      } | null = null;
+
+      prisma.$transaction.mockImplementation((cb: (client: typeof prisma) => unknown) => {
+        tx = {
+          animal: { create: jest.fn().mockResolvedValueOnce(created) },
+          animalImage: {
+            createMany: jest.fn().mockResolvedValueOnce(undefined),
+            deleteMany: jest.fn(),
+          },
+          animalHealthTag: {
+            createMany: jest.fn().mockResolvedValueOnce(undefined),
+            deleteMany: jest.fn(),
+          },
+          animalPersonalityTag: {
+            createMany: jest.fn().mockResolvedValueOnce(undefined),
+            deleteMany: jest.fn(),
+          },
+          animalEnvironmentTag: {
+            createMany: jest.fn().mockResolvedValueOnce(undefined),
+            deleteMany: jest.fn(),
+          },
+          animalSpecialNoteTag: {
+            createMany: jest.fn().mockResolvedValueOnce(undefined),
+            deleteMany: jest.fn(),
+          },
+        };
+        return Promise.resolve(cb(tx as unknown as typeof prisma));
+      });
+
+      const dto = {
+        name: 'Buddy',
+        orgId: 'org-1',
+        shared: true,
+        status: 'IN_PROGRESS',
+        type: 'DOG',
+        size: 'MEDIUM',
+        gender: 'MALE',
+        breed: '믹스견',
+        birthDate: '2023-01-15',
+        introduction: '활발한 강아지',
+        remark: '사람을 좋아해요',
+        emergency: true,
+        emergencyReason: '치료 필요',
+        images: ['https://cdn/image-1', 'https://cdn/image-2'],
+        healthTags: ['NEUTERED', 'VACCINATED'],
+        personalityTags: ['QUIET'],
+        environmentTags: ['QUIET_ENVIRONMENT', 'PRESENCE_OF_OTHER_ANIMAL'],
+        specialNoteTags: ['MEDICATION_REQUIRED'],
+        isFosterCondition: true,
+        currentFosterStartDate: '2024-01-01',
+        currentFosterEndDate: '2024-02-01',
+      } as const;
+
+      const result = await service.createAnimal(user, dto);
+
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+      expect(tx).not.toBeNull();
+      expect(tx?.animal.create).toHaveBeenCalledWith({
+        data: {
+          name: dto.name,
+          orgId: dto.orgId,
+          ownerUserId: null,
+          shared: dto.shared,
+          status: 'IN_PROGRESS',
+          type: dto.type,
+          size: dto.size,
+          gender: dto.gender,
+          breed: dto.breed,
+          birthDate: new Date(dto.birthDate),
+          introduction: dto.introduction,
+          remark: dto.remark,
+          emergency: dto.emergency,
+          emergencyReason: dto.emergencyReason,
+          mainImageUrl: dto.images[0],
+          isFosterCondition: dto.isFosterCondition,
+          currentFosterStartDate: new Date(dto.currentFosterStartDate),
+          currentFosterEndDate: new Date(dto.currentFosterEndDate),
+        },
+      });
+      expect(tx?.animalImage.deleteMany).not.toHaveBeenCalled();
+      expect(tx?.animalImage.createMany).toHaveBeenCalledWith({
+        data: dto.images.map((url, index) => ({
+          animalId: created.id,
+          url,
+          sortOrder: index,
+        })),
+        skipDuplicates: true,
+      });
+      expect(tx?.animalHealthTag.createMany).toHaveBeenCalledWith({
+        data: dto.healthTags.map((value) => ({ animalId: created.id, value })),
+        skipDuplicates: true,
+      });
+      expect(tx?.animalPersonalityTag.createMany).toHaveBeenCalledWith({
+        data: dto.personalityTags.map((value) => ({
+          animalId: created.id,
+          value,
+        })),
+        skipDuplicates: true,
+      });
+      expect(tx?.animalEnvironmentTag.createMany).toHaveBeenCalledWith({
+        data: dto.environmentTags.map((value) => ({
+          animalId: created.id,
+          value,
+        })),
+        skipDuplicates: true,
+      });
+      expect(tx?.animalSpecialNoteTag.createMany).toHaveBeenCalledWith({
+        data: dto.specialNoteTags.map((value) => ({
+          animalId: created.id,
+          value,
+        })),
+        skipDuplicates: true,
+      });
+      expect(result).toEqual({
+        id: created.id,
+        name: created.name,
+        status: created.status,
+        shared: created.shared,
+        orgId: created.orgId,
+        ownerUserId: created.ownerUserId,
+        fosterDays: 0,
+        createdAt: created.createdAt,
+        updatedAt: created.updatedAt,
+      });
+    });
+  });
+
+  describe('updateAnimal', () => {
+    it('updates scalar fields and replaces relational collections when provided', async () => {
+      const { service, prisma } = build();
+      const user: AuthUser = { userId: 'org-admin', role: 'ORG_ADMIN' };
+      prisma.animal.findUnique
+        .mockResolvedValueOnce({
+          id: 'animal-1',
+          orgId: 'org-1',
+          ownerUserId: null,
+        })
+        .mockResolvedValueOnce({
+          id: 'animal-1',
+          name: 'Buddy',
+          status: 'COMPLETED',
+          shared: false,
+          orgId: 'org-1',
+          ownerUserId: null,
+          createdAt: new Date('2024-01-01T00:00:00.000Z'),
+          updatedAt: new Date('2024-02-01T00:00:00.000Z'),
+        });
+
+      const tx = {
+        animal: {
+          update: jest.fn().mockResolvedValueOnce({
+            id: 'animal-1',
+            name: 'Buddy',
+            status: 'COMPLETED',
+            shared: false,
+            orgId: 'org-1',
+            ownerUserId: null,
+            createdAt: new Date('2024-01-01T00:00:00.000Z'),
+            updatedAt: new Date('2024-02-01T00:00:00.000Z'),
+          }),
+          findUnique: prisma.animal.findUnique,
+        },
+        animalImage: {
+          deleteMany: jest.fn().mockResolvedValueOnce(undefined),
+          createMany: jest.fn().mockResolvedValueOnce(undefined),
+        },
+        animalHealthTag: {
+          deleteMany: jest.fn().mockResolvedValueOnce(undefined),
+          createMany: jest.fn().mockResolvedValueOnce(undefined),
+        },
+        animalPersonalityTag: {
+          deleteMany: jest.fn().mockResolvedValueOnce(undefined),
+          createMany: jest.fn().mockResolvedValueOnce(undefined),
+        },
+        animalEnvironmentTag: {
+          deleteMany: jest.fn().mockResolvedValueOnce(undefined),
+          createMany: jest.fn().mockResolvedValueOnce(undefined),
+        },
+        animalSpecialNoteTag: {
+          deleteMany: jest.fn().mockResolvedValueOnce(undefined),
+          createMany: jest.fn().mockResolvedValueOnce(undefined),
+        },
+      };
+
+      prisma.$transaction.mockImplementation((cb: (client: typeof prisma) => unknown) =>
+        Promise.resolve(cb(tx as unknown as typeof prisma)),
+      );
+
+      const dto = {
+        name: 'Buddy',
+        status: 'COMPLETED',
+        shared: false,
+        type: 'DOG',
+        size: 'SMALL',
+        gender: 'MALE',
+        breed: '믹스견',
+        birthDate: '2023-01-10',
+        introduction: 'new intro',
+        remark: 'new remark',
+        emergency: false,
+        emergencyReason: '',
+        images: ['https://cdn/image-1'],
+        healthTags: ['NEUTERED'],
+        personalityTags: ['QUIET', 'ENERGETIC'],
+        environmentTags: [],
+        specialNoteTags: [],
+        isFosterCondition: false,
+      } as const;
+
+      const result = await service.updateAnimal('animal-1', user, dto);
+
+      expect(prisma.animal.findUnique).toHaveBeenCalledWith({
+        where: { id: 'animal-1' },
+      });
+      expect(tx.animal.update).toHaveBeenCalledWith({
+        where: { id: 'animal-1' },
+        data: {
+          name: dto.name,
+          shared: dto.shared,
+          status: dto.status,
+          type: dto.type,
+          size: dto.size,
+          gender: dto.gender,
+          breed: dto.breed,
+          birthDate: new Date(dto.birthDate),
+          introduction: dto.introduction,
+          remark: dto.remark,
+          emergency: dto.emergency,
+          emergencyReason: null,
+          mainImageUrl: dto.images[0],
+          isFosterCondition: dto.isFosterCondition,
+          currentFosterStartDate: undefined,
+          currentFosterEndDate: undefined,
+        },
+      });
+      expect(tx.animalImage.deleteMany).toHaveBeenCalledWith({
+        where: { animalId: 'animal-1' },
+      });
+      expect(tx.animalImage.createMany).toHaveBeenCalledWith({
+        data: dto.images.map((url, index) => ({
+          animalId: 'animal-1',
+          url,
+          sortOrder: index,
+        })),
+        skipDuplicates: true,
+      });
+      expect(tx.animalHealthTag.deleteMany).toHaveBeenCalledWith({
+        where: { animalId: 'animal-1' },
+      });
+      expect(tx.animalHealthTag.createMany).toHaveBeenCalledWith({
+        data: dto.healthTags.map((value) => ({ animalId: 'animal-1', value })),
+        skipDuplicates: true,
+      });
+      expect(tx.animalPersonalityTag.deleteMany).toHaveBeenCalledWith({
+        where: { animalId: 'animal-1' },
+      });
+      expect(tx.animalPersonalityTag.createMany).toHaveBeenCalledWith({
+        data: dto.personalityTags.map((value) => ({
+          animalId: 'animal-1',
+          value,
+        })),
+        skipDuplicates: true,
+      });
+      expect(tx.animalEnvironmentTag.deleteMany).toHaveBeenCalledWith({
+        where: { animalId: 'animal-1' },
+      });
+      expect(tx.animalEnvironmentTag.createMany).not.toHaveBeenCalled();
+      expect(tx.animalSpecialNoteTag.deleteMany).toHaveBeenCalledWith({
+        where: { animalId: 'animal-1' },
+      });
+      expect(tx.animalSpecialNoteTag.createMany).not.toHaveBeenCalled();
+      expect(result).toMatchObject({
+        id: 'animal-1',
+        status: 'COMPLETED',
+      });
+    });
+  });
+
+  describe('createRecord', () => {
+    it('creates a record with health note and images', async () => {
+      const { service, prisma } = build();
+      const user: AuthUser = { userId: 'org-admin', role: 'ORG_ADMIN' };
+      prisma.animal.findUnique.mockResolvedValueOnce({
+        id: 'animal-1',
+        orgId: 'org-1',
+        ownerUserId: null,
+      });
+      const created = {
+        id: 'record-1',
+        animalId: 'animal-1',
+        date: new Date('2024-02-02T00:00:00.000Z'),
+        content: 'daily note',
+        healthNote: '투약 완료',
+        createdAt: new Date('2024-02-02T01:00:00.000Z'),
+        updatedAt: new Date('2024-02-02T01:00:00.000Z'),
+        images: [
+          { id: 'img-1', url: 'https://img/1', sortOrder: 0 },
+          { id: 'img-2', url: 'https://img/2', sortOrder: 1 },
+        ],
+      } as any;
+      prisma.fosterRecord.create.mockResolvedValueOnce({
+        ...created,
+        images: created.images,
+      });
+
+      const result = await service.createRecord('animal-1', user, {
+        date: '2024-02-02',
+        content: 'daily note',
+        healthNote: '투약 완료',
+        images: ['https://img/1', 'https://img/2'],
+      });
+
+      expect(prisma.fosterRecord.create).toHaveBeenCalledWith({
+        data: {
+          animalId: 'animal-1',
+          date: new Date('2024-02-02'),
+          content: 'daily note',
+          healthNote: '투약 완료',
+          images: {
+            create: [
+              { url: 'https://img/1', sortOrder: 0 },
+              { url: 'https://img/2', sortOrder: 1 },
+            ],
+          },
+        },
+        include: { images: true },
+      });
+      expect(result.healthNote).toBe('투약 완료');
+      expect(result.images).toHaveLength(2);
+    });
+  });
+
   describe('updateRecord', () => {
     it('updates a record while replacing images', async () => {
       const { service, prisma } = build();
@@ -87,6 +484,7 @@ describe('FosterService', () => {
         animalId: 'animal-1',
         date: new Date('2024-02-01T00:00:00.000Z'),
         content: 'new content',
+        healthNote: 'check-up done',
         createdAt: new Date('2024-01-01T00:00:00.000Z'),
         updatedAt: new Date('2024-02-01T12:00:00.000Z'),
       } as any;
@@ -115,6 +513,7 @@ describe('FosterService', () => {
       const dto = {
         date: '2024-02-01',
         content: 'new content',
+        healthNote: 'check-up done',
         images: Array.from({ length: 7 }, (_, i) => `https://img/${String(i + 1)}`),
       };
 
@@ -132,6 +531,7 @@ describe('FosterService', () => {
         data: {
           content: 'new content',
           date: new Date('2024-02-01'),
+          healthNote: 'check-up done',
         },
       });
       expect(tx.fosterRecordImage.deleteMany).toHaveBeenCalledWith({
@@ -153,6 +553,7 @@ describe('FosterService', () => {
         animalId: 'animal-1',
         date: updated.date,
         content: updated.content,
+        healthNote: updated.healthNote,
         createdAt: updated.createdAt,
         updatedAt: updated.updatedAt,
         images: images.map(({ id, url, sortOrder }) => ({ id, url, sortOrder })),
@@ -177,6 +578,7 @@ describe('FosterService', () => {
         animalId: 'animal-2',
         date: new Date('2024-03-01T00:00:00.000Z'),
         content: 'without images',
+        healthNote: 'cleared',
         createdAt: new Date('2024-02-01T00:00:00.000Z'),
         updatedAt: new Date('2024-03-02T00:00:00.000Z'),
       } as any;
@@ -196,6 +598,7 @@ describe('FosterService', () => {
 
       const result = await service.updateRecord('animal-2', 'record-2', user, {
         images: [],
+        healthNote: 'cleared',
         content: 'without images',
       });
 
@@ -204,6 +607,7 @@ describe('FosterService', () => {
       });
       expect(tx.fosterRecordImage.createMany).not.toHaveBeenCalled();
       expect(result.images).toEqual([]);
+      expect(result.healthNote).toBe('cleared');
     });
 
     it('throws ForbiddenException when the user lacks write permission', async () => {
@@ -331,7 +735,11 @@ describe('FosterService', () => {
         ),
       ).resolves.toMatchObject({ id: 'animal-1', fosterDays: 0 });
       expect(prisma.animal.create).toHaveBeenCalledWith({
-        data: { name: 'Buddy', orgId: 'org-1', shared: true },
+        data: expect.objectContaining({
+          name: 'Buddy',
+          orgId: 'org-1',
+          shared: true,
+        }),
       });
     });
 
@@ -346,7 +754,11 @@ describe('FosterService', () => {
         ),
       ).resolves.toMatchObject({ id: 'animal-2', fosterDays: 0 });
       expect(prisma.animal.create).toHaveBeenCalledWith({
-        data: { name: 'Cat', ownerUserId: 'owner-1', shared: false },
+        data: expect.objectContaining({
+          name: 'Cat',
+          ownerUserId: 'owner-1',
+          shared: false,
+        }),
       });
     });
   });
@@ -403,7 +815,18 @@ describe('FosterService', () => {
         },
         from: expectedFrom.toISOString(),
         to: expectedTo.toISOString(),
-        items: records,
+        items: [
+          {
+            id: 'rec-1',
+            animalId: 'animal-1',
+            date: records[0].date,
+            content: undefined,
+            healthNote: null,
+            createdAt: undefined,
+            updatedAt: undefined,
+            images: [],
+          },
+        ],
       });
     });
 
@@ -584,6 +1007,7 @@ describe('FosterService', () => {
         animalId: 'animal-1',
         date: new Date('2024-01-01T00:00:00.000Z'),
         content: 'daily log',
+        healthNote: null,
         createdAt: new Date('2024-01-01T01:00:00.000Z'),
         updatedAt: new Date('2024-01-01T01:00:00.000Z'),
         images: [],
@@ -819,6 +1243,7 @@ describe('FosterService', () => {
         animalId: 'animal-1',
         date: record.date,
         content: record.content,
+        healthNote: null,
         createdAt: record.createdAt,
         updatedAt: record.updatedAt,
         images: [{ id: 'img-1', url: 'https://img/1', sortOrder: 0 }],

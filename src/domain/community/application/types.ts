@@ -33,11 +33,6 @@ export interface CommentAuthor {
   displayName: string | null;
 }
 
-export interface CommentCount {
-  likes: number;
-  replies: number;
-}
-
 export interface CommentListItem {
   id: string;
   postId: string;
@@ -48,7 +43,8 @@ export interface CommentListItem {
   updatedAt: Date;
   liked: boolean;
   author: CommentAuthor;
-  _count: CommentCount;
+  likeCount: number;
+  replies: CommentListItem[];
 }
 
 export interface ListPostsResult {

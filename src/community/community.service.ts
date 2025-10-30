@@ -25,7 +25,6 @@ import type {
 } from '../domain/community/application/types';
 import {
   evaluateCommentDeletion,
-  mergeCommentLikes,
   resolveParentForCreation,
 } from '../domain/community/domain/comments';
 import { clampPostLimit, preparePaginatedPosts } from '../domain/community/domain/posts';
@@ -38,7 +37,7 @@ const POST_RELATIONS = {
 } as const;
 
 const COMMENT_RELATIONS = {
-  _count: { select: { likes: true, replies: true } },
+  _count: { select: { likes: true } },
   author: { select: { id: true, displayName: true } },
 } as const;
 
@@ -210,16 +209,52 @@ export class CommunityService {
     const baseItems: CommentListItem[] = comments.map((comment) =>
       toCommentListItem(comment),
     );
-    if (!userId || baseItems.length === 0) {
-      return { postId, items: baseItems };
+    if (baseItems.length === 0) {
+      return { postId, items: [] };
     }
 
-    const liked = await this.prisma.commentLike.findMany({
-      where: { userId, commentId: { in: baseItems.map((c) => c.id) } },
-      select: { commentId: true },
-    });
-    const likedSet = new Set(liked.map((item) => item.commentId));
-    return { postId, items: mergeCommentLikes(baseItems, likedSet) };
+    const likedSet = new Set<string>();
+    if (userId) {
+      const liked = await this.prisma.commentLike.findMany({
+        where: { userId, commentId: { in: baseItems.map((c) => c.id) } },
+        select: { commentId: true },
+      });
+      liked.forEach((item) => likedSet.add(item.commentId));
+    }
+
+    const nodes = baseItems.map((item) => ({
+      ...item,
+      liked: likedSet.has(item.id),
+      replies: [],
+    }));
+    const byId = new Map(nodes.map((item) => [item.id, item]));
+    const roots: CommentListItem[] = [];
+
+    for (const item of nodes) {
+      const parentId = item.parentId;
+      if (parentId) {
+        const parent = byId.get(parentId);
+        if (parent) {
+          parent.replies = [...parent.replies, item];
+          continue;
+        }
+      }
+      roots.push(item);
+    }
+
+    const sortByCreatedAt = (left: CommentListItem, right: CommentListItem): number =>
+      left.createdAt.getTime() - right.createdAt.getTime();
+
+    const sortReplies = (items: CommentListItem[]): void => {
+      items.sort(sortByCreatedAt);
+      items.forEach((child: CommentListItem): void => {
+        sortReplies(child.replies);
+      });
+    };
+
+    sortReplies(roots);
+
+    return { postId, items: roots };
   }
 
   async createComment(

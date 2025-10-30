@@ -1,5 +1,14 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  AnimalEnvironmentTagType,
+  AnimalGender,
+  AnimalHealthTagType,
+  AnimalPersonalityTagType,
+  AnimalSize,
+  AnimalSpecialNoteTagType,
+  AnimalType,
+} from '@prisma/client';
+import {
   ArrayMaxSize,
   IsArray,
   IsBoolean,
@@ -31,6 +40,105 @@ export class CreateAnimalDto {
   @IsOptional()
   @IsBoolean()
   shared?: boolean;
+
+  @ApiPropertyOptional({ enum: AnimalStatusDto })
+  @IsOptional()
+  @IsEnum(AnimalStatusDto)
+  status?: AnimalStatusDto;
+
+  @ApiPropertyOptional({ enum: AnimalType })
+  @IsOptional()
+  @IsEnum(AnimalType)
+  type?: AnimalType;
+
+  @ApiPropertyOptional({ enum: AnimalSize })
+  @IsOptional()
+  @IsEnum(AnimalSize)
+  size?: AnimalSize;
+
+  @ApiPropertyOptional({ enum: AnimalGender })
+  @IsOptional()
+  @IsEnum(AnimalGender)
+  gender?: AnimalGender;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @Length(0, 100)
+  breed?: string;
+
+  @ApiPropertyOptional({ description: 'Birth date (ISO string)' })
+  @IsOptional()
+  @IsDateString()
+  birthDate?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @Length(0, 2000)
+  introduction?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @Length(0, 2000)
+  remark?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  emergency?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @Length(0, 500)
+  emergencyReason?: string;
+
+  @ApiPropertyOptional({ type: [String], maxItems: 10 })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(10)
+  images?: string[];
+
+  @ApiPropertyOptional({ isArray: true, enum: AnimalHealthTagType })
+  @IsOptional()
+  @IsArray()
+  @IsEnum(AnimalHealthTagType, { each: true })
+  healthTags?: AnimalHealthTagType[];
+
+  @ApiPropertyOptional({ isArray: true, enum: AnimalPersonalityTagType })
+  @IsOptional()
+  @IsArray()
+  @IsEnum(AnimalPersonalityTagType, { each: true })
+  personalityTags?: AnimalPersonalityTagType[];
+
+  @ApiPropertyOptional({ isArray: true, enum: AnimalEnvironmentTagType })
+  @IsOptional()
+  @IsArray()
+  @IsEnum(AnimalEnvironmentTagType, { each: true })
+  environmentTags?: AnimalEnvironmentTagType[];
+
+  @ApiPropertyOptional({ isArray: true, enum: AnimalSpecialNoteTagType })
+  @IsOptional()
+  @IsArray()
+  @IsEnum(AnimalSpecialNoteTagType, { each: true })
+  specialNoteTags?: AnimalSpecialNoteTagType[];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  isFosterCondition?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsDateString()
+  currentFosterStartDate?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsDateString()
+  currentFosterEndDate?: string;
 }
 
 export class UpdateAnimalDto {
@@ -49,6 +157,100 @@ export class UpdateAnimalDto {
   @IsOptional()
   @IsEnum(AnimalStatusDto)
   status?: AnimalStatusDto;
+
+  @ApiPropertyOptional({ enum: AnimalType })
+  @IsOptional()
+  @IsEnum(AnimalType)
+  type?: AnimalType;
+
+  @ApiPropertyOptional({ enum: AnimalSize })
+  @IsOptional()
+  @IsEnum(AnimalSize)
+  size?: AnimalSize;
+
+  @ApiPropertyOptional({ enum: AnimalGender })
+  @IsOptional()
+  @IsEnum(AnimalGender)
+  gender?: AnimalGender;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @Length(0, 100)
+  breed?: string;
+
+  @ApiPropertyOptional({ description: 'Birth date (ISO string)' })
+  @IsOptional()
+  @IsDateString()
+  birthDate?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @Length(0, 2000)
+  introduction?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @Length(0, 2000)
+  remark?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  emergency?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @Length(0, 500)
+  emergencyReason?: string;
+
+  @ApiPropertyOptional({ type: [String], maxItems: 10 })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(10)
+  images?: string[];
+
+  @ApiPropertyOptional({ isArray: true, enum: AnimalHealthTagType })
+  @IsOptional()
+  @IsArray()
+  @IsEnum(AnimalHealthTagType, { each: true })
+  healthTags?: AnimalHealthTagType[];
+
+  @ApiPropertyOptional({ isArray: true, enum: AnimalPersonalityTagType })
+  @IsOptional()
+  @IsArray()
+  @IsEnum(AnimalPersonalityTagType, { each: true })
+  personalityTags?: AnimalPersonalityTagType[];
+
+  @ApiPropertyOptional({ isArray: true, enum: AnimalEnvironmentTagType })
+  @IsOptional()
+  @IsArray()
+  @IsEnum(AnimalEnvironmentTagType, { each: true })
+  environmentTags?: AnimalEnvironmentTagType[];
+
+  @ApiPropertyOptional({ isArray: true, enum: AnimalSpecialNoteTagType })
+  @IsOptional()
+  @IsArray()
+  @IsEnum(AnimalSpecialNoteTagType, { each: true })
+  specialNoteTags?: AnimalSpecialNoteTagType[];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  isFosterCondition?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsDateString()
+  currentFosterStartDate?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsDateString()
+  currentFosterEndDate?: string;
 }
 
 export class CreateRecordDto {
@@ -61,6 +263,12 @@ export class CreateRecordDto {
   @IsString()
   @Length(0, 2000)
   content?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @Length(0, 2000)
+  healthNote?: string;
 
   @ApiPropertyOptional({ type: [String], maxItems: 6 })
   @IsOptional()
@@ -80,6 +288,12 @@ export class UpdateRecordDto {
   @IsString()
   @Length(0, 2000)
   content?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @Length(0, 2000)
+  healthNote?: string;
 
   @ApiPropertyOptional({ type: [String], maxItems: 6 })
   @IsOptional()
@@ -171,6 +385,9 @@ export class FosterRecordDtoOut {
 
   @ApiPropertyOptional({ nullable: true })
   content?: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  healthNote?: string | null;
 
   @ApiProperty({ type: () => [FosterRecordImageDto] })
   images!: FosterRecordImageDto[];

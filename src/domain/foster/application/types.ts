@@ -27,6 +27,7 @@ export interface FosterRecordBase {
   animalId: string;
   date: Date;
   content: string | null;
+  healthNote: string | null;
   createdAt: Date;
   updatedAt: Date;
   images: FosterRecordImageView[];

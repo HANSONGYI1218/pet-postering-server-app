@@ -57,7 +57,7 @@ const makeComment = (id: string, postId: string) =>
     parentId: null,
     createdAt: baseDate,
     updatedAt: baseDate,
-    _count: { likes: 0, replies: 0 },
+    _count: { likes: 0 },
   }) as any;
 
 const build = () => {
@@ -389,13 +389,17 @@ describe('CommunityService', () => {
         where: { postId: 'post-1' },
         orderBy: { createdAt: 'asc' },
         include: {
-          _count: { select: { likes: true, replies: true } },
+          _count: { select: { likes: true } },
           author: { select: { id: true, displayName: true } },
         },
       });
       expect(prisma.commentLike.findMany).not.toHaveBeenCalled();
       expect(result.items).toHaveLength(1);
-      expect(result.items[0].liked).toBe(false);
+      expect(result.items[0]).toMatchObject({
+        liked: false,
+        likeCount: 0,
+        replies: [],
+      });
     });
 
     it('merges like state when user context exists', async () => {
@@ -423,6 +427,23 @@ describe('CommunityService', () => {
         'comment-2': true,
       });
     });
+
+    it('builds reply threads ordered by 작성 시각', async () => {
+      const { service, prisma } = build();
+      const parent = makeComment('comment-1', 'post-1');
+      const reply = {
+        ...makeComment('comment-2', 'post-1'),
+        parentId: 'comment-1',
+        createdAt: new Date('2024-01-01T01:00:00.000Z'),
+      };
+      prisma.comment.findMany.mockResolvedValueOnce([parent, reply]);
+
+      const result = await service.listComments('post-1');
+
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0].replies).toHaveLength(1);
+      expect(result.items[0].replies[0].id).toBe('comment-2');
+    });
   });
 
   describe('createComment', () => {
@@ -437,9 +458,17 @@ describe('CommunityService', () => {
       };
       prisma.comment.create.mockResolvedValueOnce(created);
 
-      await expect(
-        service.createComment('post-1', 'user-1', { content: 'hello' }),
-      ).resolves.toEqual({ ...created, liked: false });
+      const result = await service.createComment('post-1', 'user-1', {
+        content: 'hello',
+      });
+      expect(result).toMatchObject({
+        id: created.id,
+        postId: 'post-1',
+        parentId: null,
+        liked: false,
+        likeCount: 0,
+      });
+      expect(result.replies).toEqual([]);
       expect(prisma.comment.create).toHaveBeenCalledWith({
         data: {
           postId: 'post-1',
@@ -448,7 +477,7 @@ describe('CommunityService', () => {
           parentId: null,
         },
         include: {
-          _count: { select: { likes: true, replies: true } },
+          _count: { select: { likes: true } },
           author: { select: { id: true, displayName: true } },
         },
       });
@@ -499,12 +528,17 @@ describe('CommunityService', () => {
       };
       prisma.comment.create.mockResolvedValueOnce(created);
 
-      await expect(
-        service.createComment('post-1', 'user-2', {
-          content: 'reply',
-          parentId: 'parent-1',
-        }),
-      ).resolves.toEqual({ ...created, liked: false });
+      const result = await service.createComment('post-1', 'user-2', {
+        content: 'reply',
+        parentId: 'parent-1',
+      });
+      expect(result).toMatchObject({
+        id: created.id,
+        parentId: 'parent-1',
+        likeCount: 0,
+        liked: false,
+      });
+      expect(result.replies).toEqual([]);
       expect(prisma.comment.findUnique).toHaveBeenCalledWith({
         where: { id: 'parent-1' },
       });
@@ -516,7 +550,7 @@ describe('CommunityService', () => {
           parentId: 'parent-1',
         },
         include: {
-          _count: { select: { likes: true, replies: true } },
+          _count: { select: { likes: true } },
           author: { select: { id: true, displayName: true } },
         },
       });
@@ -534,14 +568,20 @@ describe('CommunityService', () => {
       const updated = makeComment('comment-1', 'post-1');
       prisma.comment.update.mockResolvedValueOnce(updated);
 
-      await expect(
-        service.updateComment('post-1', 'comment-1', 'user-1', { content: '변경' }),
-      ).resolves.toEqual({ ...updated, liked: false });
+      const result = await service.updateComment('post-1', 'comment-1', 'user-1', {
+        content: '변경',
+      });
+      expect(result).toMatchObject({
+        id: 'comment-1',
+        postId: 'post-1',
+        likeCount: 0,
+        liked: false,
+      });
       expect(prisma.comment.update).toHaveBeenCalledWith({
         where: { id: 'comment-1' },
         data: { content: '변경' },
         include: {
-          _count: { select: { likes: true, replies: true } },
+          _count: { select: { likes: true } },
           author: { select: { id: true, displayName: true } },
         },
       });

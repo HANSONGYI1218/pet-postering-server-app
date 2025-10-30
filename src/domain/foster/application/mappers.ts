@@ -27,6 +27,7 @@ export const toFosterRecordBase = (
   animalId: record.animalId,
   date: record.date,
   content: record.content,
+  healthNote: record.healthNote ?? null,
   createdAt: record.createdAt,
   updatedAt: record.updatedAt,
   images: images.map((image) => ({
