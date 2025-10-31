@@ -13,6 +13,7 @@ describe('main bootstrap', () => {
 
   it('invokes NestFactory.create and app.listen', async () => {
     process.env.PORT = '4000';
+    delete process.env.STAGE;
 
     const enableCors = jest.fn();
     const useGlobalPipes = jest.fn();

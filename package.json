@@ -23,7 +23,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:push": "prisma db push",
     "verify:dev": "npm run lint:check && npm run test && npm run build",
-    "verify:prod": "npm run verify:dev",
+    "verify:prod": "npm run verify:dev && npm run test:scripts",
     "synth:dev": "npm --prefix infra run synth:dev",
     "synth:prod": "npm --prefix infra run synth:prod",
     "deploy:dev": "npm run verify:dev && npm --prefix infra run deploy:dev",
@@ -32,7 +32,13 @@
     "lint:fix": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "prepare": "husky",
     "prisma:seed": "prisma db seed",
-    "db:seed": "npm run prisma:seed"
+    "db:seed": "npm run prisma:seed",
+    "test:scripts": "jest --config scripts/jest.config.js",
+    "env:export": "ts-node scripts/export-lambda-env.ts",
+    "check:prod-env": "ts-node scripts/check-prod-env.ts",
+    "deploy:prod:auto": "ts-node scripts/deploy-prod.ts",
+    "check:api-health": "ts-node scripts/check-api-health.ts",
+    "logs:prod": "ts-node scripts/tail-prod-logs.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
