@@ -36,4 +36,4 @@ EXPOSE 3000
 
 # 앱 실행: 컨테이너 시작 시 마이그레이션 후 기동
 ENTRYPOINT ["./scripts/entrypoint.sh"]
-CMD ["node", "dist/src/main.js"]
+CMD ["node", "dist/main.js"]
