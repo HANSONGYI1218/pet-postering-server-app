@@ -225,7 +225,7 @@ export class CommunityService {
     const nodes = baseItems.map((item) => ({
       ...item,
       liked: likedSet.has(item.id),
-      replies: [],
+      replies: [...item.replies],
     }));
     const byId = new Map(nodes.map((item) => [item.id, item]));
     const roots: CommentListItem[] = [];
