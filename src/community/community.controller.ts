@@ -29,6 +29,7 @@ import type {
   CommentListItem,
   DeleteCommentResponse,
   LikeCommentResponse,
+  LikePostResponse,
   ListCommentsResult,
   ListPostsResult,
   PostDetail,
@@ -43,6 +44,7 @@ import {
   CreatePostDto,
   DeleteCommentResponseDto,
   LikeCommentResponseDto,
+  LikePostResponseDto,
   ListCommentsResponseDto,
   ListPostsQueryDto,
   PostDetailDto,
@@ -120,6 +122,29 @@ export class CommunityController {
     @CurrentUser() user: AuthUser,
   ): Promise<BookmarkResponse> {
     return this.communityService.unbookmark(id, user.userId);
+  }
+
+  @Post('posts/:id/likes')
+  @UseGuards(AuthGuard('jwt'))
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Like a post' })
+  @ApiOkResponse({ type: LikePostResponseDto })
+  likePost(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthUser,
+  ): Promise<LikePostResponse> {
+    return this.communityService.likePost(id, user.userId);
+  }
+
+  @Delete('posts/:id/likes')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({ summary: 'Unlike a post' })
+  @ApiOkResponse({ type: LikePostResponseDto })
+  unlikePost(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthUser,
+  ): Promise<LikePostResponse> {
+    return this.communityService.unlikePost(id, user.userId);
   }
 
   @Patch('posts/:id')

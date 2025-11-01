@@ -8,17 +8,13 @@ import type {
 } from '@prisma/client';
 
 import { calculateElapsedDays } from '../../foster/domain/metrics';
-import type {
-  FosterState,
-  PublicRecordAnimal,
-  PublicRecordDetail,
-} from '../application/record.types';
+import type { PublicRecordAnimal, PublicRecordDetail } from '../application/record.types';
 import { sortedImageUrls } from './image-sorting';
 
-const RECORD_STATE_MAP: Record<AnimalStatus, FosterState> = {
-  WAITING: 'IN_PROGRESS',
+const RECORD_STATE_MAP: Record<AnimalStatus, AnimalStatus> = {
+  WAITING: 'WAITING',
   IN_PROGRESS: 'IN_PROGRESS',
-  COMPLETED: 'FOSTERED',
+  COMPLETED: 'COMPLETED',
 };
 
 const toIsoString = (value: Date | null): string | null =>
@@ -30,6 +26,49 @@ const calculateDuration = (start: Date | null, end: Date | null, now: Date): num
   }
   return calculateElapsedDays(start, end ?? now);
 };
+
+const mapOrganization = (
+  organization: Organization | null,
+): PublicRecordDetail['info']['organization'] =>
+  organization
+    ? {
+        id: organization.id,
+        name: organization.name,
+        phoneNumber: organization.phoneNumber ?? null,
+        zipcode: organization.zipcode ?? null,
+        address: organization.address ?? null,
+        addressDetail: organization.addressDetail ?? null,
+        email: organization.email ?? null,
+      }
+    : null;
+
+const mapAnimalDetail = (
+  animal: Animal & {
+    images: AnimalImage[];
+  },
+): PublicRecordDetail['info']['animal'] => ({
+  name: animal.name,
+  type: animal.type,
+  breed: animal.breed ?? null,
+  birthDate: toIsoString(animal.birthDate),
+  gender: animal.gender ?? null,
+  introduction: animal.introduction ?? null,
+  remark: animal.remark ?? null,
+  images: sortedImageUrls(animal.images),
+  currentFosterStartDate: toIsoString(animal.currentFosterStartDate),
+  currentFosterEndDate: toIsoString(animal.currentFosterEndDate),
+});
+
+const mapRecordEntry = (
+  record: FosterRecord & { images: FosterRecordImage[] },
+): PublicRecordDetail['records'][number] => ({
+  id: record.id,
+  content: record.content ?? null,
+  healthNote: record.healthNote ?? null,
+  createdAt: record.date.toISOString(),
+  updatedAt: record.updatedAt.toISOString(),
+  images: sortedImageUrls(record.images),
+});
 
 export const toRecordAnimal = (
   animal: Animal & { images: AnimalImage[] },
@@ -66,36 +105,11 @@ export const toRecordDetail = ({
     id: animal.id,
     state: RECORD_STATE_MAP[animal.status],
     createdAt: animal.createdAt.toISOString(),
-    organization: animal.organization
-      ? {
-          id: animal.organization.id,
-          name: animal.organization.name,
-          phoneNumber: animal.organization.phoneNumber ?? null,
-          zipcode: animal.organization.zipcode ?? null,
-          address: animal.organization.address ?? null,
-          addressDetail: animal.organization.addressDetail ?? null,
-          email: animal.organization.email ?? null,
-        }
-      : null,
-    animal: {
-      name: animal.name,
-      type: animal.type,
-      breed: animal.breed ?? null,
-      birthDate: toIsoString(animal.birthDate),
-      gender: animal.gender ?? null,
-      remark: animal.remark ?? null,
-      images: sortedImageUrls(animal.images),
-    },
+    organization: mapOrganization(animal.organization),
+    animal: mapAnimalDetail(animal),
   },
   records: records
     .slice()
     .sort((left, right) => left.date.getTime() - right.date.getTime())
-    .map((record) => ({
-      id: record.id,
-      content: record.content ?? null,
-      healthNote: record.healthNote ?? null,
-      createdAt: record.date.toISOString(),
-      updatedAt: record.updatedAt.toISOString(),
-      images: sortedImageUrls(record.images),
-    })),
+    .map(mapRecordEntry),
 });

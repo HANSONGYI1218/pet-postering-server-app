@@ -5,10 +5,9 @@ import type {
   AnimalPersonalityTagType,
   AnimalSize,
   AnimalSpecialNoteTagType,
+  AnimalStatus,
   AnimalType,
 } from '@prisma/client';
-
-export type FosterStatus = 'IN_PROGRESS' | 'FOSTERED';
 
 export interface OrganizationApplicant {
   id: string;
@@ -28,7 +27,7 @@ export interface OrganizationAnimalListItem {
   gender?: AnimalGender | null;
   breed?: string | null;
   birthDate?: string | null;
-  status: FosterStatus;
+  status: AnimalStatus;
   imageUrl?: string | null;
   isEmergency: boolean;
   applicants: OrganizationApplicant[];

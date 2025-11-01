@@ -4,15 +4,17 @@ import type {
   AnimalHealthTag,
   AnimalPersonalityTag,
   AnimalSpecialNoteTag,
+  AnimalStatus,
+  FosterApplication,
   FosterRecord,
   FosterRecordImage,
   Organization,
 } from '@prisma/client';
 
 import type {
-  FosterStatus,
   OrganizationAnimalDetail,
   OrganizationAnimalListItem,
+  OrganizationApplicant,
   OrganizationFosterRecord,
   OrganizationMeta,
 } from './types';
@@ -21,6 +23,16 @@ type AnimalWithTags = Animal & {
   healthTags: Pick<AnimalHealthTag, 'value'>[];
   personalityTags: Pick<AnimalPersonalityTag, 'value'>[];
   environmentTags: Pick<AnimalEnvironmentTag, 'value'>[];
+  applications: Pick<
+    FosterApplication,
+    | 'id'
+    | 'applicantName'
+    | 'email'
+    | 'phoneNumber'
+    | 'address'
+    | 'addressDetail'
+    | 'introduction'
+  >[];
 };
 
 type AnimalWithDetailRelations = AnimalWithTags & {
@@ -30,15 +42,31 @@ type AnimalWithDetailRelations = AnimalWithTags & {
   records: (FosterRecord & { images: Pick<FosterRecordImage, 'url'>[] })[];
 };
 
-const mapFosterStatus = (status: Animal['status'] | null | undefined): FosterStatus => {
+const mapFosterStatus = (status: Animal['status'] | null | undefined): AnimalStatus => {
+  if (status === 'WAITING') {
+    return 'WAITING';
+  }
   if (status === 'COMPLETED') {
-    return 'FOSTERED';
+    return 'COMPLETED';
   }
   return 'IN_PROGRESS';
 };
 
 const mapTags = <V>(collection: readonly { value: V }[]): V[] =>
   collection.map((item) => item.value);
+
+const mapApplications = (
+  applications: AnimalWithTags['applications'],
+): OrganizationApplicant[] =>
+  applications.map((application) => ({
+    id: application.id,
+    name: application.applicantName,
+    email: application.email,
+    phoneNumber: application.phoneNumber,
+    address: application.address,
+    addressDetail: application.addressDetail,
+    introduction: application.introduction,
+  }));
 
 const toOrganizationMeta = (
   organization: Organization | null,
@@ -69,11 +97,11 @@ export const toOrganizationAnimalListItem = (
   status: mapFosterStatus(animal.status),
   imageUrl: animal.mainImageUrl ?? null,
   isEmergency: animal.emergency,
-  applicants: [],
+  applicants: mapApplications(animal.applications),
   healthTags: mapTags(animal.healthTags),
   personalityTags: mapTags(animal.personalityTags),
   environmentTags: mapTags(animal.environmentTags),
-  fosterApplyNumber: 0,
+  fosterApplyNumber: animal.applications.length,
 });
 
 const toFosterRecord = (

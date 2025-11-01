@@ -92,10 +92,24 @@ export class LikeCommentResponseDto {
   liked!: boolean;
 }
 
+export class LikePostResponseDto {
+  @ApiProperty()
+  postId!: string;
+
+  @ApiProperty()
+  liked!: boolean;
+
+  @ApiProperty()
+  likeCount!: number;
+}
+
 // ======== Community List/Detail/Comments DTOs ========
 export class PostCountDto {
   @ApiProperty()
   comments!: number;
+
+  @ApiProperty()
+  likes!: number;
 }
 
 export class PostAuthorDto {
@@ -131,6 +145,9 @@ export class PostListItemDto {
   @ApiProperty()
   updatedAt!: Date;
 
+  @ApiProperty({ description: 'Number of likes' })
+  likeCount!: number;
+
   @ApiProperty({ type: () => PostCountDto })
   _count!: PostCountDto;
 }
@@ -138,6 +155,9 @@ export class PostListItemDto {
 export class PostDetailDto extends PostListItemDto {
   @ApiProperty()
   isBookmarked!: boolean;
+
+  @ApiProperty()
+  liked!: boolean;
 }
 
 export class PostListResponseDto {

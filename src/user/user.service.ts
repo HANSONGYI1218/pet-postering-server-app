@@ -126,7 +126,7 @@ export class UsersService {
     const posts = await this.prisma.post.findMany({
       where: { authorId: userId },
       orderBy: { createdAt: 'desc' },
-      include: { _count: { select: { comments: true } } },
+      include: { _count: { select: { comments: true, likes: true } } },
     });
 
     return posts.map((post) => ({

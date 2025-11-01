@@ -28,6 +28,7 @@ interface PrismaMock {
     delete: MockFn;
   };
   postBookmark: { upsert: MockFn; count: MockFn; delete: MockFn };
+  postLike: { upsert: MockFn; count: MockFn; delete: MockFn };
   commentLike: { findMany: MockFn; upsert: MockFn; delete: MockFn };
   $transaction: MockFn;
 }
@@ -44,7 +45,7 @@ const makePost = (id: string) =>
     viewCount: 0,
     createdAt: baseDate,
     updatedAt: baseDate,
-    _count: { comments: 0 },
+    _count: { comments: 0, likes: 0 },
   }) as any;
 
 const makeComment = (id: string, postId: string) =>
@@ -78,6 +79,11 @@ const build = () => {
       delete: jest.fn(),
     },
     postBookmark: {
+      upsert: jest.fn(),
+      count: jest.fn(),
+      delete: jest.fn(),
+    },
+    postLike: {
       upsert: jest.fn(),
       count: jest.fn(),
       delete: jest.fn(),
@@ -119,7 +125,7 @@ describe('CommunityService', () => {
         cursor: { id: 'cursor-123' },
         orderBy: { createdAt: 'desc' },
         include: {
-          _count: { select: { comments: true } },
+          _count: { select: { comments: true, likes: true } },
           author: { select: { id: true, displayName: true } },
         },
       });
@@ -139,7 +145,7 @@ describe('CommunityService', () => {
         skip: 0,
         orderBy: { createdAt: 'desc' },
         include: {
-          _count: { select: { comments: true } },
+          _count: { select: { comments: true, likes: true } },
           author: { select: { id: true, displayName: true } },
         },
       });
@@ -157,7 +163,13 @@ describe('CommunityService', () => {
 
       await expect(
         service.createPost('author-1', { title: 'Hello', content: 'World' }),
-      ).resolves.toEqual(created);
+      ).resolves.toMatchObject({
+        id: created.id,
+        authorId: created.authorId,
+        title: created.title,
+        content: created.content,
+        likeCount: 0,
+      });
       expect(prisma.post.create).toHaveBeenCalledWith({
         data: {
           authorId: 'author-1',
@@ -165,7 +177,7 @@ describe('CommunityService', () => {
           content: 'World',
         },
         include: {
-          _count: { select: { comments: true } },
+          _count: { select: { comments: true, likes: true } },
           author: { select: { id: true, displayName: true } },
         },
       });
@@ -181,12 +193,16 @@ describe('CommunityService', () => {
 
       await expect(
         service.updatePost('post-1', 'author-1', { title: 'Edited' }),
-      ).resolves.toEqual(updated);
+      ).resolves.toMatchObject({
+        id: updated.id,
+        authorId: updated.authorId,
+        likeCount: 0,
+      });
       expect(prisma.post.update).toHaveBeenCalledWith({
         where: { id: 'post-1' },
         data: { title: 'Edited' },
         include: {
-          _count: { select: { comments: true } },
+          _count: { select: { comments: true, likes: true } },
           author: { select: { id: true, displayName: true } },
         },
       });
@@ -277,7 +293,7 @@ describe('CommunityService', () => {
   });
 
   describe('getPost', () => {
-    it('increments view count and returns bookmark state', async () => {
+    it('increments view count and returns bookmark state with like info', async () => {
       const { service, prisma } = build();
       const updated = {
         ...makePost('post-1'),
@@ -296,17 +312,45 @@ describe('CommunityService', () => {
         where: { id: 'post-1' },
         data: { viewCount: { increment: 1 } },
         include: {
-          _count: { select: { comments: true } },
+          _count: { select: { comments: true, likes: true } },
           author: { select: { id: true, displayName: true } },
         },
       });
       expect(prisma.postBookmark.count).toHaveBeenCalledWith({
         where: { userId: 'user-7', postId: 'post-1' },
       });
+      expect(prisma.postLike.count).toHaveBeenCalledWith({
+        where: { userId: 'user-7', postId: 'post-1' },
+      });
       expect(result).toMatchObject({
         id: 'post-1',
         viewCount: 42,
         isBookmarked: true,
+        likeCount: 0,
+        liked: false,
+      });
+    });
+
+    it('sets liked flag when user already liked', async () => {
+      const { service, prisma } = build();
+      const updated = {
+        ...makePost('post-1'),
+        viewCount: 9,
+        _count: { comments: 1, likes: 5 },
+      };
+      prisma.post.update.mockResolvedValueOnce(updated);
+      prisma.$transaction.mockImplementation((cb: (tx: unknown) => Promise<unknown>) =>
+        cb({ post: { update: prisma.post.update } }),
+      );
+      prisma.postBookmark.count.mockResolvedValueOnce(0);
+      prisma.postLike.count.mockResolvedValueOnce(1);
+
+      const result = await service.getPost('post-1', 'user-9');
+
+      expect(result).toMatchObject({
+        likeCount: 5,
+        liked: true,
+        isBookmarked: false,
       });
     });
 
@@ -727,6 +771,61 @@ describe('CommunityService', () => {
       prisma.commentLike.delete.mockRejectedValueOnce(new Error('boom'));
 
       await expect(service.unlikeComment('comment-1', 'user-1')).rejects.toThrow(
+        InternalServerErrorException,
+      );
+    });
+  });
+
+  describe('post likes', () => {
+    it('upserts a post like and returns updated count', async () => {
+      const { service, prisma } = build();
+      prisma.postLike.upsert.mockResolvedValueOnce({});
+      prisma.postLike.count.mockResolvedValueOnce(5);
+
+      await expect(service.likePost('post-1', 'user-1')).resolves.toEqual({
+        postId: 'post-1',
+        liked: true,
+        likeCount: 5,
+      });
+
+      expect(prisma.postLike.upsert).toHaveBeenCalledWith({
+        where: { userId_postId: { userId: 'user-1', postId: 'post-1' } },
+        update: {},
+        create: { userId: 'user-1', postId: 'post-1' },
+      });
+      expect(prisma.postLike.count).toHaveBeenCalledWith({
+        where: { postId: 'post-1' },
+      });
+    });
+
+    it('handles missing like records when unliking', async () => {
+      const { service, prisma, logger } = build();
+      prisma.postLike.delete.mockRejectedValueOnce(
+        new Prisma.PrismaClientKnownRequestError('missing', {
+          code: 'P2025',
+          clientVersion: 'mock',
+        }),
+      );
+      prisma.postLike.count.mockResolvedValueOnce(0);
+
+      await expect(service.unlikePost('post-1', 'user-1')).resolves.toEqual({
+        postId: 'post-1',
+        liked: false,
+        likeCount: 0,
+      });
+
+      expect(logger.warn).toHaveBeenCalledWith({
+        msg: 'post-unlike-missing',
+        postId: 'post-1',
+        userId: 'user-1',
+      });
+    });
+
+    it('throws on unexpected errors when unliking', async () => {
+      const { service, prisma } = build();
+      prisma.postLike.delete.mockRejectedValueOnce(new Error('boom'));
+
+      await expect(service.unlikePost('post-1', 'user-1')).rejects.toThrow(
         InternalServerErrorException,
       );
     });

@@ -18,6 +18,7 @@ import type {
   CommentListItem,
   DeleteCommentResponse,
   LikeCommentResponse,
+  LikePostResponse,
   ListCommentsResult,
   ListPostsResult,
   PostDetail,
@@ -32,7 +33,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { DEFAULT_POST_PAGE_SIZE } from './community.constants';
 
 const POST_RELATIONS = {
-  _count: { select: { comments: true } },
+  _count: { select: { comments: true, likes: true } },
   author: { select: { id: true, displayName: true } },
 } as const;
 
@@ -155,13 +156,22 @@ export class CommunityService {
     const mapped = toPostListItem(post);
 
     if (!userId) {
-      return { ...mapped, isBookmarked: false };
+      return { ...mapped, isBookmarked: false, liked: false };
     }
 
-    const bookmarkCount = await this.prisma.postBookmark.count({
-      where: { userId, postId },
-    });
-    return { ...mapped, isBookmarked: bookmarkCount > 0 };
+    const [bookmarkCount, likedCount] = await Promise.all([
+      this.prisma.postBookmark.count({
+        where: { userId, postId },
+      }),
+      this.prisma.postLike.count({
+        where: { userId, postId },
+      }),
+    ]);
+    return {
+      ...mapped,
+      isBookmarked: bookmarkCount > 0,
+      liked: likedCount > 0,
+    };
   }
 
   async bookmark(postId: string, userId: string): Promise<BookmarkResponse> {
@@ -198,6 +208,48 @@ export class CommunityService {
       }
     }
     return { postId, bookmarked: false };
+  }
+
+  async likePost(postId: string, userId: string): Promise<LikePostResponse> {
+    await this.prisma.postLike.upsert({
+      where: { userId_postId: { userId, postId } },
+      update: {},
+      create: { userId, postId },
+    });
+
+    const likeCount = await this.prisma.postLike.count({ where: { postId } });
+
+    return { postId, liked: true, likeCount };
+  }
+
+  async unlikePost(postId: string, userId: string): Promise<LikePostResponse> {
+    try {
+      await this.prisma.postLike.delete({
+        where: { userId_postId: { userId, postId } },
+      });
+    } catch (error: unknown) {
+      if (this.isPrismaNotFoundError(error)) {
+        this.logger.warn({
+          msg: 'post-unlike-missing',
+          postId,
+          userId,
+        });
+      } else {
+        this.logger.error({
+          msg: 'post-unlike-failed',
+          postId,
+          userId,
+          err: error,
+        });
+        throw new InternalServerErrorException('post-unlike-failed', {
+          cause: error,
+        });
+      }
+    }
+
+    const likeCount = await this.prisma.postLike.count({ where: { postId } });
+
+    return { postId, liked: false, likeCount };
   }
 
   async listComments(postId: string, userId?: string): Promise<ListCommentsResult> {

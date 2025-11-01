@@ -4,7 +4,7 @@ import type { CommentListItem, PostListItem } from './types';
 
 export type PostWithRelations = Post & {
   author: { id: string; displayName: string | null };
-  _count: { comments: number };
+  _count: { comments: number; likes: number };
 };
 
 type CommentWithRelations = Comment & {
@@ -24,8 +24,10 @@ export const toPostListItem = (post: PostWithRelations): PostListItem => ({
     id: post.author.id,
     displayName: post.author.displayName,
   },
+  likeCount: post._count.likes,
   _count: {
     comments: post._count.comments,
+    likes: post._count.likes,
   },
 });
 

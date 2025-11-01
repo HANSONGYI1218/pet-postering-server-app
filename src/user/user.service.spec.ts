@@ -240,7 +240,7 @@ describe('UsersService', () => {
           viewCount: 10,
           createdAt: new Date('2025-01-01T00:00:00Z'),
           updatedAt: new Date('2025-01-02T00:00:00Z'),
-          _count: { comments: 3 },
+          _count: { comments: 3, likes: 0 },
         },
       ]);
 
@@ -259,7 +259,7 @@ describe('UsersService', () => {
       expect(prisma.post.findMany).toHaveBeenCalledWith({
         where: { authorId: 'user-1' },
         orderBy: { createdAt: 'desc' },
-        include: { _count: { select: { comments: true } } },
+        include: { _count: { select: { comments: true, likes: true } } },
       });
     });
   });

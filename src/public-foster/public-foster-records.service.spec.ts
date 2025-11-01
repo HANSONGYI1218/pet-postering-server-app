@@ -13,6 +13,8 @@ const mockAnimal = {
   birthDate: new Date('2024-01-01T00:00:00.000Z'),
   gender: 'MALE',
   type: 'DOG',
+  introduction: 'Nice dog',
+  remark: 'Loves walks',
   images: [],
   currentFosterStartDate: new Date('2024-08-01T00:00:00.000Z'),
   currentFosterEndDate: new Date('2024-08-10T00:00:00.000Z'),
@@ -66,6 +68,17 @@ describe('PublicFosterRecordsService', () => {
     });
   });
 
+  it('maps completed status to COMPLETED', async () => {
+    const { service, prisma } = build();
+    prisma.animal.findMany.mockResolvedValueOnce([
+      { ...mockAnimal, id: 'animal-3', status: 'COMPLETED' },
+    ]);
+
+    const result = await service.listAnimals();
+
+    expect(result.items[0].state).toBe('COMPLETED');
+  });
+
   it('falls back to earliest record date when foster duration is zero', async () => {
     const { service, prisma } = build();
     const fallbackAnimal = {
@@ -116,6 +129,10 @@ describe('PublicFosterRecordsService', () => {
     expect(detail.records[0]).toMatchObject({
       healthNote: 'fine',
     });
+    expect(detail.info.state).toBe('IN_PROGRESS');
+    expect(detail.info.animal.introduction).toBe('Nice dog');
+    expect(detail.info.animal.currentFosterStartDate).toBe('2024-08-01T00:00:00.000Z');
+    expect(detail.info.animal.currentFosterEndDate).toBe('2024-08-10T00:00:00.000Z');
   });
 
   it('throws when animal missing', async () => {

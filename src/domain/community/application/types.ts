@@ -5,6 +5,7 @@ export interface PostAuthor {
 
 export interface PostCount {
   comments: number;
+  likes: number;
 }
 
 export interface PostListItem {
@@ -16,11 +17,13 @@ export interface PostListItem {
   createdAt: Date;
   updatedAt: Date;
   author: PostAuthor;
+  likeCount: number;
   _count: PostCount;
 }
 
 export interface PostDetail extends PostListItem {
   isBookmarked: boolean;
+  liked: boolean;
 }
 
 export interface BookmarkResponse {
@@ -66,4 +69,10 @@ export interface DeleteCommentResponse {
 export interface LikeCommentResponse {
   commentId: string;
   liked: boolean;
+}
+
+export interface LikePostResponse {
+  postId: string;
+  liked: boolean;
+  likeCount: number;
 }

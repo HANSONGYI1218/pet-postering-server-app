@@ -114,6 +114,7 @@ model User {
   posts         Post[]
   comments      Comment[]
   postBookmarks PostBookmark[]
+  postLikes     PostLike[]
   commentLikes  CommentLike[]
   reports       Report[]        @relation("ReportReporter")
   ownedAnimals  Animal[]
@@ -187,6 +188,7 @@ model Post {
   author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
   comments  Comment[]
   bookmarks PostBookmark[]
+  likes     PostLike[]
 
   @@index([authorId])
   @@index([createdAt])
@@ -219,6 +221,18 @@ model PostBookmark {
 
   user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
   post      Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@id([userId, postId])
+  @@index([postId])
+}
+
+model PostLike {
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@id([userId, postId])
   @@index([postId])
@@ -306,6 +320,7 @@ model Animal {
   personalityTags AnimalPersonalityTag[]
   environmentTags AnimalEnvironmentTag[]
   specialNoteTags AnimalSpecialNoteTag[]
+  applications FosterApplication[]
 
   @@index([status])
   @@index([orgId])
@@ -389,4 +404,21 @@ model FosterRecordImage {
 
   @@index([recordId])
   @@unique([recordId, sortOrder])
+}
+
+model FosterApplication {
+  id            String   @id @default(cuid())
+  animalId      String
+  applicantName String
+  email         String?
+  phoneNumber   String?
+  address       String?
+  addressDetail String?
+  introduction  String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  animal Animal @relation(fields: [animalId], references: [id], onDelete: Cascade)
+
+  @@index([animalId])
 }

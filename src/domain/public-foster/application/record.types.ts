@@ -1,6 +1,4 @@
-import type { AnimalGender, AnimalType } from '@prisma/client';
-
-export type FosterState = 'IN_PROGRESS' | 'FOSTERED';
+import type { AnimalGender, AnimalStatus, AnimalType } from '@prisma/client';
 
 export interface PublicRecordAnimal {
   id: string;
@@ -11,7 +9,7 @@ export interface PublicRecordAnimal {
   gender: AnimalGender | null;
   images: string[];
   fosterDuration: number;
-  state: FosterState;
+  state: AnimalStatus;
   matchId: string;
 }
 
@@ -32,7 +30,7 @@ export interface PublicRecordDetail {
   id: string;
   info: {
     id: string;
-    state: FosterState;
+    state: AnimalStatus;
     createdAt: string;
     organization: {
       id: string;
@@ -49,8 +47,11 @@ export interface PublicRecordDetail {
       breed: string | null;
       birthDate: string | null;
       gender: AnimalGender | null;
+      introduction: string | null;
       remark: string | null;
       images: string[];
+      currentFosterStartDate: string | null;
+      currentFosterEndDate: string | null;
     };
   };
   records: PublicRecordEntry[];

@@ -34,6 +34,8 @@ describe('CommunityController', () => {
       deleteComment: jest.fn(),
       likeComment: jest.fn(),
       unlikeComment: jest.fn(),
+      likePost: jest.fn(),
+      unlikePost: jest.fn(),
     } as unknown as jest.Mocked<CommunityService>;
 
     const moduleRef = await Test.createTestingModule({
@@ -145,7 +147,9 @@ describe('CommunityController', () => {
       title: 'Optional',
       content: 'User aware',
       isBookmarked: true,
-      _count: { comments: 0 },
+      liked: true,
+      likeCount: 3,
+      _count: { comments: 0, likes: 3 },
     };
     service.getPost.mockResolvedValueOnce(detail as any);
 
@@ -249,6 +253,38 @@ describe('CommunityController', () => {
     await request(app.getHttpServer()).patch('/community/posts/post-3/views').expect(204);
 
     expect(service.incrementPostView).toHaveBeenCalledWith('post-3');
+  });
+
+  it('POST /community/posts/:id/likes injects user for like creation', async () => {
+    service.likePost.mockResolvedValueOnce({
+      postId: 'post-55',
+      liked: true,
+      likeCount: 12,
+    } as any);
+
+    await request(app.getHttpServer())
+      .post('/community/posts/post-55/likes')
+      .set('x-test-user', 'user-9')
+      .expect(200)
+      .expect({ postId: 'post-55', liked: true, likeCount: 12 });
+
+    expect(service.likePost).toHaveBeenCalledWith('post-55', 'user-9');
+  });
+
+  it('DELETE /community/posts/:id/likes injects user for unlike', async () => {
+    service.unlikePost.mockResolvedValueOnce({
+      postId: 'post-55',
+      liked: false,
+      likeCount: 11,
+    } as any);
+
+    await request(app.getHttpServer())
+      .delete('/community/posts/post-55/likes')
+      .set('x-test-user', 'user-9')
+      .expect(200)
+      .expect({ postId: 'post-55', liked: false, likeCount: 11 });
+
+    expect(service.unlikePost).toHaveBeenCalledWith('post-55', 'user-9');
   });
 
   it('POST /community/comments/:id/likes injects user', async () => {

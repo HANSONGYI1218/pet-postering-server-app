@@ -5,6 +5,7 @@ import {
   communityCommentSeeds,
   communityPostSeeds,
   communityUserSeeds,
+  fosterApplicationSeeds,
   noticeSeeds,
   organizationSeeds,
   recordSeeds,
@@ -136,6 +137,45 @@ const seedNotices = async (): Promise<void> => {
         },
       },
     });
+  }
+};
+
+type FosterApplicationSeed =
+  (typeof fosterApplicationSeeds)[number]['applicants'][number];
+
+interface FosterApplicationUpsert {
+  applicantName: string;
+  email: string | null;
+  phoneNumber: string | null;
+  address: string | null;
+  addressDetail: string | null;
+  introduction: string | null;
+}
+
+const toApplicantData = (applicant: FosterApplicationSeed): FosterApplicationUpsert => ({
+  applicantName: applicant.name,
+  email: applicant.email ?? null,
+  phoneNumber: applicant.phoneNumber ?? null,
+  address: applicant.address ?? null,
+  addressDetail: applicant.addressDetail ?? null,
+  introduction: applicant.introduction ?? null,
+});
+
+const seedFosterApplications = async (): Promise<void> => {
+  log('seeding foster applications...');
+  for (const { animalId, applicants } of fosterApplicationSeeds) {
+    for (const applicant of applicants) {
+      const applicantData = toApplicantData(applicant);
+      await prisma.fosterApplication.upsert({
+        where: { id: applicant.id },
+        update: applicantData,
+        create: {
+          id: applicant.id,
+          animalId,
+          ...applicantData,
+        },
+      });
+    }
   }
 };
 
@@ -278,6 +318,7 @@ async function main(): Promise<void> {
   await seedOrganizations();
   await clearSeedAnimals();
   await seedAnimals();
+  await seedFosterApplications();
   await seedRecords();
   await seedNotices();
   await clearCommunitySeeds();

@@ -63,6 +63,19 @@ export interface RecordSeed {
   }[];
 }
 
+export interface FosterApplicationSeed {
+  animalId: string;
+  applicants: {
+    id: string;
+    name: string;
+    email?: string | null;
+    phoneNumber?: string | null;
+    address?: string | null;
+    addressDetail?: string | null;
+    introduction?: string | null;
+  }[];
+}
+
 export interface CommunityUserSeed {
   id: string;
   kakaoId: string;
@@ -157,6 +170,48 @@ export const noticeSeeds: NoticeSeed[] = [
     isFixed: false,
     createdAt: new Date('2025-10-05T00:00:00.000Z'),
     attachments: ['https://cdn.furdiz.com/notices/privacy-policy-2025.pdf'],
+  },
+];
+
+export const fosterApplicationSeeds: FosterApplicationSeed[] = [
+  {
+    animalId: 'seed-animal-latte',
+    applicants: [
+      {
+        id: 'seed-apply-latte-minji',
+        name: '김민지',
+        email: 'minji@example.com',
+        phoneNumber: '010-1234-5678',
+        address: '서울특별시 마포구 성미산로 25',
+        addressDetail: '302호',
+        introduction: '반려견 2년 이상 돌봄 경험이 있으며, 하루 2회 산책이 가능합니다.',
+      },
+      {
+        id: 'seed-apply-latte-jisu',
+        name: '박지수',
+        email: 'jisu@example.com',
+        phoneNumber: '010-9876-5432',
+        address: '경기도 고양시 일산서구 한류월드로 155',
+        addressDetail: '힐스테이트 101동 1203호',
+        introduction:
+          '재택근무 중이라 낮 시간대 케어가 가능합니다. 임보 공간 사진 제공 가능합니다.',
+      },
+    ],
+  },
+  {
+    animalId: 'seed-animal-nabi',
+    applicants: [
+      {
+        id: 'seed-apply-nabi-sena',
+        name: '이세나',
+        email: 'sena@example.com',
+        phoneNumber: '010-5555-3333',
+        address: '부산광역시 해운대구 센텀중앙로 79',
+        addressDetail: '센텀스카이비즈 1804호',
+        introduction:
+          '최근까지 5년간 고양이를 돌본 경험이 있습니다. 알레르기 없고, 조용한 단독주택입니다.',
+      },
+    ],
   },
 ];
 

@@ -22,6 +22,9 @@ export class OrganizationService {
         healthTags: true,
         personalityTags: true,
         environmentTags: true,
+        applications: {
+          orderBy: { createdAt: 'desc' },
+        },
       },
     });
     return {
@@ -40,6 +43,9 @@ export class OrganizationService {
         specialNoteTags: true,
         images: {
           orderBy: { sortOrder: 'asc' },
+        },
+        applications: {
+          orderBy: { createdAt: 'desc' },
         },
         records: {
           orderBy: { date: 'desc' },

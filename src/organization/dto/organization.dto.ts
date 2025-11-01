@@ -6,6 +6,7 @@ import {
   AnimalPersonalityTagType,
   AnimalSize,
   AnimalSpecialNoteTagType,
+  AnimalStatus,
   AnimalType,
 } from '@prisma/client';
 
@@ -54,8 +55,8 @@ export class OrganizationAnimalDto {
   @ApiPropertyOptional({ nullable: true })
   birthDate?: string | null;
 
-  @ApiProperty({ enum: ['IN_PROGRESS', 'FOSTERED'] })
-  status!: 'IN_PROGRESS' | 'FOSTERED';
+  @ApiProperty({ enum: AnimalStatus, enumName: 'AnimalStatus' })
+  status!: AnimalStatus;
 
   @ApiPropertyOptional({ nullable: true })
   imageUrl?: string | null;

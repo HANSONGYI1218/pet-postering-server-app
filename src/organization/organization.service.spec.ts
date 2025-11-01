@@ -36,6 +36,17 @@ describe('OrganizationService', () => {
           healthTags: [{ value: 'NEUTERED' }],
           personalityTags: [{ value: 'QUIET' }],
           environmentTags: [{ value: 'QUIET_ENVIRONMENT' }],
+          applications: [
+            {
+              id: 'apply-1',
+              applicantName: '김민지',
+              email: 'minji@example.com',
+              phoneNumber: '010-1234-5678',
+              address: '서울시 마포구',
+              addressDetail: '201호',
+              introduction: '산책이 가능한 직장인입니다.',
+            },
+          ],
         },
       ]);
 
@@ -48,6 +59,9 @@ describe('OrganizationService', () => {
           healthTags: true,
           personalityTags: true,
           environmentTags: true,
+          applications: {
+            orderBy: { createdAt: 'desc' },
+          },
         },
       });
       expect(result.items).toHaveLength(1);
@@ -56,9 +70,43 @@ describe('OrganizationService', () => {
         name: 'Buddy',
         type: 'DOG',
         imageUrl: 'https://example.com/image.jpg',
-        applicants: [],
-        fosterApplyNumber: 0,
+        applicants: [
+          {
+            id: 'apply-1',
+            name: '김민지',
+            email: 'minji@example.com',
+            phoneNumber: '010-1234-5678',
+          },
+        ],
+        fosterApplyNumber: 1,
+        status: 'IN_PROGRESS',
       });
+    });
+
+    it('preserves COMPLETED status for finished animals', async () => {
+      const { service, prisma } = build();
+      prisma.animal.findMany.mockResolvedValueOnce([
+        {
+          id: 'animal-2',
+          name: 'Happy',
+          type: 'DOG',
+          size: 'SMALL',
+          gender: 'FEMALE',
+          breed: 'Poodle',
+          birthDate: baseDate,
+          status: 'COMPLETED',
+          mainImageUrl: null,
+          emergency: false,
+          healthTags: [],
+          personalityTags: [],
+          environmentTags: [],
+          applications: [],
+        },
+      ]);
+
+      const result = await service.listAnimals();
+
+      expect(result.items[0].status).toBe('COMPLETED');
     });
   });
 
@@ -92,6 +140,17 @@ describe('OrganizationService', () => {
         personalityTags: [{ value: 'QUIET' }],
         environmentTags: [{ value: 'QUIET_ENVIRONMENT' }],
         specialNoteTags: [{ value: 'SEPARATION_ANXIETY' }],
+        applications: [
+          {
+            id: 'apply-1',
+            applicantName: '김민지',
+            email: 'minji@example.com',
+            phoneNumber: '010-1234-5678',
+            address: '서울',
+            addressDetail: '201호',
+            introduction: '산책이 가능한 직장인입니다.',
+          },
+        ],
         organization: {
           id: 'org-1',
           name: 'Pet Org',
@@ -136,6 +195,9 @@ describe('OrganizationService', () => {
               },
             },
           },
+          applications: {
+            orderBy: { createdAt: 'desc' },
+          },
         },
       });
       expect(result).toMatchObject({
@@ -151,6 +213,15 @@ describe('OrganizationService', () => {
             images: ['https://example.com/record.jpg'],
           },
         ],
+        applicants: [
+          {
+            id: 'apply-1',
+            name: '김민지',
+            email: 'minji@example.com',
+            phoneNumber: '010-1234-5678',
+          },
+        ],
+        fosterApplyNumber: 1,
       });
     });
   });
