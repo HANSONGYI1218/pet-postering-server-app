@@ -17,7 +17,7 @@ export const toPostListItem = (post: PostWithRelations): PostListItem => ({
   authorId: post.authorId,
   title: post.title,
   content: post.content,
-  images: post.images as string[],
+  images: post.images,
   viewCount: post.viewCount,
   createdAt: post.createdAt,
   updatedAt: post.updatedAt,
