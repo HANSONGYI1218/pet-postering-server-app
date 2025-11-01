@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { extname } from 'node:path';
 
-import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { S3Client } from '@aws-sdk/client-s3';
+import { createPresignedPost } from '@aws-sdk/s3-presigned-post';
 import {
   BadRequestException,
   Injectable,
@@ -37,6 +37,7 @@ export interface PresignedUpload {
   readonly key: string;
   readonly expiresIn: number;
   readonly contentType: string;
+  readonly fields: Record<string, string>;
 }
 
 interface PreparedInput {
@@ -77,22 +78,28 @@ export class UploadsService {
     const { sanitizedScope, extension, contentType } = this.prepareInput(input);
 
     const key = `${sanitizedScope}/${randomUUID()}.${extension}`;
-    const command = new PutObjectCommand({
+    const presignedPost = await createPresignedPost(this.s3, {
       Bucket: this.bucket,
       Key: key,
-      ContentType: contentType,
-    });
-
-    const uploadUrl = await getSignedUrl(this.s3, command, {
-      expiresIn: this.expiresIn,
+      Fields: {
+        key,
+        'Content-Type': contentType,
+      },
+      Conditions: [
+        ['content-length-range', 1, this.maxSize],
+        ['starts-with', '$key', sanitizedScope],
+        ['eq', '$Content-Type', contentType],
+      ],
+      Expires: this.expiresIn,
     });
 
     return {
-      uploadUrl,
+      uploadUrl: presignedPost.url,
       publicUrl: this.resolvePublicUrl(key),
       key,
       expiresIn: this.expiresIn,
       contentType,
+      fields: presignedPost.fields,
     };
   }
 

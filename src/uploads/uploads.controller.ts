@@ -28,6 +28,10 @@ export class UploadsController {
         key: { type: 'string' },
         expiresIn: { type: 'number' },
         contentType: { type: 'string' },
+        fields: {
+          type: 'object',
+          additionalProperties: { type: 'string' },
+        },
       },
     },
   })
