@@ -42,6 +42,8 @@
     "logs:prod": "ts-node scripts/tail-prod-logs.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.922.0",
+    "@aws-sdk/s3-request-presigner": "^3.922.0",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.1",
@@ -53,14 +55,14 @@
     "axios": "^1.11.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
+    "nestjs-pino": "^4.4.1",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
+    "pino": "^9.4.0",
+    "pino-http": "^10.4.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
-    "swagger-ui-express": "^5.0.1",
-    "nestjs-pino": "^4.4.1",
-    "pino": "^9.4.0",
-    "pino-http": "^10.4.0"
+    "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",

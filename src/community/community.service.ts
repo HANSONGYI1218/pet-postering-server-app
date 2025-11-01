@@ -73,10 +73,15 @@ export class CommunityService {
 
   async createPost(
     authorId: string,
-    dto: { title: string; content: string },
+    dto: { title: string; content: string; images?: string[] },
   ): Promise<PostListItem> {
     const created = await this.prisma.post.create({
-      data: { authorId, title: dto.title, content: dto.content },
+      data: {
+        authorId,
+        title: dto.title,
+        content: dto.content,
+        images: dto.images ?? [],
+      },
       include: POST_RELATIONS,
     });
     return toPostListItem(created);
@@ -85,9 +90,9 @@ export class CommunityService {
   async updatePost(
     postId: string,
     userId: string,
-    dto: { title?: string; content?: string },
+    dto: { title?: string; content?: string; images?: string[] },
   ): Promise<PostListItem> {
-    if (!dto.title && !dto.content) {
+    if (!dto.title && !dto.content && !dto.images) {
       throw new BadRequestException('post-update-empty');
     }
     const post = await this.prisma.post.findUnique({
@@ -105,6 +110,7 @@ export class CommunityService {
       data: {
         ...(dto.title ? { title: dto.title } : {}),
         ...(dto.content ? { content: dto.content } : {}),
+        ...(dto.images ? { images: dto.images } : {}),
       },
       include: POST_RELATIONS,
     });

@@ -40,6 +40,7 @@ const makePost = (id: string) =>
     id,
     title: `title-${id}`,
     content: `content-${id}`,
+    images: [`https://cdn.test/${id}.png`],
     authorId: `author-${id}`,
     author: { id: `author-${id}`, displayName: `Author ${id}` },
     viewCount: 0,
@@ -162,12 +163,17 @@ describe('CommunityService', () => {
       prisma.post.create.mockResolvedValueOnce(created);
 
       await expect(
-        service.createPost('author-1', { title: 'Hello', content: 'World' }),
+        service.createPost('author-1', {
+          title: 'Hello',
+          content: 'World',
+          images: ['https://cdn.test/1.png'],
+        }),
       ).resolves.toMatchObject({
         id: created.id,
         authorId: created.authorId,
         title: created.title,
         content: created.content,
+        images: created.images,
         likeCount: 0,
       });
       expect(prisma.post.create).toHaveBeenCalledWith({
@@ -175,6 +181,7 @@ describe('CommunityService', () => {
           authorId: 'author-1',
           title: 'Hello',
           content: 'World',
+          images: ['https://cdn.test/1.png'],
         },
         include: {
           _count: { select: { comments: true, likes: true } },
@@ -196,6 +203,7 @@ describe('CommunityService', () => {
       ).resolves.toMatchObject({
         id: updated.id,
         authorId: updated.authorId,
+        images: updated.images,
         likeCount: 0,
       });
       expect(prisma.post.update).toHaveBeenCalledWith({
@@ -233,6 +241,26 @@ describe('CommunityService', () => {
         service.updatePost('post-1', 'author-1', { content: 'Updated' }),
       ).rejects.toThrow('post-update-forbidden');
       expect(prisma.post.update).not.toHaveBeenCalled();
+    });
+
+    it('updates images when provided', async () => {
+      const { service, prisma } = build();
+      prisma.post.findUnique.mockResolvedValueOnce({ authorId: 'author-1' });
+      const updated = makePost('post-1');
+      prisma.post.update.mockResolvedValueOnce(updated);
+
+      await service.updatePost('post-1', 'author-1', {
+        images: ['https://cdn.test/new.png'],
+      });
+
+      expect(prisma.post.update).toHaveBeenCalledWith({
+        where: { id: 'post-1' },
+        data: { images: ['https://cdn.test/new.png'] },
+        include: {
+          _count: { select: { comments: true, likes: true } },
+          author: { select: { id: true, displayName: true } },
+        },
+      });
     });
   });
 

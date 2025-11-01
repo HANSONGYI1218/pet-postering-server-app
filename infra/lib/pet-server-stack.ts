@@ -29,8 +29,7 @@ type RequiredEnvKey =
   | 'KAKAO_CLIENT_SECRET'
   | 'KAKAO_REDIRECT_URI';
 
-type OptionalEnvKey =
-  | 'DIRECT_DATABASE_URL'
+type OptionalEnvWithDefaultKey =
   | 'JWT_ACCESS_EXPIRES_IN'
   | 'JWT_REFRESH_EXPIRES_IN'
   | 'NODE_ENV'
@@ -38,6 +37,15 @@ type OptionalEnvKey =
   | 'AWS_LWA_PORT'
   | 'SKIP_MIGRATE'
   | 'STAGE';
+
+type OptionalEnvKey =
+  | 'DIRECT_DATABASE_URL'
+  | 'UPLOADS_BUCKET'
+  | 'UPLOADS_REGION'
+  | 'UPLOADS_CDN_DOMAIN'
+  | 'UPLOADS_MAX_SIZE'
+  | 'UPLOADS_URL_EXPIRES_IN'
+  | OptionalEnvWithDefaultKey;
 
 type DomainEnvKey = 'API_DOMAIN' | 'API_CERT_ARN' | 'API_HOSTED_ZONE_ID';
 
@@ -76,22 +84,20 @@ const collectRequiredEnv = (
   return Object.fromEntries(entries) as Record<RequiredEnvKey, string>;
 };
 
-const optionalEnvDefaults: Record<
-  Exclude<OptionalEnvKey, 'DIRECT_DATABASE_URL'>,
-  (stage: string) => string
-> = {
-  AWS_LWA_PORT: () => '3000',
-  JWT_ACCESS_EXPIRES_IN: () => '15m',
-  JWT_REFRESH_EXPIRES_IN: () => '14d',
-  NODE_ENV: (stage) => (stage === 'prod' ? 'production' : 'development'),
-  PORT: () => '3000',
-  SKIP_MIGRATE: () => '1',
-  STAGE: (stage) => stage,
-};
+const optionalEnvDefaults: Record<OptionalEnvWithDefaultKey, (stage: string) => string> =
+  {
+    AWS_LWA_PORT: () => '3000',
+    JWT_ACCESS_EXPIRES_IN: () => '15m',
+    JWT_REFRESH_EXPIRES_IN: () => '14d',
+    NODE_ENV: (stage) => (stage === 'prod' ? 'production' : 'development'),
+    PORT: () => '3000',
+    SKIP_MIGRATE: () => '1',
+    STAGE: (stage) => stage,
+  };
 
 const collectOptionalEnv = (
   stage: string,
-  defaults: Record<string, (stage: string) => string>,
+  defaults: Record<OptionalEnvWithDefaultKey, (stage: string) => string>,
 ): Record<string, string> =>
   Object.fromEntries(
     Object.entries(defaults).map(([key, fallback]) => [
@@ -285,6 +291,11 @@ export class PetServerStack extends Stack {
     const optionalEnv = {
       ...collectOptionalEnv(stage, optionalEnvDefaults),
       ...maybeEnv(stage, 'DIRECT_DATABASE_URL'),
+      ...maybeEnv(stage, 'UPLOADS_BUCKET'),
+      ...maybeEnv(stage, 'UPLOADS_REGION'),
+      ...maybeEnv(stage, 'UPLOADS_CDN_DOMAIN'),
+      ...maybeEnv(stage, 'UPLOADS_MAX_SIZE'),
+      ...maybeEnv(stage, 'UPLOADS_URL_EXPIRES_IN'),
     };
 
     const lambdaFunction = createLambdaFunction(this, stage, {

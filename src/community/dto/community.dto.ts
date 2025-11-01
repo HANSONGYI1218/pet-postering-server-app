@@ -1,6 +1,16 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, IsString, Length, Max, Min } from 'class-validator';
+import {
+  ArrayMaxSize,
+  IsArray,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUrl,
+  Length,
+  Max,
+  Min,
+} from 'class-validator';
 
 export class ListPostsQueryDto {
   @ApiPropertyOptional({ description: 'Cursor (post id) for pagination' })
@@ -32,6 +42,18 @@ export class CreatePostDto {
   @IsString()
   @Length(1, 5000)
   content!: string;
+
+  @ApiPropertyOptional({
+    description: 'Public image URLs associated with the post (max 5)',
+    type: [String],
+    maxItems: 5,
+    nullable: true,
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(5)
+  @IsUrl({ require_protocol: true }, { each: true })
+  images?: string[];
 }
 
 export class UpdatePostDto {
@@ -46,6 +68,18 @@ export class UpdatePostDto {
   @IsString()
   @Length(1, 5000)
   content?: string;
+
+  @ApiPropertyOptional({
+    description: 'Public image URLs associated with the post (max 5)',
+    type: [String],
+    maxItems: 5,
+    nullable: true,
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(5)
+  @IsUrl({ require_protocol: true }, { each: true })
+  images?: string[];
 }
 
 export class CreateCommentDto {
@@ -135,6 +169,9 @@ export class PostListItemDto {
 
   @ApiProperty()
   content!: string;
+
+  @ApiProperty({ type: [String] })
+  images!: string[];
 
   @ApiProperty()
   viewCount!: number;

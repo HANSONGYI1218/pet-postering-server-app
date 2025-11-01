@@ -13,6 +13,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { PublicFosterModule } from './public-foster/public-foster.module';
 import { PublicNoticeModule } from './public-notice/public-notice.module';
 import { ReportsModule } from './reports/reports.module';
+import { UploadsModule } from './uploads/uploads.module';
 import { UsersModule } from './user/user.module';
 
 @Module({
@@ -28,6 +29,7 @@ import { UsersModule } from './user/user.module';
     PublicFosterModule,
     PublicNoticeModule,
     UsersModule,
+    UploadsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

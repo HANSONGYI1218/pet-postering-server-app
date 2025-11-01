@@ -1,5 +1,5 @@
 import { App } from 'aws-cdk-lib';
-import { Template } from 'aws-cdk-lib/assertions';
+import { Match, Template } from 'aws-cdk-lib/assertions';
 
 import { PetServerStack } from '../lib/pet-server-stack';
 
@@ -7,6 +7,11 @@ const STAGE = 'prod';
 const DOMAIN_ENV_KEY = `PET_SERVER_${STAGE.toUpperCase()}_API_DOMAIN`;
 const CERT_ENV_KEY = `PET_SERVER_${STAGE.toUpperCase()}_API_CERT_ARN`;
 const HOSTED_ZONE_ENV_KEY = `PET_SERVER_${STAGE.toUpperCase()}_API_HOSTED_ZONE_ID`;
+const UPLOADS_BUCKET_ENV_KEY = `PET_SERVER_${STAGE.toUpperCase()}_UPLOADS_BUCKET`;
+const UPLOADS_REGION_ENV_KEY = `PET_SERVER_${STAGE.toUpperCase()}_UPLOADS_REGION`;
+const UPLOADS_CDN_DOMAIN_ENV_KEY = `PET_SERVER_${STAGE.toUpperCase()}_UPLOADS_CDN_DOMAIN`;
+const UPLOADS_MAX_SIZE_ENV_KEY = `PET_SERVER_${STAGE.toUpperCase()}_UPLOADS_MAX_SIZE`;
+const UPLOADS_URL_EXPIRES_IN_ENV_KEY = `PET_SERVER_${STAGE.toUpperCase()}_UPLOADS_URL_EXPIRES_IN`;
 
 type EnvMap = Record<string, string | undefined>;
 
@@ -124,6 +129,39 @@ describe('PetServerStack custom domain', () => {
           Name: domainName,
           HostedZoneId: hostedZoneId,
           Type: 'A',
+        });
+      },
+    );
+  });
+
+  it('업로드 환경 변수를 전달하면 Lambda 환경에도 반영된다', () => {
+    const bucketName = 'furdiz-prod-uploads';
+    const uploadsRegion = 'ap-northeast-2';
+    const cdnDomain = 'https://cdn.furdiz.com';
+    const maxSize = '10485760';
+    const expiresIn = '300';
+
+    withBaseEnv(
+      {
+        [UPLOADS_BUCKET_ENV_KEY]: bucketName,
+        [UPLOADS_REGION_ENV_KEY]: uploadsRegion,
+        [UPLOADS_CDN_DOMAIN_ENV_KEY]: cdnDomain,
+        [UPLOADS_MAX_SIZE_ENV_KEY]: maxSize,
+        [UPLOADS_URL_EXPIRES_IN_ENV_KEY]: expiresIn,
+      },
+      () => {
+        const template = createTemplate();
+
+        template.hasResourceProperties('AWS::Lambda::Function', {
+          Environment: {
+            Variables: Match.objectLike({
+              UPLOADS_BUCKET: bucketName,
+              UPLOADS_REGION: uploadsRegion,
+              UPLOADS_CDN_DOMAIN: cdnDomain,
+              UPLOADS_MAX_SIZE: maxSize,
+              UPLOADS_URL_EXPIRES_IN: expiresIn,
+            }),
+          },
         });
       },
     );

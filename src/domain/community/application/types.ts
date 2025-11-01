@@ -13,6 +13,7 @@ export interface PostListItem {
   authorId: string;
   title: string;
   content: string;
+  images: string[];
   viewCount: number;
   createdAt: Date;
   updatedAt: Date;

@@ -125,20 +125,47 @@ describe('CommunityController', () => {
   });
 
   it('POST /community/posts injects authenticated user id', async () => {
-    const response = { id: 'post-1', title: 'Hello', content: 'World' };
+    const response = {
+      id: 'post-1',
+      title: 'Hello',
+      content: 'World',
+      images: ['https://cdn.test/image.png'],
+    };
     service.createPost.mockResolvedValueOnce(response as any);
 
     await request(app.getHttpServer())
       .post('/community/posts')
       .set('x-test-user', 'author-1')
-      .send({ title: 'Hello', content: 'World' })
+      .send({
+        title: 'Hello',
+        content: 'World',
+        images: ['https://cdn.test/image.png'],
+      })
       .expect(201)
       .expect(response);
 
     expect(service.createPost).toHaveBeenCalledWith('author-1', {
       title: 'Hello',
       content: 'World',
+      images: ['https://cdn.test/image.png'],
     });
+  });
+
+  it('POST /community/posts validates image array length', async () => {
+    await request(app.getHttpServer())
+      .post('/community/posts')
+      .set('x-test-user', 'author-1')
+      .send({
+        title: 'Hello',
+        content: 'World',
+        images: Array.from(
+          { length: 6 },
+          (_, idx) => `https://cdn.test/${String(idx)}.png`,
+        ),
+      })
+      .expect(400);
+
+    expect(service.createPost).not.toHaveBeenCalled();
   });
 
   it('GET /community/posts/:id passes optional user id when present', async () => {
