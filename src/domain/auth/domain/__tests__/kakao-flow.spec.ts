@@ -53,6 +53,24 @@ describe('kakao-flow (domain)', () => {
       });
     });
 
+    it('normalizes avatarUrl to https when Kakao returns http', () => {
+      const profile = extractKakaoProfile({
+        id: 135,
+        kakao_account: {
+          profile: {
+            nickname: 'Frodo',
+            profile_image_url: 'http://k.kakaocdn.net/dn/frodo.png',
+          },
+        },
+      });
+
+      expect(profile).toEqual({
+        id: '135',
+        nickname: 'Frodo',
+        avatarUrl: 'https://k.kakaocdn.net/dn/frodo.png',
+      });
+    });
+
     it('omits avatarUrl when profile image is missing', () => {
       const profile = extractKakaoProfile({
         id: 123,

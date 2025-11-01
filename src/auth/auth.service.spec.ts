@@ -84,7 +84,7 @@ describe('AuthService', () => {
           kakao_account: {
             profile: {
               nickname: 'neo',
-              profile_image_url: 'https://cdn.kakao/neo.png',
+              profile_image_url: 'http://cdn.kakao/neo.png',
             },
           },
         },

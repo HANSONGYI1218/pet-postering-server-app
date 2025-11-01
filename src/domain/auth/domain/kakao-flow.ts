@@ -21,6 +21,19 @@ const trimOrUndefined = (value?: string | null): string | undefined => {
   return trimmed && trimmed.length > 0 ? trimmed : undefined;
 };
 
+const toHttpsUrl = (value?: string | null): string | undefined => {
+  const trimmed = trimOrUndefined(value);
+  if (!trimmed) {
+    return undefined;
+  }
+
+  if (trimmed.startsWith('http://')) {
+    return `https://${trimmed.slice('http://'.length)}`;
+  }
+
+  return trimmed;
+};
+
 export interface UpsertUserCommand {
   where: { kakaoId: string };
   create: { kakaoId: string; displayName?: string; avatarUrl?: string };
@@ -72,8 +85,8 @@ export const extractKakaoProfile = (payload: unknown): KakaoProfile => {
 
   const profile = source.kakao_account?.profile;
   const nickname = trimOrUndefined(profile?.nickname);
-  const primaryAvatar = trimOrUndefined(profile?.profile_image_url);
-  const fallbackAvatar = trimOrUndefined(profile?.thumbnail_image_url);
+  const primaryAvatar = toHttpsUrl(profile?.profile_image_url);
+  const fallbackAvatar = toHttpsUrl(profile?.thumbnail_image_url);
   const avatarUrl = primaryAvatar ?? fallbackAvatar;
 
   const result: KakaoProfile = { id: String(idValue) };
