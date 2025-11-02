@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import type { JwtModuleOptions } from '@nestjs/jwt';
 import { JwtService } from '@nestjs/jwt';
 import type { Role } from '@prisma/client';
 import axios, { type AxiosInstance } from 'axios';
@@ -19,11 +20,13 @@ import { PrismaService } from '../prisma/prisma.service';
 import { DEFAULT_JWT_ACCESS_SECRET, DEFAULT_JWT_REFRESH_SECRET } from './constants';
 import type { JwtPayload } from './jwt-payload';
 
+type JwtExpiresIn = NonNullable<JwtModuleOptions['signOptions']>['expiresIn'];
+
 interface JwtSettings {
   accessSecret: string;
-  accessExpiresIn: string;
+  accessExpiresIn: JwtExpiresIn;
   refreshSecret: string;
-  refreshExpiresIn: string;
+  refreshExpiresIn: JwtExpiresIn;
 }
 
 const KAKAO_USER_URL = 'https://kapi.kakao.com/v2/user/me';
@@ -151,11 +154,20 @@ export class AuthService {
       this.warnMissingSecret('JWT_REFRESH_SECRET');
     }
 
+    const accessExpiresIn = this.parseExpiresIn({
+      value: this.config.get('JWT_ACCESS_EXPIRES_IN'),
+      fallback: '15m',
+    });
+    const refreshExpiresIn = this.parseExpiresIn({
+      value: this.config.get('JWT_REFRESH_EXPIRES_IN'),
+      fallback: '14d',
+    });
+
     return {
       accessSecret: accessSecret ?? DEFAULT_JWT_ACCESS_SECRET,
       refreshSecret: refreshSecret ?? DEFAULT_JWT_REFRESH_SECRET,
-      accessExpiresIn: this.config.get<string>('JWT_ACCESS_EXPIRES_IN') ?? '15m',
-      refreshExpiresIn: this.config.get<string>('JWT_REFRESH_EXPIRES_IN') ?? '14d',
+      accessExpiresIn,
+      refreshExpiresIn,
     };
   }
 
@@ -210,6 +222,21 @@ export class AuthService {
       configKey,
     });
     this.warnedConfigKeys.add(configKey);
+  }
+
+  private parseExpiresIn({
+    value,
+    fallback,
+  }: {
+    value: unknown;
+    fallback: JwtExpiresIn;
+  }): JwtExpiresIn {
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return /^-?\d+(\.\d+)?\s*(?:[a-zA-Z]+)?$/.test(value)
+        ? (value as JwtExpiresIn)
+        : fallback;
+    }
+    return fallback;
   }
 
   private logAxiosFailure(

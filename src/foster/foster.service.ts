@@ -268,7 +268,7 @@ export class FosterService {
       where: { id: recordId },
       include: { images: true },
     });
-    if (!record || record.animalId !== animalId) {
+    if (record?.animalId !== animalId) {
       throw new NotFoundException('record-not-found');
     }
     const animal = await this.prisma.animal.findUnique({
@@ -319,7 +319,7 @@ export class FosterService {
     const record = await this.prisma.fosterRecord.findUnique({
       where: { id: recordId },
     });
-    if (!record || record.animalId !== animalId) {
+    if (record?.animalId !== animalId) {
       throw new NotFoundException('record-not-found');
     }
 
@@ -371,7 +371,7 @@ export class FosterService {
     const record = await this.prisma.fosterRecord.findUnique({
       where: { id: recordId },
     });
-    if (!record || record.animalId !== animalId) {
+    if (record?.animalId !== animalId) {
       throw new NotFoundException('record-not-found');
     }
 

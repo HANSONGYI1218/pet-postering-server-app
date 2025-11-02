@@ -364,10 +364,12 @@ export class CommunityService {
       where: { id: commentId },
       select: { id: true, authorId: true, postId: true },
     });
-    if (!existing || existing.postId !== postId) {
+    const authorId = existing?.authorId;
+
+    if (existing?.postId !== postId) {
       throw new NotFoundException('comment-not-found');
     }
-    if (existing.authorId !== userId) {
+    if (authorId !== userId) {
       throw new ForbiddenException('comment-update-forbidden');
     }
     const updated = await this.prisma.comment.update({

@@ -47,6 +47,7 @@ export default tseslint.config(
       '@typescript-eslint/prefer-readonly': 'error',
       '@typescript-eslint/switch-exhaustiveness-check': 'error',
       '@typescript-eslint/no-extraneous-class': ['error', { allowWithDecorator: true }],
+      '@typescript-eslint/unified-signatures': 'off',
       complexity: ['warn', 10],
       'max-lines-per-function': [
         'warn',
