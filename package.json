@@ -22,7 +22,7 @@
     "prisma:erd": "prisma generate --generator erd",
     "prisma:migrate": "prisma migrate dev",
     "prisma:push": "prisma db push",
-    "verify:dev": "npm run lint:check && npm run test && npm run openapi:generate && npm run build",
+    "verify:dev": "npm run check:style && npm run lint:check && npm run test && npm run openapi:generate && npm run build",
     "verify:prod": "npm run verify:dev && npm run test:scripts",
     "synth:dev": "npm --prefix infra run synth:dev",
     "synth:prod": "npm --prefix infra run synth:prod",
@@ -39,6 +39,7 @@
     "check:prod-env": "ts-node scripts/check-prod-env.ts",
     "deploy:prod:auto": "ts-node scripts/deploy-prod.ts",
     "check:api-health": "ts-node scripts/check-api-health.ts",
+    "check:style": "ts-node --project tsconfig.json scripts/check-style-consistency.ts",
     "logs:prod": "ts-node scripts/tail-prod-logs.ts"
   },
   "dependencies": {

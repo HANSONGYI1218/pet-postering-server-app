@@ -6,16 +6,18 @@ const SCOPE_PATTERN = /^[a-zA-Z0-9/-]+$/;
 
 export class CreateImageUploadDto {
   @ApiProperty({
-    description: '업로드를 구분하기 위한 경로 (예: animals, community/posts)',
+    description: 'Scope to categorize uploads (e.g., animals, community/posts)',
     example: 'animals',
   })
   @IsString()
   @IsNotEmpty()
-  @Matches(SCOPE_PATTERN, { message: '영문, 숫자, /, - 만 사용할 수 있습니다.' })
+  @Matches(SCOPE_PATTERN, {
+    message: 'Only alphanumeric characters, forward slash, and hyphen are allowed.',
+  })
   scope!: string;
 
   @ApiProperty({
-    description: '원본 파일 이름',
+    description: 'Original file name',
     example: 'dog.png',
   })
   @IsString()
@@ -23,7 +25,7 @@ export class CreateImageUploadDto {
   fileName!: string;
 
   @ApiProperty({
-    description: '파일 MIME 타입',
+    description: 'File MIME type',
     example: 'image/png',
   })
   @IsString()
@@ -31,7 +33,7 @@ export class CreateImageUploadDto {
   contentType!: string;
 
   @ApiProperty({
-    description: '파일 크기 (Byte)',
+    description: 'File size (bytes)',
     example: 1024,
   })
   @Type(() => Number)

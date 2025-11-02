@@ -18,9 +18,9 @@ export class UploadsController {
   constructor(private readonly uploadsService: UploadsService) {}
 
   @Post('images')
-  @ApiOperation({ summary: '이미지 업로드용 S3 presigned URL 생성' })
+  @ApiOperation({ summary: 'Generate S3 presigned URL for image uploads' })
   @ApiCreatedResponse({
-    description: '업로드 URL과 공개 URL을 반환합니다.',
+    description: 'Returns the upload URL and the public URL.',
     schema: {
       properties: {
         uploadUrl: { type: 'string' },

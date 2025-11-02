@@ -39,12 +39,12 @@ describe('OrganizationService', () => {
           applications: [
             {
               id: 'apply-1',
-              applicantName: '김민지',
+              applicantName: 'Minji Kim',
               email: 'minji@example.com',
               phoneNumber: '010-1234-5678',
-              address: '서울시 마포구',
-              addressDetail: '201호',
-              introduction: '산책이 가능한 직장인입니다.',
+              address: 'Mapo-gu, Seoul',
+              addressDetail: 'Unit 201',
+              introduction: 'Office worker available for walks.',
             },
           ],
         },
@@ -73,7 +73,7 @@ describe('OrganizationService', () => {
         applicants: [
           {
             id: 'apply-1',
-            name: '김민지',
+            name: 'Minji Kim',
             email: 'minji@example.com',
             phoneNumber: '010-1234-5678',
           },
@@ -143,12 +143,12 @@ describe('OrganizationService', () => {
         applications: [
           {
             id: 'apply-1',
-            applicantName: '김민지',
+            applicantName: 'Minji Kim',
             email: 'minji@example.com',
             phoneNumber: '010-1234-5678',
-            address: '서울',
-            addressDetail: '201호',
-            introduction: '산책이 가능한 직장인입니다.',
+            address: 'Seoul',
+            addressDetail: 'Unit 201',
+            introduction: 'Office worker available for walks.',
           },
         ],
         organization: {
@@ -216,7 +216,7 @@ describe('OrganizationService', () => {
         applicants: [
           {
             id: 'apply-1',
-            name: '김민지',
+            name: 'Minji Kim',
             email: 'minji@example.com',
             phoneNumber: '010-1234-5678',
           },

@@ -500,7 +500,7 @@ describe('CommunityService', () => {
       });
     });
 
-    it('builds reply threads ordered by 작성 시각', async () => {
+    it('builds reply threads ordered by creation time', async () => {
       const { service, prisma } = build();
       const parent = makeComment('comment-1', 'post-1');
       const reply = {
@@ -641,7 +641,7 @@ describe('CommunityService', () => {
       prisma.comment.update.mockResolvedValueOnce(updated);
 
       const result = await service.updateComment('post-1', 'comment-1', 'user-1', {
-        content: '변경',
+        content: 'updated',
       });
       expect(result).toMatchObject({
         id: 'comment-1',
@@ -651,7 +651,7 @@ describe('CommunityService', () => {
       });
       expect(prisma.comment.update).toHaveBeenCalledWith({
         where: { id: 'comment-1' },
-        data: { content: '변경' },
+        data: { content: 'updated' },
         include: {
           _count: { select: { likes: true } },
           author: { select: { id: true, displayName: true } },
@@ -668,7 +668,7 @@ describe('CommunityService', () => {
       });
 
       await expect(
-        service.updateComment('post-1', 'comment-1', 'user-1', { content: '변경' }),
+        service.updateComment('post-1', 'comment-1', 'user-1', { content: 'updated' }),
       ).rejects.toThrow('comment-not-found');
       expect(prisma.comment.update).not.toHaveBeenCalled();
     });
@@ -682,7 +682,7 @@ describe('CommunityService', () => {
       });
 
       await expect(
-        service.updateComment('post-1', 'comment-1', 'user-1', { content: '변경' }),
+        service.updateComment('post-1', 'comment-1', 'user-1', { content: 'updated' }),
       ).rejects.toThrow('comment-update-forbidden');
       expect(prisma.comment.update).not.toHaveBeenCalled();
     });

@@ -3,7 +3,6 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule, type JwtModuleOptions } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { DEFAULT_JWT_ACCESS_SECRET } from './constants';
@@ -30,7 +29,7 @@ import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
 
         let secret = DEFAULT_JWT_ACCESS_SECRET;
         try {
-          const resolved = configService.getOrThrow('JWT_ACCESS_SECRET');
+          const resolved = configService.getOrThrow<string>('JWT_ACCESS_SECRET');
           secret = resolveConfigString(resolved, DEFAULT_JWT_ACCESS_SECRET);
         } catch (error: unknown) {
           if (process.env.NODE_ENV !== 'production') {
@@ -44,7 +43,7 @@ import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
         const defaultExpiresIn = '15m';
         let expiresIn = defaultExpiresIn;
         try {
-          const resolved = configService.getOrThrow('JWT_ACCESS_EXPIRES_IN');
+          const resolved = configService.getOrThrow<string>('JWT_ACCESS_EXPIRES_IN');
           const candidate = resolveConfigString(resolved, defaultExpiresIn);
           expiresIn = isMsStringValue(candidate) ? candidate : defaultExpiresIn;
         } catch (error: unknown) {

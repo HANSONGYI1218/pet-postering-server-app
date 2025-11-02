@@ -360,18 +360,18 @@ describe('CommunityController', () => {
   });
 
   it('PATCH /community/posts/:postId/comments/:commentId updates comment', async () => {
-    const updated = { id: 'comment-1', content: '변경' };
+    const updated = { id: 'comment-1', content: 'updated' };
     service.updateComment.mockResolvedValueOnce(updated as any);
 
     await request(app.getHttpServer())
       .patch('/community/posts/post-9/comments/comment-1')
       .set('x-test-user', 'user-3')
-      .send({ content: '변경' })
+      .send({ content: 'updated' })
       .expect(200)
       .expect(updated);
 
     expect(service.updateComment).toHaveBeenCalledWith('post-9', 'comment-1', 'user-3', {
-      content: '변경',
+      content: 'updated',
     });
   });
 

@@ -53,13 +53,11 @@ describe('main bootstrap', () => {
         DocumentBuilder: actualSwagger.DocumentBuilder,
       }));
 
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const mainModule = require('./main') as typeof import('./main');
-      const { bootstrap } = mainModule;
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { AppModule } = require('./app.module') as typeof import('./app.module');
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { NestFactory } = require('@nestjs/core') as typeof import('@nestjs/core');
+      const { bootstrap } = jest.requireActual<typeof import('./main')>('./main');
+      const { AppModule } =
+        jest.requireActual<typeof import('./app.module')>('./app.module');
+      const { NestFactory } =
+        jest.requireMock<typeof import('@nestjs/core')>('@nestjs/core');
 
       await bootstrap();
 
@@ -121,8 +119,7 @@ describe('main bootstrap', () => {
         DocumentBuilder: actualSwagger.DocumentBuilder,
       }));
 
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { bootstrap } = require('./main') as typeof import('./main');
+      const { bootstrap } = jest.requireActual<typeof import('./main')>('./main');
 
       await bootstrap();
 

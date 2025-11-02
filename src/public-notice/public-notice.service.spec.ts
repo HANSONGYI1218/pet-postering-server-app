@@ -30,7 +30,7 @@ describe('PublicNoticeService', () => {
     prisma.notice.findMany.mockResolvedValueOnce([
       {
         id: 'notice-1',
-        title: '점검 안내',
+        title: 'Maintenance Notice',
         type: 'MAINTENANCE',
         isFixed: true,
         createdAt: new Date('2024-09-30T12:00:00.000Z'),
@@ -51,7 +51,7 @@ describe('PublicNoticeService', () => {
       items: [
         {
           id: 'notice-1',
-          title: '점검 안내',
+          title: 'Maintenance Notice',
           type: 'MAINTENANCE',
           isFixed: true,
           createdAt: new Date('2024-09-30T12:00:00.000Z'),
@@ -69,11 +69,11 @@ describe('PublicNoticeService', () => {
 
     prisma.notice.findUnique.mockResolvedValueOnce({
       id: 'notice-1',
-      title: '점검 안내',
+      title: 'Maintenance Notice',
       type: 'MAINTENANCE',
       isFixed: true,
       createdAt: new Date('2024-09-30T12:00:00.000Z'),
-      content: '10월 2일 02:00~04:00 서버 점검',
+      content: 'Server maintenance scheduled for Oct 2, 02:00-04:00.',
       attachments: [
         { id: 'attachment-1', url: 'https://cdn/file-1.pdf' },
         { id: 'attachment-2', url: 'https://cdn/file-2.pdf' },
@@ -82,11 +82,11 @@ describe('PublicNoticeService', () => {
 
     await expect(service.get('notice-1')).resolves.toEqual({
       id: 'notice-1',
-      title: '점검 안내',
+      title: 'Maintenance Notice',
       type: 'MAINTENANCE',
       isFixed: true,
       createdAt: new Date('2024-09-30T12:00:00.000Z'),
-      content: '10월 2일 02:00~04:00 서버 점검',
+      content: 'Server maintenance scheduled for Oct 2, 02:00-04:00.',
       attachmentFiles: ['https://cdn/file-1.pdf', 'https://cdn/file-2.pdf'],
     });
   });

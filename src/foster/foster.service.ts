@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type {
+  Animal,
   AnimalEnvironmentTagType,
   AnimalHealthTagType,
   AnimalPersonalityTagType,
@@ -41,6 +42,74 @@ import {
 } from '../domain/foster/domain/records';
 import { PrismaService } from '../prisma/prisma.service';
 
+interface CreateAnimalInput {
+  name: string;
+  orgId?: string;
+  shared?: boolean;
+  status?: string;
+  type?: Prisma.AnimalUncheckedCreateInput['type'];
+  size?: Prisma.AnimalUncheckedCreateInput['size'];
+  gender?: Prisma.AnimalUncheckedCreateInput['gender'];
+  breed?: string;
+  birthDate?: string;
+  introduction?: string;
+  remark?: string;
+  emergency?: boolean;
+  emergencyReason?: string;
+  images?: string[];
+  healthTags?: AnimalHealthTagType[];
+  personalityTags?: AnimalPersonalityTagType[];
+  environmentTags?: AnimalEnvironmentTagType[];
+  specialNoteTags?: AnimalSpecialNoteTagType[];
+  isFosterCondition?: boolean;
+  currentFosterStartDate?: string;
+  currentFosterEndDate?: string;
+}
+
+interface UpdateAnimalInput {
+  name?: string;
+  shared?: boolean;
+  status?: string;
+  type?: Prisma.AnimalUncheckedUpdateInput['type'];
+  size?: Prisma.AnimalUncheckedUpdateInput['size'];
+  gender?: Prisma.AnimalUncheckedUpdateInput['gender'];
+  breed?: string;
+  birthDate?: string;
+  introduction?: string;
+  remark?: string;
+  emergency?: boolean;
+  emergencyReason?: string;
+  images?: string[];
+  healthTags?: AnimalHealthTagType[];
+  personalityTags?: AnimalPersonalityTagType[];
+  environmentTags?: AnimalEnvironmentTagType[];
+  specialNoteTags?: AnimalSpecialNoteTagType[];
+  isFosterCondition?: boolean;
+  currentFosterStartDate?: string;
+  currentFosterEndDate?: string;
+}
+
+interface AnimalTagCollections {
+  healthTags: readonly AnimalHealthTagType[];
+  personalityTags: readonly AnimalPersonalityTagType[];
+  environmentTags: readonly AnimalEnvironmentTagType[];
+  specialNoteTags: readonly AnimalSpecialNoteTagType[];
+}
+
+type AnimalTagUpdates = Partial<AnimalTagCollections>;
+
+interface AnimalCreateCommand {
+  data: Prisma.AnimalCreateArgs['data'];
+  images: string[];
+  tags: AnimalTagCollections;
+}
+
+interface AnimalUpdateCommand {
+  data: Prisma.AnimalUpdateArgs['data'];
+  images?: string[];
+  tags: AnimalTagUpdates;
+}
+
 @Injectable()
 export class FosterService {
   constructor(private readonly prisma: PrismaService) {}
@@ -55,172 +124,256 @@ export class FosterService {
     return this.listAnimalsWith({ shared: true });
   }
 
-  // eslint-disable-next-line max-lines-per-function
-  async createAnimal(
-    user: AuthUser,
-    dto: {
-      name: string;
-      orgId?: string;
-      shared?: boolean;
-      status?: string;
-      type?: Prisma.AnimalUncheckedCreateInput['type'];
-      size?: Prisma.AnimalUncheckedCreateInput['size'];
-      gender?: Prisma.AnimalUncheckedCreateInput['gender'];
-      breed?: string;
-      birthDate?: string;
-      introduction?: string;
-      remark?: string;
-      emergency?: boolean;
-      emergencyReason?: string;
-      images?: string[];
-      healthTags?: AnimalHealthTagType[];
-      personalityTags?: AnimalPersonalityTagType[];
-      environmentTags?: AnimalEnvironmentTagType[];
-      specialNoteTags?: AnimalSpecialNoteTagType[];
-      isFosterCondition?: boolean;
-      currentFosterStartDate?: string;
-      currentFosterEndDate?: string;
-    },
-  ): Promise<AnimalListItem> {
-    if (dto.orgId && user.role !== 'ORG_ADMIN') {
-      throw new ForbiddenException('animal-org-only');
-    }
-
-    const statusValue = this.parseStatus(dto.status);
-    const images = this.normalizeImages(dto.images);
-    const healthTags = dto.healthTags ?? [];
-    const personalityTags = dto.personalityTags ?? [];
-    const environmentTags = dto.environmentTags ?? [];
-    const specialNoteTags = dto.specialNoteTags ?? [];
-
-    const created = await this.prisma.$transaction(
-      // eslint-disable-next-line complexity
-      async (tx) => {
-        const createdAnimal = await tx.animal.create({
-          data: {
-            name: dto.name,
-            orgId: dto.orgId ?? null,
-            ownerUserId: dto.orgId ? null : user.userId,
-            shared: dto.shared ?? false,
-            status: statusValue ?? undefined,
-            type: dto.type ?? undefined,
-            size: dto.size ?? undefined,
-            gender: dto.gender ?? undefined,
-            breed: dto.breed ?? undefined,
-            birthDate: dto.birthDate ? new Date(dto.birthDate) : undefined,
-            introduction: dto.introduction ?? undefined,
-            remark: dto.remark ?? undefined,
-            emergency: dto.emergency ?? false,
-            emergencyReason: dto.emergencyReason ?? undefined,
-            mainImageUrl: images[0] ?? null,
-            isFosterCondition: dto.isFosterCondition ?? undefined,
-            currentFosterStartDate: dto.currentFosterStartDate
-              ? new Date(dto.currentFosterStartDate)
-              : undefined,
-            currentFosterEndDate: dto.currentFosterEndDate
-              ? new Date(dto.currentFosterEndDate)
-              : undefined,
-          },
-        });
-
-        await this.createAnimalImages(tx.animalImage, createdAnimal.id, images);
-        await this.createAnimalTags(tx, createdAnimal.id, {
-          healthTags,
-          personalityTags,
-          environmentTags,
-          specialNoteTags,
-        });
-
-        return createdAnimal;
-      },
+  async createAnimal(user: AuthUser, dto: CreateAnimalInput): Promise<AnimalListItem> {
+    this.assertOrgPermission(user, dto.orgId);
+    const command = this.buildCreateAnimalCommand(user, dto);
+    const created = await this.prisma.$transaction((tx) =>
+      this.persistNewAnimal(tx, command),
     );
     return toAnimalListItem(created, 0);
   }
 
-  // eslint-disable-next-line max-lines-per-function
   async updateAnimal(
     id: string,
     user: AuthUser,
-    dto: {
-      name?: string;
-      shared?: boolean;
-      status?: string;
-      type?: Prisma.AnimalUncheckedUpdateInput['type'];
-      size?: Prisma.AnimalUncheckedUpdateInput['size'];
-      gender?: Prisma.AnimalUncheckedUpdateInput['gender'];
-      breed?: string;
-      birthDate?: string;
-      introduction?: string;
-      remark?: string;
-      emergency?: boolean;
-      emergencyReason?: string;
-      images?: string[];
-      healthTags?: AnimalHealthTagType[];
-      personalityTags?: AnimalPersonalityTagType[];
-      environmentTags?: AnimalEnvironmentTagType[];
-      specialNoteTags?: AnimalSpecialNoteTagType[];
-      isFosterCondition?: boolean;
-      currentFosterStartDate?: string;
-      currentFosterEndDate?: string;
-    },
+    dto: UpdateAnimalInput,
   ): Promise<AnimalListItem> {
     await this.ensureWritableAnimal(id, user);
-    const statusValue = this.parseStatus(dto.status);
-
-    const images =
-      dto.images !== undefined ? this.normalizeImages(dto.images) : undefined;
-    const healthTags = dto.healthTags;
-    const personalityTags = dto.personalityTags;
-    const environmentTags = dto.environmentTags;
-    const specialNoteTags = dto.specialNoteTags;
-
-    const updated = await this.prisma.$transaction(
-      // eslint-disable-next-line complexity
-      async (tx) => {
-        const updatedAnimal = await tx.animal.update({
-          where: { id },
-          data: {
-            name: dto.name ?? undefined,
-            shared: dto.shared ?? undefined,
-            status: statusValue ?? undefined,
-            type: dto.type ?? undefined,
-            size: dto.size ?? undefined,
-            gender: dto.gender ?? undefined,
-            breed: dto.breed ?? undefined,
-            birthDate: dto.birthDate ? new Date(dto.birthDate) : undefined,
-            introduction:
-              dto.introduction !== undefined ? dto.introduction || null : undefined,
-            remark: dto.remark !== undefined ? dto.remark || null : undefined,
-            emergency: dto.emergency ?? undefined,
-            emergencyReason:
-              dto.emergencyReason !== undefined ? dto.emergencyReason || null : undefined,
-            mainImageUrl:
-              images !== undefined ? (images.length > 0 ? images[0] : null) : undefined,
-            isFosterCondition: dto.isFosterCondition ?? undefined,
-            currentFosterStartDate: dto.currentFosterStartDate
-              ? new Date(dto.currentFosterStartDate)
-              : undefined,
-            currentFosterEndDate: dto.currentFosterEndDate
-              ? new Date(dto.currentFosterEndDate)
-              : undefined,
-          },
-        });
-
-        if (images !== undefined) {
-          await this.replaceAnimalImages(tx.animalImage, id, images);
-        }
-        await this.replaceAnimalTags(tx, id, {
-          healthTags,
-          personalityTags,
-          environmentTags,
-          specialNoteTags,
-        });
-
-        return updatedAnimal;
-      },
+    const command = this.buildUpdateAnimalCommand(dto);
+    const updated = await this.prisma.$transaction((tx) =>
+      this.persistUpdatedAnimal(tx, id, command),
     );
     const fosterDays = await this.computeFosterDays(updated.id, updated.createdAt);
     return toAnimalListItem(updated, fosterDays);
+  }
+
+  private assertOrgPermission(user: AuthUser, orgId?: string): void {
+    if (orgId && user.role !== 'ORG_ADMIN') {
+      throw new ForbiddenException('animal-org-only');
+    }
+  }
+
+  private buildCreateAnimalCommand(
+    user: AuthUser,
+    dto: CreateAnimalInput,
+  ): AnimalCreateCommand {
+    const status = this.parseStatus(dto.status);
+    const images = this.normalizeImages(dto.images);
+    return {
+      data: this.composeCreateAnimalData(user, dto, status, images),
+      images,
+      tags: this.toCreateTagCollections(dto),
+    };
+  }
+
+  private buildUpdateAnimalCommand(dto: UpdateAnimalInput): AnimalUpdateCommand {
+    const status = this.parseStatus(dto.status);
+    const images =
+      dto.images === undefined ? undefined : this.normalizeImages(dto.images);
+    return {
+      data: this.composeUpdateAnimalData(dto, status, images),
+      images,
+      tags: this.toUpdateTagCollections(dto),
+    };
+  }
+
+  private composeCreateAnimalData(
+    user: AuthUser,
+    dto: CreateAnimalInput,
+    status: AnimalStatus | undefined,
+    images: readonly string[],
+  ): Prisma.AnimalCreateArgs['data'] {
+    return {
+      ...this.composeCreateOwnershipData(user, dto),
+      ...this.composeStatusData(status),
+      ...this.composeClassificationData(dto),
+      ...this.composeLifecycleData(dto),
+      ...this.composeProfileForCreate(dto),
+      ...this.composeEmergencyForCreate(dto),
+      ...this.composeMainImageData(images),
+    };
+  }
+
+  private composeUpdateAnimalData(
+    dto: UpdateAnimalInput,
+    status: AnimalStatus | undefined,
+    images: readonly string[] | undefined,
+  ): Prisma.AnimalUpdateArgs['data'] {
+    return {
+      ...this.composeUpdateOwnershipData(dto),
+      ...this.composeStatusData(status),
+      ...this.composeClassificationData(dto),
+      ...this.composeLifecycleData(dto),
+      ...this.composeProfileForUpdate(dto),
+      ...this.composeEmergencyForUpdate(dto),
+      ...this.composeMainImageData(images),
+    };
+  }
+
+  private composeCreateOwnershipData(
+    user: AuthUser,
+    dto: CreateAnimalInput,
+  ): Pick<Prisma.AnimalCreateArgs['data'], 'name' | 'orgId' | 'ownerUserId' | 'shared'> {
+    return {
+      name: dto.name,
+      orgId: dto.orgId ?? null,
+      ownerUserId: this.resolveOwnerUserId(user, dto.orgId),
+      shared: dto.shared ?? false,
+    };
+  }
+
+  private composeUpdateOwnershipData(
+    dto: UpdateAnimalInput,
+  ): Pick<Prisma.AnimalUpdateArgs['data'], 'name' | 'shared'> {
+    return {
+      name: dto.name ?? undefined,
+      shared: dto.shared ?? undefined,
+    };
+  }
+
+  private composeStatusData(
+    status: AnimalStatus | undefined,
+  ): Pick<Prisma.AnimalUpdateArgs['data'], 'status'> {
+    return {
+      status: status ?? undefined,
+    };
+  }
+
+  private composeClassificationData(
+    dto: CreateAnimalInput | UpdateAnimalInput,
+  ): Pick<Prisma.AnimalUpdateArgs['data'], 'type' | 'size' | 'gender' | 'breed'> {
+    return {
+      type: dto.type ?? undefined,
+      size: dto.size ?? undefined,
+      gender: dto.gender ?? undefined,
+      breed: dto.breed ?? undefined,
+    };
+  }
+
+  private composeLifecycleData(
+    dto: CreateAnimalInput | UpdateAnimalInput,
+  ): Pick<
+    Prisma.AnimalUpdateArgs['data'],
+    'birthDate' | 'isFosterCondition' | 'currentFosterStartDate' | 'currentFosterEndDate'
+  > {
+    return {
+      birthDate: this.toDate(dto.birthDate),
+      isFosterCondition: dto.isFosterCondition ?? undefined,
+      currentFosterStartDate: this.toDate(dto.currentFosterStartDate),
+      currentFosterEndDate: this.toDate(dto.currentFosterEndDate),
+    };
+  }
+
+  private composeProfileForCreate(
+    dto: CreateAnimalInput,
+  ): Pick<Prisma.AnimalCreateArgs['data'], 'introduction' | 'remark'> {
+    return {
+      introduction: dto.introduction ?? undefined,
+      remark: dto.remark ?? undefined,
+    };
+  }
+
+  private composeProfileForUpdate(
+    dto: UpdateAnimalInput,
+  ): Pick<Prisma.AnimalUpdateArgs['data'], 'introduction' | 'remark'> {
+    return {
+      introduction: this.toOptionalNullableString(dto.introduction),
+      remark: this.toOptionalNullableString(dto.remark),
+    };
+  }
+
+  private composeEmergencyForCreate(
+    dto: CreateAnimalInput,
+  ): Pick<Prisma.AnimalCreateArgs['data'], 'emergency' | 'emergencyReason'> {
+    return {
+      emergency: dto.emergency ?? false,
+      emergencyReason: dto.emergencyReason ?? undefined,
+    };
+  }
+
+  private composeEmergencyForUpdate(
+    dto: UpdateAnimalInput,
+  ): Pick<Prisma.AnimalUpdateArgs['data'], 'emergency' | 'emergencyReason'> {
+    return {
+      emergency: dto.emergency ?? undefined,
+      emergencyReason: this.toOptionalNullableString(dto.emergencyReason),
+    };
+  }
+
+  private composeMainImageData(
+    images: readonly string[] | undefined,
+  ): Pick<Prisma.AnimalUpdateArgs['data'], 'mainImageUrl'> {
+    return {
+      mainImageUrl: this.toMainImageValue(images),
+    };
+  }
+
+  private resolveOwnerUserId(user: AuthUser, orgId?: string): string | null {
+    return orgId ? null : user.userId;
+  }
+
+  private async persistNewAnimal(
+    tx: Prisma.TransactionClient,
+    command: AnimalCreateCommand,
+  ): Promise<Animal> {
+    const createdAnimal = await tx.animal.create({ data: command.data });
+    await this.createAnimalImages(tx.animalImage, createdAnimal.id, command.images);
+    await this.createAnimalTags(tx, createdAnimal.id, command.tags);
+    return createdAnimal;
+  }
+
+  private async persistUpdatedAnimal(
+    tx: Prisma.TransactionClient,
+    animalId: string,
+    command: AnimalUpdateCommand,
+  ): Promise<Animal> {
+    const updatedAnimal = await tx.animal.update({
+      where: { id: animalId },
+      data: command.data,
+    });
+    if (command.images !== undefined) {
+      await this.replaceAnimalImages(tx.animalImage, animalId, command.images);
+    }
+    await this.replaceAnimalTags(tx, animalId, command.tags);
+    return updatedAnimal;
+  }
+
+  private toCreateTagCollections(dto: CreateAnimalInput): AnimalTagCollections {
+    return {
+      healthTags: dto.healthTags ?? [],
+      personalityTags: dto.personalityTags ?? [],
+      environmentTags: dto.environmentTags ?? [],
+      specialNoteTags: dto.specialNoteTags ?? [],
+    };
+  }
+
+  private toUpdateTagCollections(dto: UpdateAnimalInput): AnimalTagUpdates {
+    return {
+      healthTags: dto.healthTags,
+      personalityTags: dto.personalityTags,
+      environmentTags: dto.environmentTags,
+      specialNoteTags: dto.specialNoteTags,
+    };
+  }
+
+  private toDate(value?: string): Date | undefined {
+    return value ? new Date(value) : undefined;
+  }
+
+  private toOptionalNullableString(value?: string): string | null | undefined {
+    if (value === undefined) {
+      return undefined;
+    }
+    return value ? value : null;
+  }
+
+  private toMainImageValue(
+    images: readonly string[] | undefined,
+  ): string | null | undefined {
+    if (images === undefined) {
+      return undefined;
+    }
+    return images.length > 0 ? images[0] : null;
   }
 
   async deleteAnimal(id: string, user: AuthUser): Promise<DeleteAnimalResult> {
@@ -491,12 +644,7 @@ export class FosterService {
       animalSpecialNoteTag: Pick<PrismaService['animalSpecialNoteTag'], 'createMany'>;
     },
     animalId: string,
-    tags: {
-      healthTags: readonly AnimalHealthTagType[];
-      personalityTags: readonly AnimalPersonalityTagType[];
-      environmentTags: readonly AnimalEnvironmentTagType[];
-      specialNoteTags: readonly AnimalSpecialNoteTagType[];
-    },
+    tags: AnimalTagCollections,
   ): Promise<void> {
     if (tags.healthTags.length > 0) {
       await tx.animalHealthTag.createMany({
@@ -524,72 +672,40 @@ export class FosterService {
     }
   }
 
-  // eslint-disable-next-line max-lines-per-function
   private async replaceAnimalTags(
-    tx: {
-      animalHealthTag: Pick<
-        PrismaService['animalHealthTag'],
-        'deleteMany' | 'createMany'
-      >;
-      animalPersonalityTag: Pick<
-        PrismaService['animalPersonalityTag'],
-        'deleteMany' | 'createMany'
-      >;
-      animalEnvironmentTag: Pick<
-        PrismaService['animalEnvironmentTag'],
-        'deleteMany' | 'createMany'
-      >;
-      animalSpecialNoteTag: Pick<
-        PrismaService['animalSpecialNoteTag'],
-        'deleteMany' | 'createMany'
-      >;
+    tx: Prisma.TransactionClient,
+    animalId: string,
+    tags: AnimalTagUpdates,
+  ): Promise<void> {
+    await Promise.all([
+      this.replaceTagCollection(tx.animalHealthTag, animalId, tags.healthTags),
+      this.replaceTagCollection(tx.animalPersonalityTag, animalId, tags.personalityTags),
+      this.replaceTagCollection(tx.animalEnvironmentTag, animalId, tags.environmentTags),
+      this.replaceTagCollection(tx.animalSpecialNoteTag, animalId, tags.specialNoteTags),
+    ]);
+  }
+
+  private async replaceTagCollection<T>(
+    model: {
+      deleteMany(args: { where: { animalId: string } }): Promise<unknown>;
+      createMany(args: {
+        data: { animalId: string; value: T }[];
+        skipDuplicates: true;
+      }): Promise<unknown>;
     },
     animalId: string,
-    tags: {
-      healthTags?: readonly AnimalHealthTagType[];
-      personalityTags?: readonly AnimalPersonalityTagType[];
-      environmentTags?: readonly AnimalEnvironmentTagType[];
-      specialNoteTags?: readonly AnimalSpecialNoteTagType[];
-    },
+    values?: readonly T[],
   ): Promise<void> {
-    if (tags.healthTags !== undefined) {
-      await tx.animalHealthTag.deleteMany({ where: { animalId } });
-      if (tags.healthTags.length > 0) {
-        await tx.animalHealthTag.createMany({
-          data: tags.healthTags.map((value) => ({ animalId, value })),
-          skipDuplicates: true,
-        });
-      }
+    if (values === undefined) {
+      return;
     }
-
-    if (tags.personalityTags !== undefined) {
-      await tx.animalPersonalityTag.deleteMany({ where: { animalId } });
-      if (tags.personalityTags.length > 0) {
-        await tx.animalPersonalityTag.createMany({
-          data: tags.personalityTags.map((value) => ({ animalId, value })),
-          skipDuplicates: true,
-        });
-      }
+    await model.deleteMany({ where: { animalId } });
+    if (!values.length) {
+      return;
     }
-
-    if (tags.environmentTags !== undefined) {
-      await tx.animalEnvironmentTag.deleteMany({ where: { animalId } });
-      if (tags.environmentTags.length > 0) {
-        await tx.animalEnvironmentTag.createMany({
-          data: tags.environmentTags.map((value) => ({ animalId, value })),
-          skipDuplicates: true,
-        });
-      }
-    }
-
-    if (tags.specialNoteTags !== undefined) {
-      await tx.animalSpecialNoteTag.deleteMany({ where: { animalId } });
-      if (tags.specialNoteTags.length > 0) {
-        await tx.animalSpecialNoteTag.createMany({
-          data: tags.specialNoteTags.map((value) => ({ animalId, value })),
-          skipDuplicates: true,
-        });
-      }
-    }
+    await model.createMany({
+      data: values.map((value) => ({ animalId, value })),
+      skipDuplicates: true,
+    });
   }
 }

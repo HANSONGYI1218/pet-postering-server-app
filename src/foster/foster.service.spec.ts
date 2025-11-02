@@ -168,12 +168,12 @@ describe('FosterService', () => {
         type: 'DOG',
         size: 'MEDIUM',
         gender: 'MALE',
-        breed: '믹스견',
+        breed: 'Mixed Breed',
         birthDate: '2023-01-15',
-        introduction: '활발한 강아지',
-        remark: '사람을 좋아해요',
+        introduction: 'Energetic dog',
+        remark: 'Loves people',
         emergency: true,
-        emergencyReason: '치료 필요',
+        emergencyReason: 'Needs treatment',
         images: ['https://cdn/image-1', 'https://cdn/image-2'],
         healthTags: ['NEUTERED', 'VACCINATED'],
         personalityTags: ['QUIET'],
@@ -326,7 +326,7 @@ describe('FosterService', () => {
         type: 'DOG',
         size: 'SMALL',
         gender: 'MALE',
-        breed: '믹스견',
+        breed: 'Mixed Breed',
         birthDate: '2023-01-10',
         introduction: 'new intro',
         remark: 'new remark',
@@ -423,7 +423,7 @@ describe('FosterService', () => {
         animalId: 'animal-1',
         date: new Date('2024-02-02T00:00:00.000Z'),
         content: 'daily note',
-        healthNote: '투약 완료',
+        healthNote: 'Medication completed',
         createdAt: new Date('2024-02-02T01:00:00.000Z'),
         updatedAt: new Date('2024-02-02T01:00:00.000Z'),
         images: [
@@ -439,7 +439,7 @@ describe('FosterService', () => {
       const result = await service.createRecord('animal-1', user, {
         date: '2024-02-02',
         content: 'daily note',
-        healthNote: '투약 완료',
+        healthNote: 'Medication completed',
         images: ['https://img/1', 'https://img/2'],
       });
 
@@ -448,7 +448,7 @@ describe('FosterService', () => {
           animalId: 'animal-1',
           date: new Date('2024-02-02'),
           content: 'daily note',
-          healthNote: '투약 완료',
+          healthNote: 'Medication completed',
           images: {
             create: [
               { url: 'https://img/1', sortOrder: 0 },
@@ -458,7 +458,7 @@ describe('FosterService', () => {
         },
         include: { images: true },
       });
-      expect(result.healthNote).toBe('투약 완료');
+      expect(result.healthNote).toBe('Medication completed');
       expect(result.images).toHaveLength(2);
     });
   });
