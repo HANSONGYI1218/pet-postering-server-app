@@ -28,7 +28,12 @@ export class UploadsController {
         key: { type: 'string' },
         expiresIn: { type: 'number' },
         contentType: { type: 'string' },
+        method: { type: 'string', enum: ['POST', 'PUT'] },
         fields: {
+          type: 'object',
+          additionalProperties: { type: 'string' },
+        },
+        headers: {
           type: 'object',
           additionalProperties: { type: 'string' },
         },

@@ -5,8 +5,8 @@ import type { ConfigService } from '@nestjs/config';
 
 import { UploadsService } from './uploads.service';
 
-jest.mock('@aws-sdk/s3-presigned-post', () => ({
-  createPresignedPost: jest.fn(),
+jest.mock('@aws-sdk/s3-request-presigner', () => ({
+  getSignedUrl: jest.fn(),
 }));
 
 jest.mock('node:crypto', () => {
@@ -18,8 +18,8 @@ jest.mock('node:crypto', () => {
 });
 
 describe('UploadsService', () => {
-  const mockCreatePresignedPost = jest.requireMock('@aws-sdk/s3-presigned-post')
-    .createPresignedPost as jest.Mock;
+  const mockGetSignedUrl = jest.requireMock('@aws-sdk/s3-request-presigner')
+    .getSignedUrl as jest.Mock;
   const mockRandomUUID = randomUUID as unknown as jest.Mock;
 
   const createConfigService = (overrides: Record<string, string | undefined> = {}) =>
@@ -39,17 +39,12 @@ describe('UploadsService', () => {
     jest.resetModules();
     jest.clearAllMocks();
     mockRandomUUID.mockReturnValue('mock-uuid');
+    mockGetSignedUrl.mockResolvedValue(
+      'https://signed-url/animals/mock-uuid.jpg?Signature=example',
+    );
   });
 
   it('returns presigned upload information for valid image', async () => {
-    mockCreatePresignedPost.mockResolvedValueOnce({
-      url: 'https://signed-url',
-      fields: {
-        key: 'animals/mock-uuid.jpg',
-        Policy: 'policy',
-        'Content-Type': 'image/jpeg',
-      },
-    });
     const service = new UploadsService(createConfigService(defaultConfig));
 
     const result = await service.createImageUploadUrl({
@@ -59,16 +54,16 @@ describe('UploadsService', () => {
       fileSize: 1024 * 1024,
     });
 
-    expect(mockCreatePresignedPost).toHaveBeenCalledTimes(1);
+    expect(mockGetSignedUrl).toHaveBeenCalledTimes(1);
     expect(result).toEqual({
-      uploadUrl: 'https://signed-url',
+      uploadUrl: 'https://signed-url/animals/mock-uuid.jpg?Signature=example',
       publicUrl: 'https://cdn.example.com/animals/mock-uuid.jpg',
       key: 'animals/mock-uuid.jpg',
       expiresIn: 120,
       contentType: 'image/jpeg',
-      fields: {
-        key: 'animals/mock-uuid.jpg',
-        Policy: 'policy',
+      method: 'PUT',
+      fields: {},
+      headers: {
         'Content-Type': 'image/jpeg',
       },
     });
@@ -114,14 +109,6 @@ describe('UploadsService', () => {
   });
 
   it('falls back to direct S3 URL when CDN domain is missing', async () => {
-    mockCreatePresignedPost.mockResolvedValueOnce({
-      url: 'https://signed-url',
-      fields: {
-        key: 'animals/mock-uuid.png',
-        Policy: 'policy',
-        'Content-Type': 'image/png',
-      },
-    });
     const service = new UploadsService(
       createConfigService({
         ...defaultConfig,
@@ -142,14 +129,6 @@ describe('UploadsService', () => {
   });
 
   it('uses default scope when sanitized scope becomes empty', async () => {
-    mockCreatePresignedPost.mockResolvedValueOnce({
-      url: 'https://signed-url',
-      fields: {
-        key: 'uploads/mock-uuid.png',
-        Policy: 'policy',
-        'Content-Type': 'image/png',
-      },
-    });
     const service = new UploadsService(createConfigService(defaultConfig));
 
     const result = await service.createImageUploadUrl({
