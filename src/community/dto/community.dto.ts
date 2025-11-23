@@ -30,6 +30,11 @@ export class ListPostsQueryDto {
   @Min(1)
   @Max(50)
   limit?: number;
+
+  @ApiPropertyOptional({ description: 'Keyword for title/content search' })
+  @IsOptional()
+  @IsString()
+  keyword?: string;
 }
 
 export class CreatePostDto {

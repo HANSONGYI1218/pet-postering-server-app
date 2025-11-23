@@ -19,6 +19,7 @@ describe('FosterController', () => {
       createAnimal: jest.fn(),
       updateAnimal: jest.fn(),
       deleteAnimal: jest.fn(),
+      applyFoster: jest.fn(),
       listRecords: jest.fn(),
       getRecord: jest.fn(),
       createRecord: jest.fn(),
@@ -63,6 +64,30 @@ describe('FosterController', () => {
       .expect({ items: [] });
 
     expect(service.listAnimals).toHaveBeenCalledWith('WAITING');
+  });
+
+  it('POST /foster/applications forwards user and body', async () => {
+    service.applyFoster.mockResolvedValueOnce(undefined);
+
+    const payload = {
+      animalId: 'animal-1',
+      applicantName: '신청자',
+      phoneNumber: '+821012345678',
+      email: 'applicant@example.com',
+      address: '서울',
+      introduction: '안녕하세요',
+    };
+
+    await request(app.getHttpServer())
+      .post('/foster/applications')
+      .set('x-test-user', 'user-1')
+      .send(payload)
+      .expect(201);
+
+    expect(service.applyFoster).toHaveBeenCalledWith(
+      { userId: 'user-1', role: 'USER' },
+      payload,
+    );
   });
 
   it('POST /foster/animals includes authenticated user info', async () => {

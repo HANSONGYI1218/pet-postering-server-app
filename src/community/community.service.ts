@@ -54,12 +54,24 @@ export class CommunityService {
   async listPosts(
     limit = DEFAULT_POST_PAGE_SIZE,
     cursor?: string,
+    keyword?: string,
   ): Promise<ListPostsResult> {
     const normalized = clampPostLimit(limit);
+
+    const where: Prisma.PostWhereInput = keyword
+      ? {
+          OR: [
+            { title: { contains: keyword, mode: 'insensitive' } },
+            { content: { contains: keyword, mode: 'insensitive' } },
+          ],
+        }
+      : {};
+
     const posts = await this.prisma.post.findMany({
       take: normalized + 1,
       skip: cursor ? 1 : 0,
       ...(cursor ? { cursor: { id: cursor } } : {}),
+      where,
       orderBy: { createdAt: 'desc' },
       include: POST_RELATIONS,
     });

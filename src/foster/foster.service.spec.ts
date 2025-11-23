@@ -39,6 +39,13 @@ interface PrismaMock {
     deleteMany: MockFn;
     createMany: MockFn;
   };
+  userProfile: {
+    findUnique: MockFn;
+  };
+  fosterApplication: {
+    findFirst: MockFn;
+    create: MockFn;
+  };
   fosterRecord: {
     findFirst: MockFn;
     findMany: MockFn;
@@ -85,6 +92,13 @@ const build = () => {
       deleteMany: jest.fn(),
       createMany: jest.fn(),
     },
+    userProfile: {
+      findUnique: jest.fn(),
+    },
+    fosterApplication: {
+      findFirst: jest.fn(),
+      create: jest.fn(),
+    },
     fosterRecord: {
       findFirst: jest.fn(),
       findMany: jest.fn(),
@@ -109,6 +123,80 @@ const build = () => {
 };
 
 describe('FosterService', () => {
+  describe('applyFoster', () => {
+    const user: AuthUser = { userId: 'user-1', role: 'USER' };
+    const dto = {
+      animalId: 'animal-1',
+      applicantName: '신청자',
+      phoneNumber: '+821012345678',
+      email: 'applicant@example.com',
+      address: '서울시 마포구',
+      introduction: '임보 경험 있고 매일 산책 가능합니다.',
+    };
+
+    it('creates application when eligible and not duplicated', async () => {
+      const { service, prisma } = build();
+      prisma.userProfile.findUnique.mockResolvedValueOnce({ isEligibleForFoster: true });
+      prisma.animal.findUnique.mockResolvedValueOnce({
+        id: 'animal-1',
+        status: 'WAITING',
+      });
+      prisma.fosterApplication.findFirst.mockResolvedValueOnce(null);
+      prisma.fosterApplication.create.mockResolvedValueOnce({});
+
+      await service.applyFoster(user, dto as any);
+
+      expect(prisma.fosterApplication.create).toHaveBeenCalledWith({
+        data: {
+          animalId: 'animal-1',
+          userId: 'user-1',
+          applicantName: '신청자',
+          phoneNumber: '+821012345678',
+          email: 'applicant@example.com',
+          address: '서울시 마포구',
+          addressDetail: undefined,
+          introduction: '임보 경험 있고 매일 산책 가능합니다.',
+        },
+      });
+    });
+
+    it('rejects when user is not eligible', async () => {
+      const { service, prisma } = build();
+      prisma.userProfile.findUnique.mockResolvedValueOnce({ isEligibleForFoster: false });
+
+      await expect(service.applyFoster(user, dto as any)).rejects.toThrow(
+        ForbiddenException,
+      );
+    });
+
+    it('rejects when animal already completed', async () => {
+      const { service, prisma } = build();
+      prisma.userProfile.findUnique.mockResolvedValueOnce({ isEligibleForFoster: true });
+      prisma.animal.findUnique.mockResolvedValueOnce({
+        id: 'animal-1',
+        status: 'COMPLETED',
+      });
+
+      await expect(service.applyFoster(user, dto as any)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('rejects duplicated application', async () => {
+      const { service, prisma } = build();
+      prisma.userProfile.findUnique.mockResolvedValueOnce({ isEligibleForFoster: true });
+      prisma.animal.findUnique.mockResolvedValueOnce({
+        id: 'animal-1',
+        status: 'WAITING',
+      });
+      prisma.fosterApplication.findFirst.mockResolvedValueOnce({ id: 'dupe' });
+
+      await expect(service.applyFoster(user, dto as any)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+  });
+
   describe('createAnimal', () => {
     it('persists detailed fields, images, and tags', async () => {
       const { service, prisma } = build();

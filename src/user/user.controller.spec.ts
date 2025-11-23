@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { Test } from '@nestjs/testing';
 
 import type { AuthUser } from '../common/types';
+import { FosterConditionService } from './foster-condition.service';
 import { UsersController } from './user.controller';
 import { UsersService } from './user.service';
 
@@ -9,6 +10,7 @@ describe('UsersController', () => {
   const authUser: AuthUser = { userId: 'user-1', role: 'USER' };
   let controller: UsersController;
   let service: jest.Mocked<UsersService>;
+  let fosterConditionService: jest.Mocked<FosterConditionService>;
 
   beforeEach(async () => {
     service = {
@@ -21,9 +23,18 @@ describe('UsersController', () => {
       listMyComments: jest.fn(),
     } as unknown as jest.Mocked<UsersService>;
 
+    fosterConditionService = {
+      getMyCondition: jest.fn(),
+      upsertMyCondition: jest.fn(),
+      deleteMyCondition: jest.fn(),
+    } as unknown as jest.Mocked<FosterConditionService>;
+
     const moduleRef = await Test.createTestingModule({
       controllers: [UsersController],
-      providers: [{ provide: UsersService, useValue: service }],
+      providers: [
+        { provide: UsersService, useValue: service },
+        { provide: FosterConditionService, useValue: fosterConditionService },
+      ],
     }).compile();
 
     controller = moduleRef.get(UsersController);
@@ -84,5 +95,33 @@ describe('UsersController', () => {
 
     await expect(controller.listMyComments(authUser)).resolves.toBe(expected);
     expect(service.listMyComments).toHaveBeenCalledWith('user-1');
+  });
+
+  it('GET /users/me/foster-condition', async () => {
+    const expected = { id: 'fc-1' } as any;
+    fosterConditionService.getMyCondition.mockResolvedValueOnce(expected);
+
+    await expect(controller.getFosterCondition(authUser)).resolves.toBe(expected);
+    expect(fosterConditionService.getMyCondition).toHaveBeenCalledWith('user-1');
+  });
+
+  it('PUT /users/me/foster-condition', async () => {
+    const payload = { preferredTypes: ['DOG'] } as any;
+    fosterConditionService.upsertMyCondition.mockResolvedValueOnce(payload);
+
+    await expect(controller.upsertFosterCondition(authUser, payload)).resolves.toBe(
+      payload,
+    );
+    expect(fosterConditionService.upsertMyCondition).toHaveBeenCalledWith(
+      'user-1',
+      payload,
+    );
+  });
+
+  it('DELETE /users/me/foster-condition', async () => {
+    fosterConditionService.deleteMyCondition.mockResolvedValueOnce(undefined as any);
+
+    await expect(controller.deleteFosterCondition(authUser)).resolves.toBeUndefined();
+    expect(fosterConditionService.deleteMyCondition).toHaveBeenCalledWith('user-1');
   });
 });

@@ -9,8 +9,16 @@ const build = () => {
     animal: {
       findMany: jest.fn(),
       findUnique: jest.fn(),
+      update: jest.fn(),
     },
+    fosterApplication: {
+      findUnique: jest.fn(),
+    },
+    $transaction: jest.fn(),
   };
+  prisma.$transaction.mockImplementation((cb: (client: typeof prisma) => unknown) =>
+    Promise.resolve(cb(prisma)),
+  );
   const service = new OrganizationService(prisma as unknown as PrismaService);
   return { service, prisma };
 };
@@ -223,6 +231,93 @@ describe('OrganizationService', () => {
         ],
         fosterApplyNumber: 1,
       });
+    });
+  });
+
+  describe('acceptApplication', () => {
+    const adminUser = { userId: 'admin-1', role: 'ORG_ADMIN' };
+
+    it('blocks non-admin users', async () => {
+      const { service } = build();
+
+      await expect(
+        service.acceptApplication({ userId: 'user-1', role: 'USER' }, 'app-1'),
+      ).rejects.toThrow('org-admin-only');
+    });
+
+    it('throws when application missing', async () => {
+      const { service, prisma } = build();
+      prisma.fosterApplication.findUnique.mockResolvedValueOnce(null);
+
+      await expect(service.acceptApplication(adminUser, 'missing')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('throws when application animal is not organization-owned', async () => {
+      const { service, prisma } = build();
+      prisma.fosterApplication.findUnique.mockResolvedValueOnce({
+        id: 'app-1',
+        animalId: 'animal-1',
+        animal: { orgId: null },
+      });
+
+      await expect(service.acceptApplication(adminUser, 'app-1')).rejects.toThrow(
+        'application-not-organization',
+      );
+    });
+
+    it('updates status, ownerUserId, startDate within transaction', async () => {
+      const { service, prisma } = build();
+      const baseDate = new Date('2025-11-23T00:00:00.000Z');
+      jest.useFakeTimers().setSystemTime(baseDate);
+      prisma.fosterApplication.findUnique.mockResolvedValueOnce({
+        id: 'app-1',
+        animalId: 'animal-1',
+        userId: 'user-77',
+        animal: { orgId: 'org-1', status: 'WAITING' },
+      });
+
+      await service.acceptApplication(adminUser, 'app-1');
+
+      expect(prisma.$transaction).toHaveBeenCalled();
+      expect(prisma.animal.update).toHaveBeenCalledWith({
+        where: { id: 'animal-1' },
+        data: {
+          status: 'IN_PROGRESS',
+          currentFosterStartDate: baseDate,
+          ownerUserId: 'user-77',
+        },
+      });
+      jest.useRealTimers();
+    });
+
+    it('rejects when application has no userId (비회원 수락 불가)', async () => {
+      const { service, prisma } = build();
+      prisma.fosterApplication.findUnique.mockResolvedValueOnce({
+        id: 'app-1',
+        animalId: 'animal-1',
+        userId: null,
+        animal: { orgId: 'org-1', status: 'WAITING' },
+      });
+
+      await expect(service.acceptApplication(adminUser, 'app-1')).rejects.toThrow(
+        'application-user-missing',
+      );
+    });
+
+    it('rejects when animal is already in progress or completed', async () => {
+      const { service, prisma } = build();
+      prisma.fosterApplication.findUnique.mockResolvedValueOnce({
+        id: 'app-1',
+        animalId: 'animal-1',
+        userId: 'user-77',
+        animal: { orgId: 'org-1', status: 'IN_PROGRESS' },
+      });
+
+      await expect(service.acceptApplication(adminUser, 'app-1')).rejects.toThrow(
+        'animal-already-fostered',
+      );
     });
   });
 });

@@ -1,6 +1,9 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 
+import { CurrentUser } from '../common/current-user.decorator';
+import type { AuthUser } from '../common/types';
 import type {
   OrganizationAnimalDetail,
   OrganizationAnimalListResult,
@@ -28,5 +31,15 @@ export class OrganizationController {
   @ApiOkResponse({ type: OrganizationAnimalDetailDto })
   getAnimal(@Param('id') id: string): Promise<OrganizationAnimalDetail> {
     return this.organizationService.getAnimal(id);
+  }
+
+  @Post('applications/:id/accept')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({ summary: '임보 신청 수락 (ORG 관리자)' })
+  acceptApplication(
+    @CurrentUser() user: AuthUser,
+    @Param('id') applicationId: string,
+  ): Promise<void> {
+    return this.organizationService.acceptApplication(user, applicationId);
   }
 }

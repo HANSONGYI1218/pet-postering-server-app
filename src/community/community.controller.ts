@@ -73,13 +73,23 @@ export class CommunityController {
     description: 'Page size (1-50)',
     example: 20,
   })
+  @ApiQuery({
+    name: 'keyword',
+    required: false,
+    type: String,
+    description: 'Search keyword (title, content)',
+  })
   @ApiOperation({
     summary: 'List posts with comment count (cursor pagination)',
   })
   @ApiOkResponse({ type: PostListResponseDto })
   listPosts(@Query() query: ListPostsQueryDto): Promise<ListPostsResult> {
-    const { cursor, limit } = query;
-    return this.communityService.listPosts(limit ?? DEFAULT_POST_PAGE_SIZE, cursor);
+    const { cursor, limit, keyword } = query;
+    return this.communityService.listPosts(
+      limit ?? DEFAULT_POST_PAGE_SIZE,
+      cursor,
+      keyword,
+    );
   }
 
   @Post('posts')

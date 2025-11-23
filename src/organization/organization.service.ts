@@ -1,5 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 
+import type { AuthUser } from '../common/types';
 import {
   toOrganizationAnimalDetail,
   toOrganizationAnimalListItem,
@@ -61,5 +67,39 @@ export class OrganizationService {
       throw new NotFoundException('organization-animal-not-found');
     }
     return toOrganizationAnimalDetail(animal);
+  }
+
+  async acceptApplication(user: AuthUser, applicationId: string): Promise<void> {
+    if (user.role !== 'ORG_ADMIN') {
+      throw new ForbiddenException('org-admin-only');
+    }
+
+    const application = await this.prisma.fosterApplication.findUnique({
+      where: { id: applicationId },
+      include: { animal: true },
+    });
+    if (!application) {
+      throw new NotFoundException('application-not-found');
+    }
+    if (!application.animal.orgId) {
+      throw new ForbiddenException('application-not-organization');
+    }
+    if (!application.userId) {
+      throw new ForbiddenException('application-user-missing');
+    }
+    if (application.animal.status !== 'WAITING') {
+      throw new BadRequestException('animal-already-fostered');
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.animal.update({
+        where: { id: application.animalId },
+        data: {
+          status: 'IN_PROGRESS',
+          currentFosterStartDate: new Date(),
+          ownerUserId: application.userId,
+        },
+      });
+    });
   }
 }

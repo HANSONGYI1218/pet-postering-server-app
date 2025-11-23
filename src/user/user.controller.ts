@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Patch,
+  Put,
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
@@ -14,6 +15,10 @@ import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swa
 import { CurrentUser } from '../common/current-user.decorator';
 import type { AuthUser } from '../common/types';
 import {
+  FosterConditionResponseDto,
+  UpsertFosterConditionDto,
+} from './dto/foster-condition.dto';
+import {
   UpdateUserNotificationSettingDto,
   UpdateUserProfileDto,
   UserCommentItemDto,
@@ -21,6 +26,7 @@ import {
   UserPostItemDto,
   UserProfileDto,
 } from './dto/user.dto';
+import { FosterConditionService } from './foster-condition.service';
 import { UsersService } from './user.service';
 
 @ApiTags('Users')
@@ -28,7 +34,10 @@ import { UsersService } from './user.service';
 @UseGuards(AuthGuard('jwt'))
 @Controller('users/me')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly fosterConditionService: FosterConditionService,
+  ) {}
 
   @Get('profile')
   @ApiOperation({ summary: 'Get current user profile' })
@@ -85,5 +94,31 @@ export class UsersController {
   @ApiOkResponse({ type: UserCommentItemDto, isArray: true })
   listMyComments(@CurrentUser() user: AuthUser): Promise<UserCommentItemDto[]> {
     return this.usersService.listMyComments(user.userId);
+  }
+
+  @Get('foster-condition')
+  @ApiOperation({ summary: 'Get current user foster condition & experiences' })
+  @ApiOkResponse({ type: FosterConditionResponseDto, nullable: true })
+  getFosterCondition(
+    @CurrentUser() user: AuthUser,
+  ): Promise<FosterConditionResponseDto | null> {
+    return this.fosterConditionService.getMyCondition(user.userId);
+  }
+
+  @Put('foster-condition')
+  @ApiOperation({ summary: 'Upsert foster condition for current user' })
+  @ApiOkResponse({ type: FosterConditionResponseDto })
+  upsertFosterCondition(
+    @CurrentUser() user: AuthUser,
+    @Body() body: UpsertFosterConditionDto,
+  ): Promise<FosterConditionResponseDto | null> {
+    return this.fosterConditionService.upsertMyCondition(user.userId, body);
+  }
+
+  @Delete('foster-condition')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete foster condition for current user' })
+  deleteFosterCondition(@CurrentUser() user: AuthUser): Promise<void> {
+    return this.fosterConditionService.deleteMyCondition(user.userId);
   }
 }

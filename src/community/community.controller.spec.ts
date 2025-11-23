@@ -96,7 +96,7 @@ describe('CommunityController', () => {
       .expect(200)
       .expect({ items: [], nextCursor: null, limit: 10 });
 
-    expect(service.listPosts).toHaveBeenCalledWith(10, 'cursor-1');
+    expect(service.listPosts).toHaveBeenCalledWith(10, 'cursor-1', undefined);
   });
 
   it('GET /community/posts rejects invalid limit values', async () => {
@@ -121,7 +121,22 @@ describe('CommunityController', () => {
       limit: DEFAULT_POST_PAGE_SIZE,
     });
 
-    expect(service.listPosts).toHaveBeenCalledWith(DEFAULT_POST_PAGE_SIZE, undefined);
+    expect(service.listPosts).toHaveBeenCalledWith(
+      DEFAULT_POST_PAGE_SIZE,
+      undefined,
+      undefined,
+    );
+  });
+
+  it('GET /community/posts forwards keyword to service', async () => {
+    service.listPosts.mockResolvedValueOnce({ items: [], nextCursor: null, limit: 5 });
+
+    await request(app.getHttpServer())
+      .get('/community/posts')
+      .query({ keyword: 'poodle', limit: '5' })
+      .expect(200);
+
+    expect(service.listPosts).toHaveBeenCalledWith(5, undefined, 'poodle');
   });
 
   it('POST /community/posts injects authenticated user id', async () => {

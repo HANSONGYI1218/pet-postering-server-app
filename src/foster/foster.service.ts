@@ -41,6 +41,7 @@ import {
   toImageCreateInputs,
 } from '../domain/foster/domain/records';
 import { PrismaService } from '../prisma/prisma.service';
+import { ApplyFosterDto } from './dto/foster-application.dto';
 
 interface CreateAnimalInput {
   name: string;
@@ -122,6 +123,45 @@ export class FosterService {
 
   async listSharedAnimals(): Promise<ListAnimalsResult> {
     return this.listAnimalsWith({ shared: true });
+  }
+
+  async applyFoster(user: AuthUser, dto: ApplyFosterDto): Promise<void> {
+    const profile = await this.prisma.userProfile.findUnique({
+      where: { userId: user.userId },
+    });
+    if (!profile?.isEligibleForFoster) {
+      throw new ForbiddenException('foster-eligibility-required');
+    }
+
+    const animal = await this.prisma.animal.findUnique({
+      where: { id: dto.animalId },
+    });
+    if (!animal) {
+      throw new NotFoundException('animal-not-found');
+    }
+    if (animal.status === 'COMPLETED') {
+      throw new BadRequestException('animal-already-fostered');
+    }
+
+    const duplicated = await this.prisma.fosterApplication.findFirst({
+      where: { animalId: dto.animalId, userId: user.userId },
+    });
+    if (duplicated) {
+      throw new BadRequestException('foster-application-duplicated');
+    }
+
+    await this.prisma.fosterApplication.create({
+      data: {
+        animalId: dto.animalId,
+        userId: user.userId,
+        applicantName: dto.applicantName,
+        phoneNumber: dto.phoneNumber,
+        email: dto.email,
+        address: dto.address,
+        addressDetail: dto.addressDetail,
+        introduction: dto.introduction,
+      },
+    });
   }
 
   async createAnimal(user: AuthUser, dto: CreateAnimalInput): Promise<AnimalListItem> {

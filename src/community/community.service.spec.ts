@@ -118,12 +118,13 @@ describe('CommunityService', () => {
       const overflow = makePost('post-overflow');
       prisma.post.findMany.mockResolvedValueOnce([...basePosts, overflow]);
 
-      const result = await service.listPosts(100, 'cursor-123');
+      const result = await service.listPosts(100, 'cursor-123', undefined);
 
       expect(prisma.post.findMany).toHaveBeenCalledWith({
         take: 51,
         skip: 1,
         cursor: { id: 'cursor-123' },
+        where: {},
         orderBy: { createdAt: 'desc' },
         include: {
           _count: { select: { comments: true, likes: true } },
@@ -139,11 +140,12 @@ describe('CommunityService', () => {
       const { service, prisma } = build();
       prisma.post.findMany.mockResolvedValueOnce([makePost('post-1')]);
 
-      const result = await service.listPosts(0);
+      const result = await service.listPosts(0, undefined, undefined);
 
       expect(prisma.post.findMany).toHaveBeenCalledWith({
         take: 2,
         skip: 0,
+        where: {},
         orderBy: { createdAt: 'desc' },
         include: {
           _count: { select: { comments: true, likes: true } },
@@ -153,6 +155,29 @@ describe('CommunityService', () => {
       expect(result.limit).toBe(1);
       expect(result.items).toHaveLength(1);
       expect(result.nextCursor).toBeNull();
+    });
+
+    it('applies case-insensitive keyword search to title and content', async () => {
+      const { service, prisma } = build();
+      prisma.post.findMany.mockResolvedValueOnce([makePost('post-1')]);
+
+      await service.listPosts(10, undefined, 'poodle');
+
+      expect(prisma.post.findMany).toHaveBeenCalledWith({
+        take: 11,
+        skip: 0,
+        where: {
+          OR: [
+            { title: { contains: 'poodle', mode: 'insensitive' } },
+            { content: { contains: 'poodle', mode: 'insensitive' } },
+          ],
+        },
+        orderBy: { createdAt: 'desc' },
+        include: {
+          _count: { select: { comments: true, likes: true } },
+          author: { select: { id: true, displayName: true } },
+        },
+      });
     });
   });
 

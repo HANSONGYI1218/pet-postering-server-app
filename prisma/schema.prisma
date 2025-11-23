@@ -46,6 +46,12 @@ enum AnimalSize {
   LARGE
 }
 
+enum AnimalAge {
+  JUVENILE
+  ADULT
+  SENIOR
+}
+
 enum AnimalHealthTagType {
   NEUTERED
   VACCINATED
@@ -110,6 +116,7 @@ model User {
 
   profile             UserProfile?
   notificationSetting UserNotificationSetting?
+  fosterCondition     FosterCondition?
   organizations OrganizationMember[]
   posts         Post[]
   comments      Comment[]
@@ -118,6 +125,7 @@ model User {
   commentLikes  CommentLike[]
   reports       Report[]        @relation("ReportReporter")
   ownedAnimals  Animal[]
+  applications  FosterApplication[]
 }
 
 model UserProfile {
@@ -143,6 +151,42 @@ model UserNotificationSetting {
   marketingKakao        Boolean @default(false)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model FosterCondition {
+  id                 String                      @id @default(cuid())
+  userId             String                      @unique
+  preferredTypes     AnimalType[]                @default([])
+  preferredSizes     AnimalSize[]                @default([])
+  preferredAges      AnimalAge[]                 @default([])
+  fosterEnvironments AnimalEnvironmentTagType[]  @default([])
+  fosterPeriod       String?
+  specialNoteTags    AnimalSpecialNoteTagType[]  @default([])
+  createdAt          DateTime                    @default(now())
+  updatedAt          DateTime                    @updatedAt
+
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  experiences FosterExperience[]
+}
+
+model FosterExperience {
+  id                String    @id @default(cuid())
+  fosterConditionId String
+
+  animalType       AnimalType?
+  animalSize       AnimalSize?
+  animalAge        AnimalAge?
+  startDate        DateTime?
+  endDate          DateTime?
+  organizationName String?
+  note             String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  fosterCondition FosterCondition @relation(fields: [fosterConditionId], references: [id], onDelete: Cascade)
+
+  @@index([fosterConditionId])
 }
 
 model Organization {
@@ -410,6 +454,7 @@ model FosterRecordImage {
 model FosterApplication {
   id            String   @id @default(cuid())
   animalId      String
+  userId        String?
   applicantName String
   email         String?
   phoneNumber   String?
@@ -420,6 +465,8 @@ model FosterApplication {
   updatedAt     DateTime @updatedAt
 
   animal Animal @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  user   User?  @relation(fields: [userId], references: [id])
 
   @@index([animalId])
+  @@index([userId])
 }

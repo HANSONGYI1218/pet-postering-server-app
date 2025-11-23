@@ -46,6 +46,7 @@ import {
   UpdateAnimalDto,
   UpdateRecordDto,
 } from './dto/foster.dto';
+import { ApplyFosterDto } from './dto/foster-application.dto';
 import { FosterService } from './foster.service';
 
 @ApiTags('Foster')
@@ -61,6 +62,17 @@ import { FosterService } from './foster.service';
 @Controller('foster')
 export class FosterController {
   constructor(private readonly fosterService: FosterService) {}
+
+  @Post('applications')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({ summary: '임시보호 신청' })
+  @ApiCreatedResponse({ description: '신청 완료' })
+  applyFoster(
+    @CurrentUser() user: AuthUser,
+    @Body() body: ApplyFosterDto,
+  ): Promise<void> {
+    return this.fosterService.applyFoster(user, body);
+  }
 
   @Get('animals')
   @ApiQuery({
