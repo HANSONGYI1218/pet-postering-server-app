@@ -35,7 +35,7 @@ export class OrganizationController {
 
   @Post('applications/:id/accept')
   @UseGuards(AuthGuard('jwt'))
-  @ApiOperation({ summary: '임보 신청 수락 (ORG 관리자)' })
+  @ApiOperation({ summary: 'Accept foster application (ORG admin)' })
   acceptApplication(
     @CurrentUser() user: AuthUser,
     @Param('id') applicationId: string,

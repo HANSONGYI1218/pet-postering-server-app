@@ -65,8 +65,8 @@ export class FosterController {
 
   @Post('applications')
   @UseGuards(AuthGuard('jwt'))
-  @ApiOperation({ summary: '임시보호 신청' })
-  @ApiCreatedResponse({ description: '신청 완료' })
+  @ApiOperation({ summary: 'Submit foster application' })
+  @ApiCreatedResponse({ description: 'Application submitted' })
   applyFoster(
     @CurrentUser() user: AuthUser,
     @Body() body: ApplyFosterDto,

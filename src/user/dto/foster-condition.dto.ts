@@ -25,17 +25,17 @@ export class FosterExperienceDto {
   @ApiPropertyOptional({ enum: AnimalType })
   @IsOptional()
   @IsEnum(AnimalType)
-  animalType?: AnimalType;
+  animalType?: AnimalType | null;
 
   @ApiPropertyOptional({ enum: AnimalSize })
   @IsOptional()
   @IsEnum(AnimalSize)
-  animalSize?: AnimalSize;
+  animalSize?: AnimalSize | null;
 
   @ApiPropertyOptional({ enum: AnimalAge })
   @IsOptional()
   @IsEnum(AnimalAge)
-  animalAge?: AnimalAge;
+  animalAge?: AnimalAge | null;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -50,12 +50,12 @@ export class FosterExperienceDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  organizationName?: string;
+  organizationName?: string | null;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  note?: string;
+  note?: string | null;
 }
 
 export class UpsertFosterConditionDto {
@@ -97,15 +97,30 @@ export class UpsertFosterConditionDto {
   experiences?: FosterExperienceDto[];
 }
 
-export class FosterExperienceResponseDto extends FosterExperienceDto {
+export class FosterExperienceResponseDto {
   @ApiProperty()
   id!: string;
+
+  @ApiPropertyOptional({ enum: AnimalType })
+  animalType?: AnimalType | null;
+
+  @ApiPropertyOptional({ enum: AnimalSize })
+  animalSize?: AnimalSize | null;
+
+  @ApiPropertyOptional({ enum: AnimalAge })
+  animalAge?: AnimalAge | null;
 
   @ApiPropertyOptional({ type: String })
   startDate?: Date | null;
 
   @ApiPropertyOptional({ type: String })
   endDate?: Date | null;
+
+  @ApiPropertyOptional()
+  organizationName?: string | null;
+
+  @ApiPropertyOptional()
+  note?: string | null;
 }
 
 export class FosterConditionResponseDto {

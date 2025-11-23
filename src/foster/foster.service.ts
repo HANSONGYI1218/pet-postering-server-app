@@ -71,9 +71,9 @@ interface UpdateAnimalInput {
   name?: string;
   shared?: boolean;
   status?: string;
-  type?: Prisma.AnimalUncheckedUpdateInput['type'];
-  size?: Prisma.AnimalUncheckedUpdateInput['size'];
-  gender?: Prisma.AnimalUncheckedUpdateInput['gender'];
+  type?: Prisma.AnimalUncheckedCreateInput['type'];
+  size?: Prisma.AnimalUncheckedCreateInput['size'];
+  gender?: Prisma.AnimalUncheckedCreateInput['gender'];
   breed?: string;
   birthDate?: string;
   introduction?: string;
@@ -273,7 +273,7 @@ export class FosterService {
 
   private composeStatusData(
     status: AnimalStatus | undefined,
-  ): Pick<Prisma.AnimalUpdateArgs['data'], 'status'> {
+  ): Pick<Prisma.AnimalCreateArgs['data'], 'status'> {
     return {
       status: status ?? undefined,
     };
@@ -281,7 +281,7 @@ export class FosterService {
 
   private composeClassificationData(
     dto: CreateAnimalInput | UpdateAnimalInput,
-  ): Pick<Prisma.AnimalUpdateArgs['data'], 'type' | 'size' | 'gender' | 'breed'> {
+  ): Pick<Prisma.AnimalCreateArgs['data'], 'type' | 'size' | 'gender' | 'breed'> {
     return {
       type: dto.type ?? undefined,
       size: dto.size ?? undefined,
@@ -293,7 +293,7 @@ export class FosterService {
   private composeLifecycleData(
     dto: CreateAnimalInput | UpdateAnimalInput,
   ): Pick<
-    Prisma.AnimalUpdateArgs['data'],
+    Prisma.AnimalCreateArgs['data'],
     'birthDate' | 'isFosterCondition' | 'currentFosterStartDate' | 'currentFosterEndDate'
   > {
     return {
@@ -342,7 +342,7 @@ export class FosterService {
 
   private composeMainImageData(
     images: readonly string[] | undefined,
-  ): Pick<Prisma.AnimalUpdateArgs['data'], 'mainImageUrl'> {
+  ): Pick<Prisma.AnimalCreateArgs['data'], 'mainImageUrl'> {
     return {
       mainImageUrl: this.toMainImageValue(images),
     };

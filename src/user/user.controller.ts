@@ -98,7 +98,7 @@ export class UsersController {
 
   @Get('foster-condition')
   @ApiOperation({ summary: 'Get current user foster condition & experiences' })
-  @ApiOkResponse({ type: FosterConditionResponseDto, nullable: true })
+  @ApiOkResponse({ type: FosterConditionResponseDto })
   getFosterCondition(
     @CurrentUser() user: AuthUser,
   ): Promise<FosterConditionResponseDto | null> {

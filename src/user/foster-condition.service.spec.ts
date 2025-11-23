@@ -72,7 +72,7 @@ describe('FosterConditionService', () => {
   });
 
   describe('getMyCondition', () => {
-    it('사용자 임시보호 조건을 조회한다', async () => {
+    it('returns the foster condition for the user', async () => {
       const { service, prisma } = buildService();
       prisma.fosterCondition.findUnique.mockResolvedValueOnce({ id: 'fc-1' });
 
@@ -86,7 +86,7 @@ describe('FosterConditionService', () => {
   });
 
   describe('upsertMyCondition', () => {
-    it('조건과 경험을 업서트하고 UserProfile 자격을 true로 설정한다', async () => {
+    it('upserts condition/experiences and marks user eligible', async () => {
       const { service, tx, prisma } = buildService();
 
       tx.fosterCondition.upsert.mockResolvedValueOnce({
@@ -212,7 +212,7 @@ describe('FosterConditionService', () => {
   });
 
   describe('deleteMyCondition', () => {
-    it('조건을 삭제하고 자격을 false로 설정한다', async () => {
+    it('deletes the condition and marks user ineligible', async () => {
       const { service, tx, prisma } = buildService();
 
       tx.fosterCondition.deleteMany.mockResolvedValueOnce({ count: 1 });

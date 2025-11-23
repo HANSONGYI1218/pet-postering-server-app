@@ -71,11 +71,11 @@ describe('FosterController', () => {
 
     const payload = {
       animalId: 'animal-1',
-      applicantName: '신청자',
+      applicantName: 'Applicant',
       phoneNumber: '+821012345678',
       email: 'applicant@example.com',
-      address: '서울',
-      introduction: '안녕하세요',
+      address: 'Seoul',
+      introduction: 'Hello, I would like to foster.',
     };
 
     await request(app.getHttpServer())

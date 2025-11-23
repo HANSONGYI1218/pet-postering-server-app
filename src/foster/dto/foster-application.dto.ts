@@ -9,35 +9,35 @@ import {
 } from 'class-validator';
 
 export class ApplyFosterDto {
-  @ApiProperty({ description: '신청할 동물 ID' })
+  @ApiProperty({ description: 'Target animal ID' })
   @IsString()
   @IsNotEmpty()
   animalId!: string;
 
-  @ApiProperty({ description: '신청자 이름' })
+  @ApiProperty({ description: 'Applicant name' })
   @IsString()
   @Length(2, 50)
   applicantName!: string;
 
-  @ApiProperty({ description: '연락처' })
+  @ApiProperty({ description: 'Contact phone number' })
   @IsPhoneNumber('KR')
   phoneNumber!: string;
 
-  @ApiProperty({ description: '이메일' })
+  @ApiProperty({ description: 'Email' })
   @IsEmail()
   email!: string;
 
-  @ApiProperty({ description: '주소' })
+  @ApiProperty({ description: 'Address' })
   @IsString()
   @IsNotEmpty()
   address!: string;
 
-  @ApiProperty({ description: '상세 주소', required: false })
+  @ApiProperty({ description: 'Address detail', required: false })
   @IsOptional()
   @IsString()
   addressDetail?: string;
 
-  @ApiProperty({ description: '자기소개 및 신청 사유' })
+  @ApiProperty({ description: 'Introduction and motivation' })
   @IsString()
   @Length(10, 2000)
   introduction!: string;

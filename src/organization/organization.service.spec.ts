@@ -292,7 +292,7 @@ describe('OrganizationService', () => {
       jest.useRealTimers();
     });
 
-    it('rejects when application has no userId (비회원 수락 불가)', async () => {
+    it('rejects when application has no userId (guest applications not allowed)', async () => {
       const { service, prisma } = build();
       prisma.fosterApplication.findUnique.mockResolvedValueOnce({
         id: 'app-1',

@@ -127,11 +127,11 @@ describe('FosterService', () => {
     const user: AuthUser = { userId: 'user-1', role: 'USER' };
     const dto = {
       animalId: 'animal-1',
-      applicantName: '신청자',
+      applicantName: 'Applicant',
       phoneNumber: '+821012345678',
       email: 'applicant@example.com',
-      address: '서울시 마포구',
-      introduction: '임보 경험 있고 매일 산책 가능합니다.',
+      address: 'Mapo-gu, Seoul',
+      introduction: 'Experienced foster, available for daily walks.',
     };
 
     it('creates application when eligible and not duplicated', async () => {
@@ -150,12 +150,12 @@ describe('FosterService', () => {
         data: {
           animalId: 'animal-1',
           userId: 'user-1',
-          applicantName: '신청자',
+          applicantName: 'Applicant',
           phoneNumber: '+821012345678',
           email: 'applicant@example.com',
-          address: '서울시 마포구',
+          address: 'Mapo-gu, Seoul',
           addressDetail: undefined,
-          introduction: '임보 경험 있고 매일 산책 가능합니다.',
+          introduction: 'Experienced foster, available for daily walks.',
         },
       });
     });
