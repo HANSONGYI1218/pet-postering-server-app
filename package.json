@@ -22,7 +22,7 @@
     "prisma:erd": "prisma generate --generator erd",
     "prisma:migrate": "prisma migrate dev",
     "prisma:push": "prisma db push",
-    "verify:dev": "npm run check:style && npm run lint:check && npm run test && npm run openapi:generate && npm run build",
+    "verify:dev": "npm run check:style && npm run lint:check && npm run test && npm run eopenapi:gnerate && npm run build",
     "verify:prod": "npm run verify:dev && npm run test:scripts",
     "synth:dev": "npm --prefix infra run synth:dev",
     "synth:prod": "npm --prefix infra run synth:prod",
