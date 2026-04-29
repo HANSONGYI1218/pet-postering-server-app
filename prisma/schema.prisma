@@ -1,4 +1,3 @@
-// flattened from server/prisma/schema.prisma
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,9 +8,349 @@ generator erd {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_DATABASE_URL")
+}
+
+model User {
+  id                  String                   @id @default(cuid())
+  kakaoId             String                   @unique
+  displayName         String?
+  avatarUrl           String?
+  role                Role                     @default(USER)
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+  ownedAnimals        Animal[]
+  comments            Comment[]
+  commentLikes        CommentLike[]
+  applications        FosterApplication[]
+  fosterCondition     FosterCondition?
+  organizations       OrganizationMember[]
+  posts               Post[]
+  postBookmarks       PostBookmark[]
+  postLikes           PostLike[]
+  reports             Report[]                 @relation("ReportReporter")
+  notificationSetting UserNotificationSetting?
+  profile             UserProfile?
+}
+
+model UserProfile {
+  userId              String  @id
+  name                String?
+  email               String?
+  phoneNumber         String?
+  zipcode             String?
+  address             String?
+  addressDetail       String?
+  introduction        String?
+  isEligibleForFoster Boolean @default(false)
+  user                User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserNotificationSetting {
+  userId                String  @id
+  commentEmail          Boolean @default(true)
+  fosterAnimalInfoEmail Boolean @default(true)
+  fosterAnimalInfoKakao Boolean @default(true)
+  marketingEmail        Boolean @default(false)
+  marketingKakao        Boolean @default(false)
+  user                  User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model FosterCondition {
+  id                 String                     @id @default(cuid())
+  userId             String                     @unique
+  preferredTypes     AnimalType[]               @default([])
+  preferredSizes     AnimalSize[]               @default([])
+  preferredAges      AnimalAge[]                @default([])
+  fosterEnvironments AnimalEnvironmentTagType[] @default([])
+  fosterPeriod       String?
+  specialNoteTags    AnimalSpecialNoteTagType[] @default([])
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+  user               User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  experiences        FosterExperience[]
+}
+
+model FosterExperience {
+  id                String          @id @default(cuid())
+  fosterConditionId String
+  animalType        AnimalType?
+  animalSize        AnimalSize?
+  animalAge         AnimalAge?
+  startDate         DateTime?
+  endDate           DateTime?
+  organizationName  String?
+  note              String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  fosterCondition   FosterCondition @relation(fields: [fosterConditionId], references: [id], onDelete: Cascade)
+
+  @@index([fosterConditionId])
+}
+
+model Organization {
+  id                    String               @id @default(cuid())
+  name                  String
+  zipcode               String?
+  address               String?
+  addressDetail         String?
+  phoneNumber           String?
+  donationBankName      String?
+  donationAccountNumber String?
+  donationAccountHolder String?
+  email                 String?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  animals               Animal[]
+  members               OrganizationMember[]
+}
+
+model OrganizationMember {
+  userId         String
+  organizationId String
+  role           OrgRole      @default(MEMBER)
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, organizationId])
+  @@index([organizationId])
+}
+
+model Post {
+  id        String         @id @default(cuid())
+  authorId  String
+  title     String
+  content   String
+  images    String[]       @default([])
+  viewCount Int            @default(0)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  comments  Comment[]
+  author    User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  bookmarks PostBookmark[]
+  likes     PostLike[]
+
+  @@index([authorId])
+  @@index([createdAt])
+}
+
+model Comment {
+  id        String        @id @default(cuid())
+  postId    String
+  authorId  String
+  parentId  String?
+  content   String
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  author    User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parent    Comment?      @relation("CommentToReplies", fields: [parentId], references: [id])
+  replies   Comment[]     @relation("CommentToReplies")
+  post      Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  likes     CommentLike[]
+
+  @@index([postId])
+  @@index([authorId])
+  @@index([parentId])
+}
+
+model PostBookmark {
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, postId])
+  @@index([postId])
+}
+
+model PostLike {
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, postId])
+  @@index([postId])
+}
+
+model CommentLike {
+  userId    String
+  commentId String
+  createdAt DateTime @default(now())
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, commentId])
+  @@index([commentId])
+}
+
+model Report {
+  id         String           @id @default(cuid())
+  targetType ReportTargetType
+  targetId   String
+  reason     String
+  reporterId String
+  createdAt  DateTime         @default(now())
+  reporter   User             @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@index([targetType, targetId])
+}
+
+model Notice {
+  id          String             @id @default(cuid())
+  title       String
+  content     String
+  type        NoticeType         @default(GENERAL)
+  isFixed     Boolean            @default(false)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  attachments NoticeAttachment[]
+
+  @@index([isFixed, createdAt])
+}
+
+model NoticeAttachment {
+  id        String   @id @default(cuid())
+  noticeId  String
+  url       String
+  createdAt DateTime @default(now())
+  notice    Notice   @relation(fields: [noticeId], references: [id], onDelete: Cascade)
+
+  @@index([noticeId])
+}
+
+model Animal {
+  id                     String                 @id @default(cuid())
+  name                   String
+  status                 AnimalStatus           @default(WAITING)
+  shared                 Boolean                @default(false)
+  orgId                  String?
+  ownerUserId            String?
+  type                   AnimalType?
+  size                   AnimalSize?
+  gender                 AnimalGender?
+  breed                  String?
+  birthDate              DateTime?
+  mainImageUrl           String?
+  introduction           String?
+  remark                 String?
+  emergency              Boolean                @default(false)
+  emergencyReason        String?
+  currentFosterStartDate DateTime?
+  currentFosterEndDate   DateTime?
+  euthanasiaDate         DateTime?
+  isFosterCondition      Boolean                @default(false)
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+  organization           Organization?          @relation(fields: [orgId], references: [id])
+  owner                  User?                  @relation(fields: [ownerUserId], references: [id])
+  environmentTags        AnimalEnvironmentTag[]
+  healthTags             AnimalHealthTag[]
+  images                 AnimalImage[]
+  personalityTags        AnimalPersonalityTag[]
+  specialNoteTags        AnimalSpecialNoteTag[]
+  applications           FosterApplication[]
+  records                FosterRecord[]
+
+  @@index([status])
+  @@index([orgId])
+  @@index([ownerUserId])
+}
+
+model AnimalImage {
+  id        String   @id @default(cuid())
+  animalId  String
+  url       String
+  sortOrder Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  animal    Animal   @relation(fields: [animalId], references: [id], onDelete: Cascade)
+
+  @@unique([animalId, sortOrder])
+  @@index([animalId])
+}
+
+model AnimalHealthTag {
+  animalId String
+  value    AnimalHealthTagType
+  animal   Animal              @relation(fields: [animalId], references: [id], onDelete: Cascade)
+
+  @@id([animalId, value])
+}
+
+model AnimalPersonalityTag {
+  animalId String
+  value    AnimalPersonalityTagType
+  animal   Animal                   @relation(fields: [animalId], references: [id], onDelete: Cascade)
+
+  @@id([animalId, value])
+}
+
+model AnimalEnvironmentTag {
+  animalId String
+  value    AnimalEnvironmentTagType
+  animal   Animal                   @relation(fields: [animalId], references: [id], onDelete: Cascade)
+
+  @@id([animalId, value])
+}
+
+model AnimalSpecialNoteTag {
+  animalId String
+  value    AnimalSpecialNoteTagType
+  animal   Animal                   @relation(fields: [animalId], references: [id], onDelete: Cascade)
+
+  @@id([animalId, value])
+}
+
+model FosterRecord {
+  id         String              @id @default(cuid())
+  animalId   String
+  date       DateTime
+  content    String?
+  healthNote String?
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+  animal     Animal              @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  images     FosterRecordImage[]
+
+  @@unique([animalId, date])
+  @@index([animalId, date])
+}
+
+model FosterRecordImage {
+  id        String       @id @default(cuid())
+  recordId  String
+  url       String
+  sortOrder Int?
+  createdAt DateTime     @default(now())
+  record    FosterRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+
+  @@unique([recordId, sortOrder])
+  @@index([recordId])
+}
+
+model FosterApplication {
+  id            String   @id @default(cuid())
+  animalId      String
+  userId        String?
+  applicantName String
+  email         String?
+  phoneNumber   String?
+  address       String?
+  addressDetail String?
+  introduction  String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  animal        Animal   @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  user          User?    @relation(fields: [userId], references: [id])
+
+  @@index([animalId])
+  @@index([userId])
 }
 
 enum Role {
@@ -103,370 +442,4 @@ enum NoticeType {
 enum ReportTargetType {
   POST
   COMMENT
-}
-
-model User {
-  id          String   @id @default(cuid())
-  kakaoId     String   @unique
-  displayName String?
-  avatarUrl   String?
-  role        Role     @default(USER)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  profile             UserProfile?
-  notificationSetting UserNotificationSetting?
-  fosterCondition     FosterCondition?
-  organizations OrganizationMember[]
-  posts         Post[]
-  comments      Comment[]
-  postBookmarks PostBookmark[]
-  postLikes     PostLike[]
-  commentLikes  CommentLike[]
-  reports       Report[]        @relation("ReportReporter")
-  ownedAnimals  Animal[]
-  applications  FosterApplication[]
-}
-
-model UserProfile {
-  userId          String  @id
-  name            String?
-  email           String?
-  phoneNumber     String?
-  zipcode         String?
-  address         String?
-  addressDetail   String?
-  introduction    String?
-  isEligibleForFoster Boolean @default(false)
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model UserNotificationSetting {
-  userId                String  @id
-  commentEmail          Boolean @default(true)
-  fosterAnimalInfoEmail Boolean @default(true)
-  fosterAnimalInfoKakao Boolean @default(true)
-  marketingEmail        Boolean @default(false)
-  marketingKakao        Boolean @default(false)
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model FosterCondition {
-  id                 String                      @id @default(cuid())
-  userId             String                      @unique
-  preferredTypes     AnimalType[]                @default([])
-  preferredSizes     AnimalSize[]                @default([])
-  preferredAges      AnimalAge[]                 @default([])
-  fosterEnvironments AnimalEnvironmentTagType[]  @default([])
-  fosterPeriod       String?
-  specialNoteTags    AnimalSpecialNoteTagType[]  @default([])
-  createdAt          DateTime                    @default(now())
-  updatedAt          DateTime                    @updatedAt
-
-  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  experiences FosterExperience[]
-}
-
-model FosterExperience {
-  id                String    @id @default(cuid())
-  fosterConditionId String
-
-  animalType       AnimalType?
-  animalSize       AnimalSize?
-  animalAge        AnimalAge?
-  startDate        DateTime?
-  endDate          DateTime?
-  organizationName String?
-  note             String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  fosterCondition FosterCondition @relation(fields: [fosterConditionId], references: [id], onDelete: Cascade)
-
-  @@index([fosterConditionId])
-}
-
-model Organization {
-  id        String               @id @default(cuid())
-  name      String
-  zipcode   String?
-  address   String?
-  addressDetail String?
-  phoneNumber String?
-  donationBankName String?
-  donationAccountNumber String?
-  donationAccountHolder String?
-  email     String?
-  createdAt DateTime             @default(now())
-  updatedAt DateTime             @updatedAt
-
-  members   OrganizationMember[]
-  animals   Animal[]
-}
-
-model OrganizationMember {
-  userId         String
-  organizationId String
-  role           OrgRole @default(MEMBER)
-  createdAt      DateTime @default(now())
-
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  @@id([userId, organizationId])
-  @@index([organizationId])
-}
-
-model Post {
-  id        String   @id @default(cuid())
-  authorId  String
-  title     String
-  content   String
-  images    String[] @default([])
-  viewCount Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  comments  Comment[]
-  bookmarks PostBookmark[]
-  likes     PostLike[]
-
-  @@index([authorId])
-  @@index([createdAt])
-}
-
-model Comment {
-  id        String   @id @default(cuid())
-  postId    String
-  authorId  String
-  parentId  String?
-  content   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
-  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  parent    Comment? @relation("CommentToReplies", fields: [parentId], references: [id])
-  replies   Comment[] @relation("CommentToReplies")
-  likes     CommentLike[]
-
-  @@index([postId])
-  @@index([authorId])
-  @@index([parentId])
-}
-
-model PostBookmark {
-  userId    String
-  postId    String
-  createdAt DateTime @default(now())
-
-  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  post      Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-
-  @@id([userId, postId])
-  @@index([postId])
-}
-
-model PostLike {
-  userId    String
-  postId    String
-  createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-
-  @@id([userId, postId])
-  @@index([postId])
-}
-
-model CommentLike {
-  userId    String
-  commentId String
-  createdAt DateTime @default(now())
-
-  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  comment   Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-
-  @@id([userId, commentId])
-  @@index([commentId])
-}
-
-model Report {
-  id          String           @id @default(cuid())
-  targetType  ReportTargetType
-  targetId    String
-  reason      String
-  reporterId  String
-  createdAt   DateTime @default(now())
-
-  reporter    User @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
-
-  @@index([targetType, targetId])
-}
-
-model Notice {
-  id        String     @id @default(cuid())
-  title     String
-  content   String
-  type      NoticeType @default(GENERAL)
-  isFixed   Boolean    @default(false)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-
-  attachments NoticeAttachment[]
-
-  @@index([isFixed, createdAt])
-}
-
-model NoticeAttachment {
-  id       String   @id @default(cuid())
-  noticeId String
-  url      String
-  createdAt DateTime @default(now())
-
-  notice   Notice   @relation(fields: [noticeId], references: [id], onDelete: Cascade)
-
-  @@index([noticeId])
-}
-
-model Animal {
-  id           String       @id @default(cuid())
-  name         String
-  status       AnimalStatus @default(WAITING)
-  shared       Boolean      @default(false)
-  orgId        String?
-  ownerUserId  String?
-  type         AnimalType?
-  size         AnimalSize?
-  gender       AnimalGender?
-  breed        String?
-  birthDate    DateTime?
-  mainImageUrl String?
-  introduction String?
-  remark       String?
-  emergency    Boolean      @default(false)
-  emergencyReason String?
-  currentFosterStartDate DateTime?
-  currentFosterEndDate   DateTime?
-  euthanasiaDate DateTime?
-  isFosterCondition Boolean @default(false)
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-
-  organization Organization? @relation(fields: [orgId], references: [id])
-  owner        User?         @relation(fields: [ownerUserId], references: [id])
-  records      FosterRecord[]
-  images       AnimalImage[]
-  healthTags   AnimalHealthTag[]
-  personalityTags AnimalPersonalityTag[]
-  environmentTags AnimalEnvironmentTag[]
-  specialNoteTags AnimalSpecialNoteTag[]
-  applications FosterApplication[]
-
-  @@index([status])
-  @@index([orgId])
-  @@index([ownerUserId])
-}
-
-model AnimalImage {
-  id        String   @id @default(cuid())
-  animalId  String
-  url       String
-  sortOrder Int?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  animal    Animal   @relation(fields: [animalId], references: [id], onDelete: Cascade)
-
-  @@index([animalId])
-  @@unique([animalId, sortOrder])
-}
-
-model AnimalHealthTag {
-  animalId String
-  value    AnimalHealthTagType
-
-  animal   Animal @relation(fields: [animalId], references: [id], onDelete: Cascade)
-
-  @@id([animalId, value])
-}
-
-model AnimalPersonalityTag {
-  animalId String
-  value    AnimalPersonalityTagType
-
-  animal   Animal @relation(fields: [animalId], references: [id], onDelete: Cascade)
-
-  @@id([animalId, value])
-}
-
-model AnimalEnvironmentTag {
-  animalId String
-  value    AnimalEnvironmentTagType
-
-  animal   Animal @relation(fields: [animalId], references: [id], onDelete: Cascade)
-
-  @@id([animalId, value])
-}
-
-model AnimalSpecialNoteTag {
-  animalId String
-  value    AnimalSpecialNoteTagType
-
-  animal   Animal @relation(fields: [animalId], references: [id], onDelete: Cascade)
-
-  @@id([animalId, value])
-}
-
-model FosterRecord {
-  id        String   @id @default(cuid())
-  animalId  String
-  date      DateTime
-  content   String?
-  healthNote String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  animal    Animal               @relation(fields: [animalId], references: [id], onDelete: Cascade)
-  images    FosterRecordImage[]
-
-  @@unique([animalId, date])
-  @@index([animalId, date])
-}
-
-model FosterRecordImage {
-  id         String   @id @default(cuid())
-  recordId   String
-  url        String
-  sortOrder  Int?
-  createdAt  DateTime @default(now())
-
-  record     FosterRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
-
-  @@index([recordId])
-  @@unique([recordId, sortOrder])
-}
-
-model FosterApplication {
-  id            String   @id @default(cuid())
-  animalId      String
-  userId        String?
-  applicantName String
-  email         String?
-  phoneNumber   String?
-  address       String?
-  addressDetail String?
-  introduction  String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  animal Animal @relation(fields: [animalId], references: [id], onDelete: Cascade)
-  user   User?  @relation(fields: [userId], references: [id])
-
-  @@index([animalId])
-  @@index([userId])
 }
