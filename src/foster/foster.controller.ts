@@ -32,7 +32,6 @@ import type {
   ListAnimalsResult,
   ListRecordsResult,
 } from '../domain/foster/application/types';
-import { ApplyFosterDto } from './dto/foster-application.dto';
 import {
   AnimalListItemDto,
   AnimalStatusDto,
@@ -47,8 +46,8 @@ import {
   UpdateAnimalDto,
   UpdateRecordDto,
 } from './dto/foster.dto';
+import { ApplyFosterDto } from './dto/foster-application.dto';
 import { FosterService } from './foster.service';
-
 
 @ApiTags('Foster')
 @ApiBearerAuth()
@@ -63,7 +62,6 @@ import { FosterService } from './foster.service';
 @Controller('foster')
 export class FosterController {
   constructor(private readonly fosterService: FosterService) {}
-
 
   @Post('applications')
   @UseGuards(AuthGuard('jwt'))
@@ -129,7 +127,6 @@ export class FosterController {
   ): Promise<DeleteAnimalResult> {
     return this.fosterService.deleteAnimal(id, user);
   }
-
 
   @Get('animals/:id/records')
   @ApiQuery({
