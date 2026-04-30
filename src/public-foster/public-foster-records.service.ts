@@ -74,4 +74,22 @@ export class PublicFosterRecordsService {
 
     return toRecordDetail({ animal, records });
   }
+
+  async getAnimalsByUserId(userId: string): Promise<PublicRecordDetail> {
+    const animal = await this.prisma.animal.findFirst({
+      where: { ownerUserId: userId },
+      include: PUBLIC_FOSTER_ANIMAL_INCLUDE,
+    });
+    if (!animal) {
+      throw new NotFoundException('public-record-animal-not-found');
+    }
+
+    const records = await this.prisma.fosterRecord.findMany({
+      where: { animalId: animal.id },
+      include: { images: true },
+      orderBy: { date: 'asc' },
+    });
+
+    return toRecordDetail({ animal, records });
+  }
 }

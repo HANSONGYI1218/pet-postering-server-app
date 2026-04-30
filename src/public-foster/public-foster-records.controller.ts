@@ -23,6 +23,14 @@ export class PublicFosterRecordsController {
     return this.publicFosterRecordsService.listAnimals();
   }
 
+    @Get('animals/:userId')
+    @ApiOperation({ summary: 'Get animal detail' })
+    @ApiOkResponse({ type: PublicRecordDetailDto })
+    getAnimalsByUserId(@Param('userId') userId: string): Promise<PublicRecordDetail> {
+      return this.publicFosterRecordsService.getAnimalsByUserId(userId);
+    }
+  
+
   @Get('animals/:id')
   @ApiOperation({ summary: 'Get foster record detail (public)' })
   @ApiOkResponse({ type: PublicRecordDetailDto })
