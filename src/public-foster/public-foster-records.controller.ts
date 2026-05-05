@@ -25,8 +25,8 @@ export class PublicFosterRecordsController {
 
   @Get('animals/:userId')
   @ApiOperation({ summary: 'Get animal detail' })
-  @ApiOkResponse({ type: PublicRecordDetailDto })
-  getAnimalsByUserId(@Param('userId') userId: string): Promise<PublicRecordDetail> {
+  @ApiOkResponse({ type: PublicRecordListResponseDto })
+  getAnimalsByUserId(@Param('userId') userId: string): Promise<PublicRecordListResult> {
     return this.publicFosterRecordsService.getAnimalsByUserId(userId);
   }
 

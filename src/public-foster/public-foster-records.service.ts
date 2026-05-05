@@ -75,21 +75,45 @@ export class PublicFosterRecordsService {
     return toRecordDetail({ animal, records });
   }
 
-  async getAnimalsByUserId(userId: string): Promise<PublicRecordDetail> {
-    const animal = await this.prisma.animal.findFirst({
-      where: { ownerUserId: userId },
-      include: PUBLIC_FOSTER_ANIMAL_INCLUDE,
-    });
-    if (!animal) {
-      throw new NotFoundException('public-record-animal-not-found');
-    }
-
-    const records = await this.prisma.fosterRecord.findMany({
-      where: { animalId: animal.id },
-      include: { images: true },
-      orderBy: { date: 'asc' },
+  async getAnimalsByUserId(userId: string): Promise<PublicRecordListResult> {
+    const animals = await this.prisma.animal.findMany({
+      where: {
+        ownerUserId: userId,
+        records: {
+          some: {},
+        },
+      },
+      ...PUBLIC_FOSTER_ANIMAL_QUERY,
+      orderBy: { createdAt: 'desc' },
     });
 
-    return toRecordDetail({ animal, records });
+    const now = new Date();
+    const baseAnimals = animals.map((animal) => ({
+      animal,
+      base: toRecordAnimal(animal, { now }),
+    }));
+    const fallbackAnimalIds = baseAnimals
+      .filter(({ base }) => base.fosterDuration === 0)
+      .map(({ animal }) => animal.id);
+    const firstRecordMap = await loadFirstRecordDateMap(
+      this.prisma.fosterRecord,
+      fallbackAnimalIds,
+    );
+    const items = baseAnimals.map(({ animal, base }) => {
+      if (base.fosterDuration > 0) {
+        return base;
+      }
+      const fosterDuration = calculateFosterDays({
+        now,
+        firstRecordDate: firstRecordMap.get(animal.id) ?? null,
+        fallbackCreatedAt: animal.createdAt,
+      });
+      return {
+        ...base,
+        fosterDuration,
+      };
+    });
+
+    return { items };
   }
 }
