@@ -17,18 +17,38 @@ const RECORD_STATE_MAP: Record<AnimalStatus, AnimalStatus> = {
   COMPLETED: 'COMPLETED',
 };
 
-const toIsoString = (value: Date | null): string | null =>
-  value ? value.toISOString() : null;
+const toIsoString = (
+  value: Date | string | null | undefined,
+): string | null => {
+  if (!value) {
+    return null;
+  }
 
-const calculateDuration = (start: Date | null, end: Date | null, now: Date): number => {
+  try {
+    return new Date(value).toISOString();
+  } catch {
+    return null;
+  }
+};
+
+const calculateDuration = (
+  start: Date | null,
+  end: Date | null,
+  now: Date,
+): number => {
   if (!start) {
     return 0;
   }
-  return calculateElapsedDays(start, end ?? now);
+
+  try {
+    return calculateElapsedDays(start, end ?? now);
+  } catch {
+    return 0;
+  }
 };
 
 const mapOrganization = (
-  organization: Organization | null,
+  organization: Organization | null | undefined,
 ): PublicRecordDetail['info']['organization'] =>
   organization
     ? {
@@ -44,7 +64,7 @@ const mapOrganization = (
 
 const mapAnimalDetail = (
   animal: Animal & {
-    images: AnimalImage[];
+    images?: AnimalImage[];
   },
 ): PublicRecordDetail['info']['animal'] => ({
   name: animal.name,
@@ -54,24 +74,52 @@ const mapAnimalDetail = (
   gender: animal.gender ?? null,
   introduction: animal.introduction ?? null,
   remark: animal.remark ?? null,
-  images: sortedImageUrls(animal.images),
-  currentFosterStartDate: toIsoString(animal.currentFosterStartDate),
-  currentFosterEndDate: toIsoString(animal.currentFosterEndDate),
+
+  images: (() => {
+    try {
+      return sortedImageUrls(animal.images ?? []);
+    } catch {
+      return [];
+    }
+  })(),
+
+  currentFosterStartDate: toIsoString(
+    animal.currentFosterStartDate,
+  ),
+
+  currentFosterEndDate: toIsoString(
+    animal.currentFosterEndDate,
+  ),
 });
 
 const mapRecordEntry = (
-  record: FosterRecord & { images: FosterRecordImage[] },
+  record: FosterRecord & {
+    images?: FosterRecordImage[];
+  },
 ): PublicRecordDetail['records'][number] => ({
   id: record.id,
   content: record.content ?? null,
   healthNote: record.healthNote ?? null,
-  createdAt: record.date.toISOString(),
-  updatedAt: record.updatedAt.toISOString(),
-  images: sortedImageUrls(record.images),
+
+  createdAt:
+    toIsoString(record.date) ?? '',
+
+  updatedAt:
+    toIsoString(record.updatedAt) ?? '',
+
+  images: (() => {
+    try {
+      return sortedImageUrls(record.images ?? []);
+    } catch {
+      return [];
+    }
+  })(),
 });
 
 export const toRecordAnimal = (
-  animal: Animal & { images: AnimalImage[] },
+  animal: Animal & {
+    images?: AnimalImage[];
+  },
   options: { now?: Date } = {},
 ): PublicRecordAnimal => ({
   id: animal.id,
@@ -80,13 +128,25 @@ export const toRecordAnimal = (
   breed: animal.breed ?? null,
   birthDate: toIsoString(animal.birthDate),
   gender: animal.gender ?? null,
-  images: sortedImageUrls(animal.images),
+
+  images: (() => {
+    try {
+      return sortedImageUrls(animal.images ?? []);
+    } catch {
+      return [];
+    }
+  })(),
+
   fosterDuration: calculateDuration(
     animal.currentFosterStartDate,
     animal.currentFosterEndDate,
     options.now ?? new Date(),
   ),
-  state: RECORD_STATE_MAP[animal.status],
+
+  state:
+    RECORD_STATE_MAP[animal.status] ??
+    'WAITING',
+
   matchId: animal.id,
 });
 
@@ -95,21 +155,41 @@ export const toRecordDetail = ({
   records,
 }: {
   animal: Animal & {
-    images: AnimalImage[];
-    organization: Organization | null;
+    images?: AnimalImage[];
+    organization?: Organization | null;
   };
-  records: (FosterRecord & { images: FosterRecordImage[] })[];
+
+  records?: (
+    FosterRecord & {
+      images?: FosterRecordImage[];
+    }
+  )[];
 }): PublicRecordDetail => ({
   id: animal.id,
+
   info: {
     id: animal.id,
-    state: RECORD_STATE_MAP[animal.status],
-    createdAt: animal.createdAt.toISOString(),
-    organization: mapOrganization(animal.organization),
+
+    state:
+      RECORD_STATE_MAP[animal.status] ??
+      'WAITING',
+
+    createdAt:
+      toIsoString(animal.createdAt) ?? '',
+
+    organization: mapOrganization(
+      animal.organization,
+    ),
+
     animal: mapAnimalDetail(animal),
   },
-  records: records
+
+  records: (records ?? [])
     .slice()
-    .sort((left, right) => left.date.getTime() - right.date.getTime())
+    .sort(
+      (left, right) =>
+        new Date(left.date).getTime() -
+        new Date(right.date).getTime(),
+    )
     .map(mapRecordEntry),
 });
