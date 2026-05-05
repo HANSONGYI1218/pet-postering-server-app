@@ -23,7 +23,7 @@ export class PublicFosterRecordsController {
     return this.publicFosterRecordsService.listAnimals();
   }
 
-  @Get('animals/:userId')
+  @Get('animals/user/:userId')
   @ApiOperation({ summary: 'Get animal detail' })
   @ApiOkResponse({ type: PublicRecordListResponseDto })
   getAnimalsByUserId(@Param('userId') userId: string): Promise<PublicRecordListResult> {
@@ -35,7 +35,6 @@ export class PublicFosterRecordsController {
   @ApiOkResponse({ type: PublicRecordDetailDto })
   getAnimal(@Param('id') id: string): Promise<PublicRecordDetail> {
     const ressult = this.publicFosterRecordsService.getAnimal(id);
-    console.log('getAnimal result:', ressult);
     return ressult;
   }
 }
