@@ -34,6 +34,8 @@ export class PublicFosterRecordsController {
   @ApiOperation({ summary: 'Get foster record detail (public)' })
   @ApiOkResponse({ type: PublicRecordDetailDto })
   getAnimal(@Param('id') id: string): Promise<PublicRecordDetail> {
-    return this.publicFosterRecordsService.getAnimal(id);
+    const ressult = this.publicFosterRecordsService.getAnimal(id);
+    console.log('getAnimal result:', ressult);
+    return ressult;
   }
 }

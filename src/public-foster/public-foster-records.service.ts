@@ -66,12 +66,15 @@ export class PublicFosterRecordsService {
       throw new NotFoundException('public-record-animal-not-found');
     }
 
+    console.log('animal', animal);
+
     const records = await this.prisma.fosterRecord.findMany({
       where: { animalId: id },
       include: { images: true },
       orderBy: { date: 'asc' },
     });
 
+    console.log('records', records);
     return toRecordDetail({ animal, records });
   }
 
