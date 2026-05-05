@@ -79,9 +79,6 @@ export class PublicFosterRecordsService {
     const animals = await this.prisma.animal.findMany({
       where: {
         ownerUserId: userId,
-        records: {
-          some: {},
-        },
       },
       ...PUBLIC_FOSTER_ANIMAL_QUERY,
       orderBy: { createdAt: 'desc' },
