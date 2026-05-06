@@ -17,9 +17,7 @@ const RECORD_STATE_MAP: Record<AnimalStatus, AnimalStatus> = {
   COMPLETED: 'COMPLETED',
 };
 
-const toIsoString = (
-  value: Date | string | null | undefined,
-): string | null => {
+const toIsoString = (value: Date | string | null | undefined): string | null => {
   if (!value) {
     return null;
   }
@@ -31,11 +29,7 @@ const toIsoString = (
   }
 };
 
-const calculateDuration = (
-  start: Date | null,
-  end: Date | null,
-  now: Date,
-): number => {
+const calculateDuration = (start: Date | null, end: Date | null, now: Date): number => {
   if (!start) {
     return 0;
   }
@@ -83,13 +77,9 @@ const mapAnimalDetail = (
     }
   })(),
 
-  currentFosterStartDate: toIsoString(
-    animal.currentFosterStartDate,
-  ),
+  currentFosterStartDate: toIsoString(animal.currentFosterStartDate),
 
-  currentFosterEndDate: toIsoString(
-    animal.currentFosterEndDate,
-  ),
+  currentFosterEndDate: toIsoString(animal.currentFosterEndDate),
 });
 
 const mapRecordEntry = (
@@ -101,11 +91,9 @@ const mapRecordEntry = (
   content: record.content ?? null,
   healthNote: record.healthNote ?? null,
 
-  createdAt:
-    toIsoString(record.date) ?? '',
+  createdAt: toIsoString(record.date) ?? '',
 
-  updatedAt:
-    toIsoString(record.updatedAt) ?? '',
+  updatedAt: toIsoString(record.updatedAt) ?? '',
 
   images: (() => {
     try {
@@ -143,9 +131,7 @@ export const toRecordAnimal = (
     options.now ?? new Date(),
   ),
 
-  state:
-    RECORD_STATE_MAP[animal.status] ??
-    'WAITING',
+  state: RECORD_STATE_MAP[animal.status] ?? 'WAITING',
 
   matchId: animal.id,
 });
@@ -159,37 +145,26 @@ export const toRecordDetail = ({
     organization?: Organization | null;
   };
 
-  records?: (
-    FosterRecord & {
-      images?: FosterRecordImage[];
-    }
-  )[];
+  records?: (FosterRecord & {
+    images?: FosterRecordImage[];
+  })[];
 }): PublicRecordDetail => ({
   id: animal.id,
 
   info: {
     id: animal.id,
 
-    state:
-      RECORD_STATE_MAP[animal.status] ??
-      'WAITING',
+    state: RECORD_STATE_MAP[animal.status] ?? 'WAITING',
 
-    createdAt:
-      toIsoString(animal.createdAt) ?? '',
+    createdAt: toIsoString(animal.createdAt) ?? '',
 
-    organization: mapOrganization(
-      animal.organization,
-    ),
+    organization: mapOrganization(animal.organization),
 
     animal: mapAnimalDetail(animal),
   },
 
   records: (records ?? [])
     .slice()
-    .sort(
-      (left, right) =>
-        new Date(left.date).getTime() -
-        new Date(right.date).getTime(),
-    )
+    .sort((left, right) => new Date(left.date).getTime() - new Date(right.date).getTime())
     .map(mapRecordEntry),
 });

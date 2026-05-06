@@ -21,6 +21,9 @@ import {
 } from '@nestjs/swagger';
 import { AnimalStatus } from '@prisma/client';
 
+import { PublicRecordListResult } from 'src/domain/public-foster/application/record.types';
+import { PublicRecordListResponseDto } from 'src/public-foster/dto/public-record.dto';
+import { PublicFosterRecordsService } from 'src/public-foster/public-foster-records.service';
 import { CurrentUser } from '../common/current-user.decorator';
 import type { AuthUser } from '../common/types';
 import type {
@@ -32,6 +35,7 @@ import type {
   ListAnimalsResult,
   ListRecordsResult,
 } from '../domain/foster/application/types';
+import { ApplyFosterDto } from './dto/foster-application.dto';
 import {
   AnimalListItemDto,
   AnimalStatusDto,
@@ -46,7 +50,6 @@ import {
   UpdateAnimalDto,
   UpdateRecordDto,
 } from './dto/foster.dto';
-import { ApplyFosterDto } from './dto/foster-application.dto';
 import { FosterService } from './foster.service';
 
 @ApiTags('Foster')
@@ -61,7 +64,10 @@ import { FosterService } from './foster.service';
 )
 @Controller('foster')
 export class FosterController {
-  constructor(private readonly fosterService: FosterService) {}
+  constructor(
+    private readonly fosterService: FosterService,
+    private readonly publicFosterRecordsService: PublicFosterRecordsService,
+  ) {}
 
   @Post('applications')
   @UseGuards(AuthGuard('jwt'))
@@ -72,6 +78,14 @@ export class FosterController {
     @Body() body: ApplyFosterDto,
   ): Promise<void> {
     return this.fosterService.applyFoster(user, body);
+  }
+
+  @Get('user/animals')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({ summary: 'Get animal detail' })
+  @ApiOkResponse({ type: PublicRecordListResponseDto })
+  getAnimalsByUserId(@CurrentUser() user: AuthUser): Promise<PublicRecordListResult> {
+    return this.publicFosterRecordsService.getAnimalsByUserId(user.userId);
   }
 
   @Get('animals')

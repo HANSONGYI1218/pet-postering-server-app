@@ -2,6 +2,8 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   AnimalAge,
   AnimalEnvironmentTagType,
+  AnimalHealthTagType,
+  AnimalPersonalityTagType,
   AnimalSize,
   AnimalSpecialNoteTagType,
   AnimalType,
@@ -137,10 +139,16 @@ export class FosterConditionResponseDto {
   preferredAges!: AnimalAge[];
 
   @ApiProperty({ enum: AnimalEnvironmentTagType, isArray: true })
-  fosterEnvironments!: AnimalEnvironmentTagType[];
+  fosterEnvironmentsTags!: AnimalEnvironmentTagType[];
 
   @ApiProperty({ enum: AnimalSpecialNoteTagType, isArray: true })
-  specialNoteTags!: AnimalSpecialNoteTagType[];
+  fosterSpecialNoteTags!: AnimalSpecialNoteTagType[];
+
+  @ApiProperty({ enum: AnimalHealthTagType, isArray: true })
+  fosterHealthTags!: AnimalHealthTagType[];
+
+  @ApiProperty({ enum: AnimalPersonalityTagType, isArray: true })
+  fosterPersonalityTags!: AnimalPersonalityTagType[];
 
   @ApiPropertyOptional()
   fosterPeriod?: string | null;

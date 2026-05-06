@@ -65,6 +65,12 @@ export class CreateAnimalDto {
   @IsOptional()
   @IsString()
   @Length(0, 100)
+  age?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @Length(0, 100)
   breed?: string;
 
   @ApiPropertyOptional({ description: 'Birth date (ISO string)' })

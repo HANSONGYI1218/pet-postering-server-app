@@ -59,18 +59,20 @@ model UserNotificationSetting {
 }
 
 model FosterCondition {
-  id                 String                     @id @default(cuid())
-  userId             String                     @unique
-  preferredTypes     AnimalType[]               @default([])
-  preferredSizes     AnimalSize[]               @default([])
-  preferredAges      AnimalAge[]                @default([])
-  fosterEnvironments AnimalEnvironmentTagType[] @default([])
-  fosterPeriod       String?
-  specialNoteTags    AnimalSpecialNoteTagType[] @default([])
-  createdAt          DateTime                   @default(now())
-  updatedAt          DateTime                   @updatedAt
-  user               User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  experiences        FosterExperience[]
+  id                     String                     @id @default(cuid())
+  userId                 String                     @unique
+  preferredTypes         AnimalType[]               @default([])
+  preferredSizes         AnimalSize[]               @default([])
+  preferredAges          AnimalAge[]                @default([])
+  fosterEnvironmentsTags AnimalEnvironmentTagType[] @default([])
+  fosterPeriod           String?
+  fosterSpecialNoteTags  AnimalSpecialNoteTagType[] @default([])
+  createdAt              DateTime                   @default(now())
+  updatedAt              DateTime                   @updatedAt
+  fosterHealthTags       AnimalHealthTagType[]      @default([])
+  fosterPersonalityTags  AnimalPersonalityTagType[] @default([])
+  user                   User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  experiences            FosterExperience[]
 }
 
 model FosterExperience {

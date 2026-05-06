@@ -77,6 +77,9 @@ class PublicRecordAnimalInfoDto {
   @ApiPropertyOptional({ enum: AnimalGender, nullable: true })
   gender!: AnimalGender | null;
 
+  @ApiPropertyOptional({ enum: String, nullable: true })
+  age!: string | null;
+
   @ApiPropertyOptional({ type: String, nullable: true })
   introduction!: string | null;
 

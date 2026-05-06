@@ -37,13 +37,14 @@ export const PUBLIC_FOSTER_ANIMAL_QUERY = Prisma.validator<Prisma.AnimalFindMany
   include: PUBLIC_FOSTER_ANIMAL_INCLUDE,
 });
 
-const toNullSafeIsoString = (value: Date | null | undefined): string | null =>
+export const toNullSafeIsoString = (value: Date | null | undefined): string | null =>
   value ? value.toISOString() : null;
 
-const pluckTagValues = <TValue extends string>(tags: { value: TValue }[]): TValue[] =>
-  tags.map((tag) => tag.value);
+export const pluckTagValues = <TValue extends string>(
+  tags: { value: TValue }[],
+): TValue[] => tags.map((tag) => tag.value);
 
-const toOrganization = (
+export const toOrganization = (
   organization: Organization | null,
 ): PublicFosterOrganization | null => {
   if (!organization) {
@@ -62,7 +63,7 @@ const toOrganization = (
   } satisfies PublicFosterOrganization;
 };
 
-const toBase = (
+export const toBase = (
   animal: RawAnimal,
 ): {
   id: string;

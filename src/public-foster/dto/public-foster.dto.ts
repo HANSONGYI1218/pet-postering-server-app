@@ -36,7 +36,7 @@ export class PublicFosterOrganizationDto {
   donationAccountHolder?: string | null;
 }
 
-class PublicFosterAnimalBaseDto {
+export class PublicFosterAnimalBaseDto {
   @ApiProperty()
   id!: string;
 
